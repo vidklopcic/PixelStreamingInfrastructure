@@ -1,0 +1,21 @@
+{
+  "name": "lgmwebserver",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@types/node": "^20.14.2",
+    "@types/ws": "^8.5.10",
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

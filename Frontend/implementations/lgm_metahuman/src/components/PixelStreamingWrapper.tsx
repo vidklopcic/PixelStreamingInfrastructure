@@ -54,7 +54,8 @@ export const PixelStreamingWrapper = ({
             style={{
                 width: '100%',
                 height: '100%',
-                position: 'relative'
+                position: 'relative',
+                backgroundColor: 'black',
             }}
         >
             <div

@@ -11,3 +11,4 @@ coverage/
 common/types/*
 **/.DS_Store
 **/*~
+.idea

@@ -16,12 +16,18 @@ module.exports = {
 		return config;
 	}, {}),
 
-    plugins: [].concat(pages.map((page) => new HtmlWebpackPlugin({
-          title: `${page}`,
-          template: `./src/${page}.html`,
-          filename: `${page}.html`,
-          chunks: [page],
-    }), )),
+    plugins: [
+        // Existing plugins...
+        new webpack.DefinePlugin({
+            'global': 'window' // or 'self', depending on your needs
+        }),
+        ...pages.map((page) => new HtmlWebpackPlugin({
+            title: `${page}`,
+            template: `./src/${page}.html`,
+            filename: `${page}.html`,
+            chunks: [page],
+        })),
+    ],
 
     module: {
       rules: [

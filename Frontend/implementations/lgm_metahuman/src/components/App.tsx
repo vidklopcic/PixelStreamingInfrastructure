@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { PixelStreamingWrapper } from './PixelStreamingWrapper';
+import { LgmConfig } from '../lgm/LgmConfig';
+import { LgmUiWrapper } from '../lgm/LgmUiWrapper';
 
 export const App = () => {
     return (
@@ -14,13 +16,19 @@ export const App = () => {
             <PixelStreamingWrapper
                 initialSettings={{
                     AutoPlayVideo: true,
+                    GamepadInput: false,
+                    KeyboardInput: false,
+                    MouseInput: false,
+                    TouchInput: false,
+                    StreamerAutoJoinInterval: 5000,
                     AutoConnect: true,
-                    ss: 'ws://localhost:80',
-                    StartVideoMuted: true,
-                    HoveringMouse: true,
+                    ss: `wss://${LgmConfig.HOST}`,
+                    StartVideoMuted: false,
+                    HoveringMouse: false,
                     WaitForStreamer: true
                 }}
             />
+            <LgmUiWrapper/>
         </div>
     );
 };
