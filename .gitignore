@@ -8,3 +8,6 @@ SignallingWebServer/Public/
 SignallingWebServer/certificates
 .vscode
 coverage/
+common/types/*
+**/.DS_Store
+**/*~
