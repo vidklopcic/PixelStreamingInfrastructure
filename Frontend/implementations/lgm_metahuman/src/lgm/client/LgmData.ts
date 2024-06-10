@@ -7,7 +7,7 @@ export interface LgmChatMessage {
 
 export interface LgmApiMessage {
     type: string;
-    from?: string;
+    fromUserId?: string;
 
     [key: string]: any;
 }

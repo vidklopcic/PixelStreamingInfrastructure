@@ -14,7 +14,7 @@ export class LgmChatStore {
     }
 
     send(message: string) {
-        this.base.client.sendMessage({
+        this.base.client.broadcast({
             type: 'chat',
             message: {
                 from: this.base.user.id,
@@ -27,7 +27,7 @@ export class LgmChatStore {
     private onMessage(message: LgmApiMessage) {
         switch (message.type) {
             case 'requestChatHistory':
-                this.base.client.sendMessage({
+                this.base.client.broadcast({
                     type: 'chatHistory',
                     chat: this.messages.filter((m) => m.from === this.base.user.id)
                 });

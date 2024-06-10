@@ -1,8 +1,9 @@
 import { autorun, makeAutoObservable, ObservableMap } from 'mobx';
 import { LgmClient } from '../client/LgmClient';
 import { LgmConfig } from '../LgmConfig';
-import { LgmApiMessage, LgmChatMessage, LgmUser } from '../client/LgmData';
+import { LgmApiMessage, LgmChatMessage, LgmRole, LgmUser } from '../client/LgmData';
 import { LgmChatStore } from './LgmChatStore';
+import { LgmWebRTCStore } from './LgmWebRTCStore';
 
 export class LgmStore {
     user: LgmUser = {
@@ -17,9 +18,12 @@ export class LgmStore {
 
     peers = new ObservableMap<string, LgmPeer>();
     chat: LgmChatStore;
+    webrtc: LgmWebRTCStore;
 
-    constructor() {
+    constructor(role: LgmRole) {
+        this.user.role = role;
         this.chat = new LgmChatStore(this);
+        this.webrtc = new LgmWebRTCStore(this);
 
         makeAutoObservable(this);
         this.client.messages.subscribe((message) => this.onMessage(message));
@@ -36,7 +40,7 @@ export class LgmStore {
 
             // send ping message
             if (this.client.connected && this.user.role !== undefined) {
-                this.client.sendMessage({
+                this.client.broadcast({
                     type: 'ping',
                     user: this.user
                 });
@@ -45,7 +49,7 @@ export class LgmStore {
 
         autorun(() => {
             if (this.client.connected) {
-                this.client.sendMessage({ type: 'requestChatHistory' });
+                this.client.broadcast({ type: 'requestChatHistory' });
             }
         });
     }
@@ -58,7 +62,17 @@ export class LgmStore {
         switch (message.type) {
             case 'ping':
                 const user = message.user as LgmUser;
-                this.peers.set(user.id, new LgmPeer(user));
+                if (user.role === undefined) {
+                    console.error('Received ping message without role', user);
+                    return;
+                }
+                const peer = this.peers.get(user.id);
+                if (peer) {
+                    peer.update(user);
+                } else {
+                    this.peers.set(user.id, new LgmPeer(user));
+                    this.webrtc.createOffer(user.id);
+                }
                 break;
         }
     }
@@ -71,6 +85,9 @@ class LgmPeer {
     constructor(user: LgmUser) {
         this.user = user;
     }
-}
 
-export const lgmStore = new LgmStore();
+    update(user: LgmUser) {
+        this.date = new Date();
+        this.user = user;
+    }
+}
