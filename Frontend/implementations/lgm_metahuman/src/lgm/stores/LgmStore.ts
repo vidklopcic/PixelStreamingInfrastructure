@@ -5,8 +5,15 @@ import { LgmApiMessage, LgmChatMessage, LgmUser } from '../client/LgmData';
 import { LgmChatStore } from './LgmChatStore';
 
 export class LgmStore {
-    client = new LgmClient(`${LgmConfig.LGM_SERVER_SSL ? 'wss' : 'ws'}://${LgmConfig.HOST}:${LgmConfig.LGM_SERVER_PORT}`);
-    user: LgmUser = { id: Math.random().toString(36).substring(7) };
+    user: LgmUser = {
+        id: Math.random().toString(36).substring(7),
+        role: undefined,
+        name: undefined
+    };
+    client = new LgmClient(
+        `${LgmConfig.LGM_SERVER_SSL ? 'wss' : 'ws'}://${LgmConfig.HOST}:${LgmConfig.LGM_SERVER_PORT}`,
+        this.user.id
+    );
 
     peers = new ObservableMap<string, LgmPeer>();
     chat: LgmChatStore;
@@ -41,6 +48,10 @@ export class LgmStore {
                 this.client.sendMessage({ type: 'requestChatHistory' });
             }
         });
+    }
+
+    get showUe() {
+        return this.user.role !== undefined;
     }
 
     private onMessage(message: LgmApiMessage) {

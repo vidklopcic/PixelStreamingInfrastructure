@@ -4,6 +4,7 @@ import React from 'react';
 import { PixelStreamingWrapper } from './PixelStreamingWrapper';
 import { LgmConfig } from '../lgm/LgmConfig';
 import { LgmUiWrapper } from '../lgm/LgmUiWrapper';
+import { lgmStore } from '../lgm/stores/LgmStore';
 
 export const App = () => {
     return (
@@ -13,7 +14,7 @@ export const App = () => {
                 width: '100%'
             }}
         >
-            <PixelStreamingWrapper
+            {lgmStore.showUe && <PixelStreamingWrapper
                 initialSettings={{
                     AutoPlayVideo: true,
                     GamepadInput: false,
@@ -27,7 +28,7 @@ export const App = () => {
                     HoveringMouse: false,
                     WaitForStreamer: true
                 }}
-            />
+            />}
             <LgmUiWrapper/>
         </div>
     );

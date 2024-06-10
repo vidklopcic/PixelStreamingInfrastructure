@@ -7,9 +7,11 @@ export class LgmClient {
     connection: SocketConnector;
     connected = false;
     messages = new Subject<LgmApiMessage>();
+    private userId: string;
 
-    constructor(wsEndpoint: string) {
+    constructor(wsEndpoint: string, userId: string) {
         // Create a new socket connector
+        this.userId = userId;
         this.connection = new SocketConnector(wsEndpoint);
         this.connection.connectedChanges.subscribe((connected) => {
             this.connected = connected;
@@ -25,6 +27,7 @@ export class LgmClient {
     }
 
     sendMessage(message: LgmApiMessage) {
+        message.from = this.userId;
         this.connection.send(JSON.stringify(message));
     }
 }
