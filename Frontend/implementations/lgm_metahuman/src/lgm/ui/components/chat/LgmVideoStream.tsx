@@ -4,6 +4,7 @@ import { CSSProperties } from 'react';
 interface LgmVideoStreamProps {
     stream: MediaStream;
     style?: CSSProperties;
+    muted?: boolean;
 }
 
 export const LgmVideoStream = observer((props: LgmVideoStreamProps) => {
@@ -16,11 +17,17 @@ export const LgmVideoStream = observer((props: LgmVideoStreamProps) => {
             key={props.stream.id}
             autoPlay
             playsInline
+            muted={props.muted}
             style={{
                 width: '100%',
-                height: '100%'
+                height: '100%',
+                objectFit: 'cover'
             }}
-            ref={(video) => video.srcObject = props.stream}
+            ref={(video) => {
+                if (video) {
+                    video.srcObject = props.stream;
+                }
+            }}
         />
     </div>;
 });

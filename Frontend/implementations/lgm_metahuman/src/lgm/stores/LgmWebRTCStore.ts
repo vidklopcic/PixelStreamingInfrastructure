@@ -10,13 +10,14 @@ interface PeerConnection {
 export class LgmWebRTCStore {
     private base: LgmStore;
     private peerConnections: ObservableMap<string, PeerConnection>;
-    localStream?: MediaStream;
+    localStream?: MediaStream = undefined;
 
     constructor(base: LgmStore) {
         this.base = base;
         this.peerConnections = new ObservableMap();
         this.base.client.messages.subscribe((message) => this.onMessage(message));
         makeAutoObservable(this);
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => this.localStream = stream);
     }
 
     get peerStreams() {

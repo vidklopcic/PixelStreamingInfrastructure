@@ -9,17 +9,21 @@ import {
 
 export interface PixelStreamingWrapperProps {
     initialSettings?: Partial<AllSettings>;
+    cover?: boolean;
+    radius?: boolean;
 }
 
 export const PixelStreamingWrapper = ({
-    initialSettings
-}: PixelStreamingWrapperProps) => {
+                                          initialSettings,
+                                          cover,
+                                          radius
+                                      }: PixelStreamingWrapperProps) => {
     // A reference to parent div element that the Pixel Streaming library attaches into:
     const videoParent = useRef<HTMLDivElement>(null);
 
     // Pixel streaming library instance is stored into this state variable after initialization:
     const [pixelStreaming, setPixelStreaming] = useState<PixelStreaming>();
-    
+
     // A boolean state variable that determines if the Click to play overlay is shown:
     const [clickToPlayVisible, setClickToPlayVisible] = useState(false);
 
@@ -31,7 +35,7 @@ export const PixelStreamingWrapper = ({
             const streaming = new PixelStreaming(config, {
                 videoElementParent: videoParent.current
             });
-            
+
             // register a playStreamRejected handler to show Click to play overlay if needed:
             streaming.addEventListener('playStreamRejected', () => {
                 setClickToPlayVisible(true);
@@ -44,18 +48,22 @@ export const PixelStreamingWrapper = ({
             return () => {
                 try {
                     streaming.disconnect();
-                } catch {}
+                } catch {
+                }
             };
         }
     }, []);
 
     return (
         <div
+            className={cover ? 'object-fit-cover' : ''}
             style={{
                 width: '100%',
                 height: '100%',
                 position: 'relative',
                 backgroundColor: 'black',
+                overflow: 'hidden',
+                borderRadius: radius ? 16 : 0
             }}
         >
             <div

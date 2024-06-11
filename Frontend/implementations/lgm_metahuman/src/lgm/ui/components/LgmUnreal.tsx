@@ -4,19 +4,27 @@ import { LgmStoreContext } from '../../stores/LgmStore';
 import { LgmConfig } from '../../LgmConfig';
 import { PixelStreamingWrapper } from '../../../components/PixelStreamingWrapper';
 
-export const LgmUnreal = observer(() => {
+interface LgmUnrealProps {
+    interactive?: boolean;
+    cover?: boolean;
+    radius?: boolean;
+}
+
+export const LgmUnreal = observer((props: LgmUnrealProps) => {
     const store = useContext(LgmStoreContext);
     if (!store) {
         return null;
     }
 
     return <PixelStreamingWrapper
+        cover={props.cover}
+        radius={props.radius}
         initialSettings={{
             AutoPlayVideo: true,
-            GamepadInput: false,
-            KeyboardInput: false,
-            MouseInput: false,
-            TouchInput: false,
+            GamepadInput: !!props.interactive,
+            KeyboardInput: !!props.interactive,
+            MouseInput: !!props.interactive,
+            TouchInput: !!props.interactive,
             StreamerAutoJoinInterval: 5000,
             AutoConnect: true,
             ss: LgmConfig.MH_SERVER,
