@@ -6,12 +6,12 @@ export const LgmChatMessages = observer(() => {
     const store = useContext(LgmStoreContext);
     return <>
         {store.chat.messages.map((message, index) => {
-            const isSelf = message.from === store.user.id;
+            const isSelf = store.user.role === message.role;
             return <div key={message.id} style={{
                 alignSelf: isSelf ? 'end' : 'start',
                 ...MessageStyle,
                 borderTopLeftRadius: isSelf ? 16 : 0,
-                borderBottomRightRadius: isSelf ? 0 : 16,
+                borderBottomRightRadius: isSelf ? 0 : 16
             }}>
                 {message.message}
             </div>;

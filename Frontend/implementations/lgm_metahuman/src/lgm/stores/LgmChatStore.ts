@@ -14,19 +14,17 @@ export class LgmChatStore {
     }
 
     send(message: string) {
-        this.messages.push({
+        const lgmMessage = {
             id: Math.random().toString(),
             from: this.base.user.id,
+            role: this.base.user.role,
             message: message,
             ts: Date.now()
-        });
+        } as LgmChatMessage;
+        this.messages.push(lgmMessage);
         this.base.client.broadcast({
             type: 'chat',
-            message: {
-                from: this.base.user.id,
-                message: message,
-                ts: Date.now()
-            }
+            message: lgmMessage
         });
     }
 
@@ -35,13 +33,17 @@ export class LgmChatStore {
             case 'requestChatHistory':
                 this.base.client.broadcast({
                     type: 'chatHistory',
-                    chat: this.messages.filter((m) => m.from === this.base.user.id)
+                    chat: this.messages
                 });
                 break;
             case 'chatHistory':
                 const chatHistory = message.chat as LgmChatMessage[];
                 this.messages = [...this.messages, ...chatHistory];
-                this.messages = this.messages.filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
+                const uniqueMessages: { [k: string]: LgmChatMessage } = {};
+                for (const message of this.messages) {
+                    uniqueMessages[message.id] = message;
+                }
+                this.messages = Object.values(uniqueMessages);
                 this.messages.sort((a, b) => a.ts - b.ts);
                 break;
             case 'chat':
