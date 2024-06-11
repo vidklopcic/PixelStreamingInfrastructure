@@ -13,7 +13,9 @@ export const LgmInstructorUi = observer(() => {
     return <div style={RootStyle}>
         <div style={StreamsStyle}>
             <div style={LgmUnrealContainerStyle}>
-                <LgmUnreal cover radius />
+                <LgmUnreal
+                    interactive={true}
+                    cover radius />
             </div>
             {!!peerStreams?.length && <LgmVideoStream
                 stream={peerStreams[0]}
@@ -42,7 +44,7 @@ const SideUiContainerStyle: CSSProperties = {
     display: 'flex',
     gap: 16,
     flexGrow: 1,
-    width: 0,
+    width: 0
 };
 
 const StreamsStyle: CSSProperties = {

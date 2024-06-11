@@ -15,7 +15,7 @@ export class LgmStore {
         name: undefined
     };
     client = new LgmClient(
-        `${LgmConfig.LGM_SERVER_SSL ? 'wss' : 'ws'}://${LgmConfig.LGM_SERVER_HOST}:${LgmConfig.LGM_SERVER_PORT}`,
+        LgmConfig.LGM_SERVER,
         this.user.id
     );
 
