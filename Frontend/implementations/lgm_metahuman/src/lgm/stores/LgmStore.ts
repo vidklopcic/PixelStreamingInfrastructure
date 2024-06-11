@@ -4,6 +4,9 @@ import { LgmConfig } from '../LgmConfig';
 import { LgmApiMessage, LgmChatMessage, LgmRole, LgmUser } from '../client/LgmData';
 import { LgmChatStore } from './LgmChatStore';
 import { LgmWebRTCStore } from './LgmWebRTCStore';
+import { createContext } from 'react';
+
+export const LgmStoreContext = createContext<LgmStore | undefined>(undefined);
 
 export class LgmStore {
     user: LgmUser = {
@@ -12,7 +15,7 @@ export class LgmStore {
         name: undefined
     };
     client = new LgmClient(
-        `${LgmConfig.LGM_SERVER_SSL ? 'wss' : 'ws'}://${LgmConfig.HOST}:${LgmConfig.LGM_SERVER_PORT}`,
+        `${LgmConfig.LGM_SERVER_SSL ? 'wss' : 'ws'}://${LgmConfig.LGM_SERVER_HOST}:${LgmConfig.LGM_SERVER_PORT}`,
         this.user.id
     );
 

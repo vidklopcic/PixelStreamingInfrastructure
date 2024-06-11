@@ -5,5 +5,5 @@ import { App } from './components/App';
 
 document.body.onload = function () {
     // Attach the React app root component to document.body
-    createRoot(document.body).render(<App />);
+    createRoot(document.getElementById('root')).render(<App />);
 };
