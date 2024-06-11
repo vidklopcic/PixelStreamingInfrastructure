@@ -14,6 +14,12 @@ export class LgmChatStore {
     }
 
     send(message: string) {
+        this.messages.push({
+            id: Math.random().toString(),
+            from: this.base.user.id,
+            message: message,
+            ts: Date.now()
+        });
         this.base.client.broadcast({
             type: 'chat',
             message: {

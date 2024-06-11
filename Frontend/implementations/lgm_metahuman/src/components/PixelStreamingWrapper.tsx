@@ -6,6 +6,7 @@ import {
     AllSettings,
     PixelStreaming
 } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import { LgmStyles } from '../lgm/ui/LgmStyles';
 
 export interface PixelStreamingWrapperProps {
     initialSettings?: Partial<AllSettings>;
@@ -63,7 +64,8 @@ export const PixelStreamingWrapper = ({
                 position: 'relative',
                 backgroundColor: 'black',
                 overflow: 'hidden',
-                borderRadius: radius ? 16 : 0
+                borderRadius: radius ? 16 : 0,
+                boxShadow: LgmStyles.shadow,
             }}
         >
             <div

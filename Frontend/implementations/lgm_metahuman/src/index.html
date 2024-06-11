@@ -24,6 +24,34 @@
         .object-fit-cover video {
             object-fit: cover !important;
         }
+
+        .video-shadow video {
+            box-shadow: 0 0 16px rgba(255, 255, 255, 0.3) !important;
+        }
+
+        body {
+            color: white;
+        }
+
+        * {
+            flex-shrink: 0;
+        }
+
+        .hoverable:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        @media (min-aspect-ratio: 19/13) {
+            .desktop-row {
+                flex-direction: row;
+            }
+        }
+
+        @media (max-aspect-ratio: 19/13) {
+            .mobile-column {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 
