@@ -153,7 +153,7 @@ export class LgmWebRTCStore {
         };
 
         // If the user is a student, they will add their local media stream to the connection
-        if (this.base.user.role === LgmRole.student) {
+        if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
             if (!this.localStream) {
                 this.localStream = await navigator.mediaDevices?.getUserMedia({
                     video: true,
