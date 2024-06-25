@@ -17,11 +17,18 @@ export class LgmWebRTCStore {
         this.peerConnections = new ObservableMap();
         this.base.client.messages.subscribe((message) => this.onMessage(message));
         makeAutoObservable(this);
-        navigator.mediaDevices?.getUserMedia({ video: true, audio: true }).then((stream) => this.localStream = stream);
+        navigator.mediaDevices?.getUserMedia({
+            video: this.base.user.role === LgmRole.student,
+            audio: true
+        }).then((stream) => this.localStream = stream);
     }
 
     get peerStreams() {
-        return Array.from(this.peerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null) as MediaStream[];
+        return Array.from(this.peerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null && !!stream.getVideoTracks().length) as MediaStream[];
+    }
+
+    get peerAudioStreams() {
+        return Array.from(this.peerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null && !stream.getVideoTracks().length) as MediaStream[];
     }
 
     private async onMessage(message: LgmApiMessage) {
@@ -148,7 +155,10 @@ export class LgmWebRTCStore {
         // If the user is a student, they will add their local media stream to the connection
         if (this.base.user.role === LgmRole.student) {
             if (!this.localStream) {
-                this.localStream = await navigator.mediaDevices?.getUserMedia({ video: true, audio: true });
+                this.localStream = await navigator.mediaDevices?.getUserMedia({
+                    video: true,
+                    audio: this.base.user.role === LgmRole.student
+                });
             }
             this.localStream?.getTracks().forEach((track) => peerConnection.addTrack(track, this.localStream));
         }

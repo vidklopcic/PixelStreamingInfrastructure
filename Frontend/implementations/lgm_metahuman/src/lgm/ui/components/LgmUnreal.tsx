@@ -28,7 +28,7 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             StreamerAutoJoinInterval: 5000,
             AutoConnect: true,
             ss: LgmConfig.MH_SERVER,
-            StartVideoMuted: false,
+            StartVideoMuted: true,
             HoveringMouse: false,
             WaitForStreamer: true
         }}

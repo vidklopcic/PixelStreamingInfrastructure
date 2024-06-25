@@ -6,10 +6,12 @@ import React, { CSSProperties, useContext } from 'react';
 import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmUeControls } from './components/LgmUeControls';
+import { LgmAudioStream } from './components/chat/LgmAudioStream';
 
 export const LgmSupervisorUi = observer(() => {
     const store = useContext(LgmStoreContext);
     const peerStreams = store.webrtc.peerStreams;
+    const peerAudioStreams = store.webrtc.peerAudioStreams;
     return <div style={RootStyle}>
         <div style={StreamsStyle}>
             <div style={LgmUnrealContainerStyle}>
@@ -19,6 +21,7 @@ export const LgmSupervisorUi = observer(() => {
                 stream={peerStreams[0]}
                 style={VideoStyle}
             />}
+            {!!peerAudioStreams?.length && peerAudioStreams.map((s) => <LgmAudioStream stream={s} />)}
         </div>
         <div style={ChatContainerStyle}>
             <LgmChat />
@@ -41,7 +44,7 @@ const ChatContainerStyle: CSSProperties = {
     display: 'flex',
     flexGrow: 1,
     flexBasis: 0,
-    maxWidth: 400,
+    maxWidth: 400
 };
 
 const StreamsStyle: CSSProperties = {
