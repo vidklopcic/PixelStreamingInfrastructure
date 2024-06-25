@@ -10,7 +10,14 @@ interface LgmRolePickerProps {
 
 export const LgmRolePicker = observer((props: LgmRolePickerProps) => {
     // State to store the server address
-    const [serverAddress, setServerAddress] = useState('');
+    const [serverAddress, setServerAddress] = useState(() => {
+        if (window.location.hash?.length) {
+            const value = window.location.hash.substring(1);
+            history.replaceState(null, null, ' ');
+            LgmConfig.set(value);
+            return value;
+        }
+    });
 
     // Function to handle the change in server address input
     const handleServerAddressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,13 +28,10 @@ export const LgmRolePicker = observer((props: LgmRolePickerProps) => {
     return (
         <div style={ContainerStyle}>
             {/* Server address input field */}
-            <input
-                type="text"
-                placeholder="Enter server address (e.g. 192.168.1.245)"
-                value={serverAddress}
-                onChange={handleServerAddressChange}
-                style={InputStyle}
-            />
+            <span style={IpTextStyle}>
+                {!!serverAddress && serverAddress}
+                {!serverAddress && 'Server address is not set!'}
+            </span>
             {/* Buttons for role selection */}
             <div style={FlexRowStyle}>
                 <button
@@ -70,4 +74,9 @@ const InputStyle: CSSProperties = {
     padding: '4px 8px',
     fontSize: '14px',
     width: '300px'
+};
+
+const IpTextStyle: CSSProperties = {
+    fontWeight: 'bold',
+    fontSize: 14
 };
