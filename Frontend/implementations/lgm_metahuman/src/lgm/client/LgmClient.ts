@@ -22,7 +22,6 @@ export class LgmClient {
 
     private onMessage(message: string) {
         const messageObject = JSON.parse(message) as LgmApiMessage;
-        console.log('LGMMessage:', messageObject.type);
         this.messages.next(messageObject);
     }
 
