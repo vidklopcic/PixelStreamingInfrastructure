@@ -9,12 +9,14 @@ interface PeerConnection {
 
 export class LgmWebRTCStore {
     private base: LgmStore;
-    private peerConnections: ObservableMap<string, PeerConnection>;
+    private txPeerConnections: ObservableMap<string, PeerConnection>;
+    private rxPeerConnections: ObservableMap<string, PeerConnection>;
     localStream?: MediaStream = undefined;
 
     constructor(base: LgmStore) {
         this.base = base;
-        this.peerConnections = new ObservableMap();
+        this.txPeerConnections = new ObservableMap();
+        this.rxPeerConnections = new ObservableMap();
         this.base.client.messages.subscribe((message) => this.onMessage(message));
         makeAutoObservable(this);
         this.initializeLocalStream();
@@ -41,11 +43,11 @@ export class LgmWebRTCStore {
     }
 
     get peerStreams() {
-        return Array.from(this.peerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null && !!stream.getVideoTracks().length) as MediaStream[];
+        return Array.from(this.rxPeerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null && !!stream.getVideoTracks().length) as MediaStream[];
     }
 
     get peerAudioStreams() {
-        return Array.from(this.peerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null && !!stream.getAudioTracks().length) as MediaStream[];
+        return Array.from(this.rxPeerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null && !!stream.getAudioTracks().length) as MediaStream[];
     }
 
     private async onMessage(message: LgmApiMessage) {
@@ -63,7 +65,8 @@ export class LgmWebRTCStore {
     }
 
     async createOffer(peerId: string) {
-        const peerConnection = await this.createPeerConnection(peerId);
+        console.log('create offer to', peerId);
+        const peerConnection = await this.createPeerConnection(this.txPeerConnections, peerId);
 
         // Create the offer
         const offer = await peerConnection.connection.createOffer();
@@ -84,7 +87,7 @@ export class LgmWebRTCStore {
             return;
         }
 
-        const peerConnection = await this.createPeerConnection(from!);
+        const peerConnection = await this.createPeerConnection(this.rxPeerConnections, from!);
 
         // Set the remote description
         await peerConnection.connection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -108,7 +111,7 @@ export class LgmWebRTCStore {
             return;
         }
 
-        const peerConnection = this.peerConnections.get(from!);
+        const peerConnection = this.txPeerConnections.get(from!);
         if (peerConnection) {
             await peerConnection.connection.setRemoteDescription(new RTCSessionDescription(answer));
         }
@@ -120,15 +123,16 @@ export class LgmWebRTCStore {
             return;
         }
 
-        const peerConnection = this.peerConnections.get(from!);
+        const peerConnection = this.txPeerConnections.get(from!);
         if (peerConnection && candidate) {
             await peerConnection.connection.addIceCandidate(new RTCIceCandidate(candidate));
         }
     }
 
-    private async createPeerConnection(peerId: string): Promise<PeerConnection> {
-        if (this.peerConnections.has(peerId)) {
-            return this.peerConnections.get(peerId)!;
+    private async createPeerConnection(connections: ObservableMap<string, PeerConnection>, peerId: string): Promise<PeerConnection> {
+        if (connections.has(peerId)) {
+            console.log('existing peer connection', peerId);
+            return connections.get(peerId)!;
         }
 
         const peerConnection = new RTCPeerConnection();
@@ -145,7 +149,7 @@ export class LgmWebRTCStore {
         };
 
         peerConnection.ontrack = (event) => {
-            const peer = this.peerConnections.get(peerId);
+            const peer = connections.get(peerId);
             if (peer) {
                 peer.mediaStream = event.streams[0];
             }
@@ -172,7 +176,8 @@ export class LgmWebRTCStore {
         }
 
         const peer = { connection: peerConnection, mediaStream: null } as PeerConnection;
-        this.peerConnections.set(peerId, peer);
+        connections.set(peerId, peer);
+        console.log('created peer connection', peerId);
 
         return peer;
     }
@@ -189,10 +194,10 @@ export class LgmWebRTCStore {
     }
 
     private closePeerConnection(peerId: string) {
-        const peer = this.peerConnections.get(peerId);
+        const peer = this.txPeerConnections.get(peerId);
         if (peer) {
             peer.connection.close();
-            this.peerConnections.delete(peerId);
+            this.txPeerConnections.delete(peerId);
         }
     }
 }
