@@ -1,5 +1,5 @@
 import { observer } from 'mobx-react-lite';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import React, { CSSProperties } from 'react';
 import { LgmRole } from '../../client/LgmData';
 import { LgmConfig } from '../../LgmConfig';
@@ -13,17 +13,15 @@ export const LgmRolePicker = observer((props: LgmRolePickerProps) => {
     const [serverAddress, setServerAddress] = useState(() => {
         if (window.location.hash?.length) {
             const value = window.location.hash.substring(1);
-            history.replaceState(null, null, ' ');
             LgmConfig.set(value);
             return value;
         }
     });
-
-    // Function to handle the change in server address input
-    const handleServerAddressChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        LgmConfig.set(event.target.value);
-        setServerAddress(event.target.value);
-    };
+    useEffect(() => {
+        const value = window.location.hash.substring(1);
+        LgmConfig.set(value);
+        setServerAddress(value);
+    }, [window.location.hash]);
 
     return (
         <div style={ContainerStyle}>
