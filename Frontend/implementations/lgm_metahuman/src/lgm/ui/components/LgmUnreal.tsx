@@ -12,7 +12,7 @@ interface LgmUnrealProps {
 
 export const LgmUnreal = observer((props: LgmUnrealProps) => {
     const store = useContext(LgmStoreContext);
-    if (!store || true) {
+    if (!store) {
         return null;
     }
 
