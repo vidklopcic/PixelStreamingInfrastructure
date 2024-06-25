@@ -17,10 +17,27 @@ export class LgmWebRTCStore {
         this.peerConnections = new ObservableMap();
         this.base.client.messages.subscribe((message) => this.onMessage(message));
         makeAutoObservable(this);
-        navigator.mediaDevices?.getUserMedia({
-            video: this.base.user.role === LgmRole.student,
-            audio: true
-        }).then((stream) => this.localStream = stream);
+        this.initializeLocalStream();
+    }
+
+    private async initializeLocalStream() {
+        const constraints = this.getMediaConstraints();
+        try {
+            this.localStream = await navigator.mediaDevices?.getUserMedia(constraints);
+        } catch (error) {
+            console.error('Error accessing media devices:', error);
+        }
+    }
+
+    private getMediaConstraints(): MediaStreamConstraints {
+        switch (this.base.user.role) {
+            case LgmRole.student:
+                return { video: true, audio: true };
+            case LgmRole.instructor:
+                return { audio: true };
+            default:
+                return { audio: false, video: false };
+        }
     }
 
     get peerStreams() {
@@ -28,7 +45,7 @@ export class LgmWebRTCStore {
     }
 
     get peerAudioStreams() {
-        return Array.from(this.peerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null && !stream.getVideoTracks().length) as MediaStream[];
+        return Array.from(this.peerConnections.values()).map((peer) => peer.mediaStream).filter((stream) => stream !== null && !!stream.getAudioTracks().length) as MediaStream[];
     }
 
     private async onMessage(message: LgmApiMessage) {
@@ -61,7 +78,6 @@ export class LgmWebRTCStore {
         });
     }
 
-    // Handle receiving an offer from a peer
     private async handleOffer(message: LgmApiMessage) {
         const { from, offer, to } = message;
         if (to !== this.base.user.id) {
@@ -86,7 +102,6 @@ export class LgmWebRTCStore {
         });
     }
 
-    // Handle receiving an answer from a peer
     private async handleAnswer(message: LgmApiMessage) {
         const { from, answer, to } = message;
         if (to !== this.base.user.id) {
@@ -99,7 +114,6 @@ export class LgmWebRTCStore {
         }
     }
 
-    // Handle receiving an ICE candidate from a peer
     private async handleIceCandidate(message: LgmApiMessage) {
         const { from, candidate, to } = message;
         if (to !== this.base.user.id) {
@@ -112,7 +126,6 @@ export class LgmWebRTCStore {
         }
     }
 
-    // Create and initialize a new RTCPeerConnection
     private async createPeerConnection(peerId: string): Promise<PeerConnection> {
         if (this.peerConnections.has(peerId)) {
             return this.peerConnections.get(peerId)!;
@@ -120,7 +133,6 @@ export class LgmWebRTCStore {
 
         const peerConnection = new RTCPeerConnection();
 
-        // Handle ICE candidates
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
                 this.base.client.broadcast({
@@ -132,7 +144,6 @@ export class LgmWebRTCStore {
             }
         };
 
-        // Handle track event to receive remote stream
         peerConnection.ontrack = (event) => {
             const peer = this.peerConnections.get(peerId);
             if (peer) {
@@ -152,25 +163,31 @@ export class LgmWebRTCStore {
             }
         };
 
-        // If the user is a student, they will add their local media stream to the connection
-        if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
+        // Add local stream based on user role
+        if (this.shouldAddLocalStream()) {
             if (!this.localStream) {
-                this.localStream = await navigator.mediaDevices?.getUserMedia({
-                    video: true,
-                    audio: this.base.user.role === LgmRole.student
-                });
+                await this.initializeLocalStream();
             }
-            this.localStream?.getTracks().forEach((track) => peerConnection.addTrack(track, this.localStream));
+            this.localStream?.getTracks().forEach((track) => peerConnection.addTrack(track, this.localStream!));
         }
 
-        // Store the peer connection
         const peer = { connection: peerConnection, mediaStream: null } as PeerConnection;
         this.peerConnections.set(peerId, peer);
 
         return peer;
     }
 
-    // Close and remove a peer connection
+    private shouldAddLocalStream(): boolean {
+        switch (this.base.user.role) {
+            case LgmRole.student:
+                return true;
+            case LgmRole.instructor:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private closePeerConnection(peerId: string) {
         const peer = this.peerConnections.get(peerId);
         if (peer) {
