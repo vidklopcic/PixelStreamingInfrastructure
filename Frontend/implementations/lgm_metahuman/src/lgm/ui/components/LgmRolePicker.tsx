@@ -9,44 +9,22 @@ interface LgmRolePickerProps {
 }
 
 export const LgmRolePicker = observer((props: LgmRolePickerProps) => {
-    // State to store the server address
-    const [serverAddress, setServerAddress] = useState(() => {
-        if (window.location.hash?.length) {
-            const value = window.location.hash.substring(1);
-            LgmConfig.set(value);
-            return value;
-        }
-    });
-    useEffect(() => {
-        const value = window.location.hash.substring(1);
-        LgmConfig.set(value);
-        setServerAddress(value);
-    }, [window.location.hash]);
-
     return (
         <div style={ContainerStyle}>
-            {/* Server address input field */}
-            <span style={IpTextStyle}>
-                {!!serverAddress && serverAddress}
-                {!serverAddress && 'Server address is not set!'}
-            </span>
             {/* Buttons for role selection */}
             <div style={FlexRowStyle}>
                 <button
                     onClick={() => props.onRoleSelected(LgmRole.instructor)}
-                    disabled={!serverAddress}
                 >
                     Instructor
                 </button>
                 <button
                     onClick={() => props.onRoleSelected(LgmRole.student)}
-                    disabled={!serverAddress}
                 >
                     Student
                 </button>
                 <button
                     onClick={() => props.onRoleSelected(LgmRole.supervisor)}
-                    disabled={!serverAddress}
                 >
                     Supervisor
                 </button>

@@ -6,9 +6,9 @@ pushd "%~dp0"
 title Cirrus
 
 @Rem Download certificates
-echo Downloading certificates...
-powershell -Command "(New-Object Net.WebClient).DownloadFile('https://xr.gamelab.si/.cert/cert.pem', '..\..\certificates\client-cert.pem')"
-powershell -Command "(New-Object Net.WebClient).DownloadFile('https://xr.gamelab.si/.cert/key.pem', '..\..\certificates\client-key.pem')"
+:: echo Downloading certificates...
+:: powershell -Command "(New-Object Net.WebClient).DownloadFile('https://xr.gamelab.si/.cert/cert.pem', '..\..\certificates\client-cert.pem')"
+:: powershell -Command "(New-Object Net.WebClient).DownloadFile('https://xr.gamelab.si/.cert/key.pem', '..\..\certificates\client-key.pem')"
 
 @Rem Echo local IP address
 echo IP ADDRESS:

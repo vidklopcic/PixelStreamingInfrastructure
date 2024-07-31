@@ -27,6 +27,12 @@ cd "%extract_dir%\LGMWebServer"
 call npm.cmd install
 call npm.cmd run build
 
+REM Step 4: Navigate to Frontend/implementations/lgm_metahuman and run npm install and build
+echo Running npm install and build in Frontend/implementations/lgm_metahuman...
+cd "..\Frontend\implementations\lgm_metahuman"
+call npm.cmd install
+call npm.cmd run build
+
 echo Deployment completed successfully!
 
 REM Clean up
