@@ -1,14 +1,11 @@
-import {WebSocketServer} from 'ws';
+import WebSocket from 'ws';
 import {createServer} from 'https';
 import {readFile, readFileSync} from 'fs';
-import {join, extname, dirname} from 'path';
-import {fileURLToPath} from 'url';
+import {join, extname} from 'path';
 
 const PORT = 443;  // Standard HTTPS port
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const STATIC_DIR = join(__dirname, '..', 'Frontend', 'implementations', 'lgm_metahuman', 'dist');
-const CERT_DIR = join(__dirname, '..', 'SignallingWebServer', 'certificates');
+const STATIC_DIR = join(__dirname, '..', '..', 'Frontend', 'implementations', 'lgm_metahuman', 'dist');
+const CERT_DIR = join(__dirname, '..', '..', 'SignallingWebServer', 'certificates');
 
 // Read SSL certificate files
 const privateKey = readFileSync(join(CERT_DIR, 'client-key.pem'), 'utf8');
@@ -58,7 +55,7 @@ const server = createServer(credentials, (req, res) => {
 });
 
 // Set up secure WebSocket server
-const wss = new WebSocketServer({server});
+const wss = new WebSocket.Server({server});
 
 wss.on('connection', (ws) => {
     console.log('Client connected');
