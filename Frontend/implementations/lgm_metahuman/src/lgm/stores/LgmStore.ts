@@ -5,6 +5,8 @@ import { LgmApiMessage, LgmChatMessage, LgmRole, LgmUser } from '../client/LgmDa
 import { LgmChatStore } from './LgmChatStore';
 import { LgmWebRTCStore } from './LgmWebRTCStore';
 import { createContext } from 'react';
+import { PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import { LGMUeControl } from './LgmUEControl';
 
 export const LgmStoreContext = createContext<LgmStore | undefined>(undefined);
 
@@ -23,10 +25,16 @@ export class LgmStore {
     chat: LgmChatStore;
     webrtc: LgmWebRTCStore;
 
+    // Pixel streaming
+    ueControl: LGMUeControl;
+    pixelStreaming?: PixelStreaming;
+    pixelStreamingConnected = false;
+
     constructor(role: LgmRole) {
         this.user.role = role;
         this.chat = new LgmChatStore(this);
         this.webrtc = new LgmWebRTCStore(this);
+        this.ueControl = new LGMUeControl(this);
 
         makeAutoObservable(this);
         this.client.messages.subscribe((message) => this.onMessage(message));

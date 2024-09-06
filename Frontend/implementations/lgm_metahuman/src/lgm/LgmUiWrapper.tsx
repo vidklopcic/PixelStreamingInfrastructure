@@ -8,7 +8,8 @@ import { LgmStudentUi } from './ui/LgmStudentUi';
 import { LgmSupervisorUi } from './ui/LgmSupervisorUi';
 
 export const LgmUiWrapper = observer(() => {
-    const [lgmStore, setLgmStore] = useState<LgmStore | undefined>(undefined);
+    // const [lgmStore, setLgmStore] = useState<LgmStore | undefined>(undefined);
+    const [lgmStore, setLgmStore] = useState<LgmStore | undefined>(() => new LgmStore(LgmRole.instructor));
 
     return <LgmStoreContext.Provider value={lgmStore}>
         <div style={ComponentStyle}>

@@ -12,12 +12,16 @@ export interface PixelStreamingWrapperProps {
     initialSettings?: Partial<AllSettings>;
     cover?: boolean;
     radius?: boolean;
+    onStreamingCreated?: (streaming: PixelStreaming) => void;
+    onConneced?: (connected: boolean) => void;
 }
 
 export const PixelStreamingWrapper = ({
                                           initialSettings,
                                           cover,
-                                          radius
+                                          radius,
+                                          onStreamingCreated,
+                                          onConneced
                                       }: PixelStreamingWrapperProps) => {
     // A reference to parent div element that the Pixel Streaming library attaches into:
     const videoParent = useRef<HTMLDivElement>(null);
@@ -42,8 +46,16 @@ export const PixelStreamingWrapper = ({
                 setClickToPlayVisible(true);
             });
 
+            streaming.addEventListener('webRtcConnected', () => {
+                onConneced?.(true);
+            });
+            streaming.addEventListener('webRtcDisconnected', () => {
+                onConneced?.(false);
+            });
+
             // Save the library instance into component state so that it can be accessed later:
             setPixelStreaming(streaming);
+            onStreamingCreated(streaming);
 
             // Clean up on component unmount:
             return () => {
@@ -65,7 +77,7 @@ export const PixelStreamingWrapper = ({
                 backgroundColor: 'black',
                 overflow: 'hidden',
                 borderRadius: radius ? 16 : 0,
-                boxShadow: LgmStyles.shadow,
+                boxShadow: LgmStyles.shadow
             }}
         >
             <div

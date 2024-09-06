@@ -1,22 +1,24 @@
-import { WebSocketServer } from 'ws';
-import { createServer } from 'https';
-import { readFile, readFileSync } from 'fs';
-import { join, extname, dirname } from 'path';
-import { fileURLToPath } from 'url';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const ws_1 = __importDefault(require("ws"));
+const https_1 = require("https");
+const fs_1 = require("fs");
+const path_1 = require("path");
 const PORT = 443; // Standard HTTPS port
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const STATIC_DIR = join(__dirname, '..', 'Frontend', 'implementations', 'lgm_metahuman', 'dist');
-const CERT_DIR = join(__dirname, '..', 'SignallingWebServer', 'certificates');
+const STATIC_DIR = (0, path_1.join)(__dirname, '..', '..', 'Frontend', 'implementations', 'lgm_metahuman', 'dist');
+const CERT_DIR = (0, path_1.join)(__dirname, '..', '..', 'SignallingWebServer', 'certificates');
 // Read SSL certificate files
-const privateKey = readFileSync(join(CERT_DIR, 'client-key.pem'), 'utf8');
-const certificate = readFileSync(join(CERT_DIR, 'client-cert.pem'), 'utf8');
+const privateKey = (0, fs_1.readFileSync)((0, path_1.join)(CERT_DIR, 'client-key.pem'), 'utf8');
+const certificate = (0, fs_1.readFileSync)((0, path_1.join)(CERT_DIR, 'client-cert.pem'), 'utf8');
 const credentials = { key: privateKey, cert: certificate };
 // Create an HTTPS server
-const server = createServer(credentials, (req, res) => {
+const server = (0, https_1.createServer)(credentials, (req, res) => {
     // Serve static files
-    let filePath = join(STATIC_DIR, req.url === '/' ? 'index.html' : req.url ?? 'index.html');
-    const ext = extname(filePath);
+    let filePath = (0, path_1.join)(STATIC_DIR, req.url === '/' ? 'index.html' : req.url ?? 'index.html');
+    const ext = (0, path_1.extname)(filePath);
     let contentType = 'text/html';
     switch (ext) {
         case '.js':
@@ -35,7 +37,7 @@ const server = createServer(credentials, (req, res) => {
             contentType = 'image/jpg';
             break;
     }
-    readFile(filePath, (error, content) => {
+    (0, fs_1.readFile)(filePath, (error, content) => {
         if (error) {
             if (error.code === 'ENOENT') {
                 res.writeHead(404);
@@ -53,14 +55,14 @@ const server = createServer(credentials, (req, res) => {
     });
 });
 // Set up secure WebSocket server
-const wss = new WebSocketServer({ server });
+const wss = new ws_1.default.Server({ server });
 wss.on('connection', (ws) => {
     console.log('Client connected');
     // Broadcast received messages to all clients
     ws.on('message', (message) => {
         console.log(`Received: ${message}`);
         wss.clients.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
+            if (client !== ws && client.readyState === ws_1.default.OPEN) {
                 client.send(message.toString('utf-8'));
             }
         });

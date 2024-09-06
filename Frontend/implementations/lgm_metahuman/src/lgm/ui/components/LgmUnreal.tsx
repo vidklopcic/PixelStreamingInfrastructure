@@ -32,5 +32,11 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             HoveringMouse: false,
             WaitForStreamer: true
         }}
+        onStreamingCreated={(streaming) => {
+            store.pixelStreaming = streaming;
+        }}
+        onConneced={(connected) => {
+            store.pixelStreamingConnected = connected;
+        }}
     />;
 });
