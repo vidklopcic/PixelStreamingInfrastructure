@@ -27,7 +27,9 @@ export class LgmClient {
 
     broadcast(message: LgmApiMessage) {
         message.fromUserId = this.userId;
-        this.connection.send(JSON.stringify(message));
+        if (this.connected) {
+            this.connection.send(JSON.stringify(message));
+        }
     }
 }
 

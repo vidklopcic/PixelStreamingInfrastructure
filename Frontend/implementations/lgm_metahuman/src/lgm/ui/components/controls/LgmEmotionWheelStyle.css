@@ -1,0 +1,9 @@
+.section, .inner-circle {
+    fill: transparent;
+    stroke: black;
+    stroke-width: 1;
+}
+
+.section:hover, .inner-circle:hover {
+    fill: #f0f0f0;
+}

@@ -2,12 +2,21 @@ import { observer } from 'mobx-react-lite';
 import { LgmStoreContext } from '../../stores/LgmStore';
 import { CSSProperties, useContext } from 'react';
 import { Button, Typography } from '@mui/material';
+import { LgmEmotionWheel } from './controls/LgmEmotionWheel';
 
 export const LgmUeControls = observer(() => {
     const store = useContext(LgmStoreContext);
 
     return <div style={RootStyle}>
         <div style={HeaderStyle}>Controls</div>
+        <LgmEmotionWheel
+            size={300}
+            style={{margin: '8px auto'}}
+            onEmotionSelected={(e, i) => {
+                console.log('Emotion selected:', e, i);
+                store.ueControl.setEmotion(e, i);
+            }}
+        />
         <Typography style={{marginTop: 8}} variant={'subtitle1'}>Level control</Typography>
         <div style={ControlsGroupContainerStyle}>
             <Button variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>DNEVNA SOBA</Button>
@@ -31,7 +40,7 @@ const RootStyle: CSSProperties = {
     borderRadius: 16,
     border: '1px solid #3c3c3c',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
+    overflow: 'auto',
     display: 'flex',
     flexDirection: 'column',
     flexGrow: 1,

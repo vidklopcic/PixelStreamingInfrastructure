@@ -29,4 +29,8 @@ export class LGMUeControl {
             'index': index.toString()
         });
     }
+
+    setEmotion(emotion: string, intensity: number) {
+
+    }
 }
