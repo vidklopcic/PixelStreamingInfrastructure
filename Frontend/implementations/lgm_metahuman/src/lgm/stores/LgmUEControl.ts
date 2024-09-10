@@ -1,11 +1,4 @@
-import { autorun, makeAutoObservable, ObservableMap } from 'mobx';
-import { LgmClient } from '../client/LgmClient';
-import { LgmConfig } from '../LgmConfig';
-import { LgmApiMessage, LgmChatMessage, LgmRole, LgmUser } from '../client/LgmData';
-import { LgmChatStore } from './LgmChatStore';
-import { LgmWebRTCStore } from './LgmWebRTCStore';
-import { createContext } from 'react';
-import { PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import { makeAutoObservable } from 'mobx';
 import { LgmStore } from './LgmStore';
 
 export class LGMUeControl {
@@ -30,7 +23,43 @@ export class LGMUeControl {
         });
     }
 
-    setEmotion(emotion: string, intensity: number) {
+    setCamera(index: number) {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'camera',
+            'index': index.toString()
+        });
+    }
 
+    setEmotion(emotion: string, intensity: number) {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'animation',
+            'action': 'setFaceBias',
+            'type': emotion.toLowerCase(),
+            'level': intensity.toString()
+        });
+    }
+
+    setIdleAnimation(i: number) {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'animation',
+            'action': 'setIdleAnim',
+            'value': i.toString()
+        });
+    }
+
+    setFullBodyAnimation(name: 'test') {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'animation',
+            'action': 'setFullBody',
+            'value': name
+        });
+    }
+
+    setUpperBodyAnimation(name: 'cry' | 'cut' | 'scratch' | 'slap') {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'animation',
+            'action': 'setUpperBody',
+            'value': name
+        });
     }
 }

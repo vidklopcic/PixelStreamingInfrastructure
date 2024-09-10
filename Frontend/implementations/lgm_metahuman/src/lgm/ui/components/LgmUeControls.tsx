@@ -11,20 +11,36 @@ export const LgmUeControls = observer(() => {
         <div style={HeaderStyle}>Controls</div>
         <LgmEmotionWheel
             size={300}
-            style={{margin: '8px auto'}}
+            style={{ margin: '8px auto' }}
             onEmotionSelected={(e, i) => {
                 console.log('Emotion selected:', e, i);
                 store.ueControl.setEmotion(e, i);
             }}
         />
-        <Typography style={{marginTop: 8}} variant={'subtitle1'}>Level control</Typography>
+        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Environment</Typography>
         <div style={ControlsGroupContainerStyle}>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>DNEVNA SOBA</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(1)}>OTROŠKA SOBA</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(2)}>PISARNA</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(3)}>UČILNICA</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>LIVING ROOM</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(1)}>BEDROOM</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(2)}>OFFICE</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(3)}>CLASSROOM</Button>
         </div>
-        <Typography style={{marginTop: 8}} variant={'subtitle1'}>Child control</Typography>
+
+        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Idle animation</Typography>
+        <div style={ControlsGroupContainerStyle}>
+            <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(0)}>RESTING</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(1)}>AT TABLE</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(2)}>EXPLAINING</Button>
+        </div>
+
+        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Actions</Typography>
+        <div style={ControlsGroupContainerStyle}>
+            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cry')}>CRY</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cut')}>CUT</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('scratch')}>SCRATCH</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('slap')}>SLAP</Button>
+        </div>
+
+        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Character</Typography>
         <div style={ControlsGroupContainerStyle}>
             {
                 Array.from({ length: 9 }, (_, i) => i).map(i => {
@@ -32,7 +48,13 @@ export const LgmUeControls = observer(() => {
                 })
             }
         </div>
-
+        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Camera</Typography>
+        <div style={ControlsGroupContainerStyle}>
+            <Button variant={'contained'} onClick={() => store.ueControl.setCamera(0)}>CLOSEUP</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setCamera(1)}>WAIST-UP</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setCamera(2)}>FULL BODY</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setCamera(3)}>SCENE</Button>
+        </div>
     </div>;
 });
 

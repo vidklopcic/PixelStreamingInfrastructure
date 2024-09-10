@@ -18,6 +18,9 @@ export const LgmEmotionWheel: React.FC<LgmEmotionWheelProps> = ({ style, onEmoti
                 for (let i = 1; i < 6; i++) {
                     const clone = sections.cloneNode(true) as any;
                     clone.setAttribute('transform', `rotate(${i * 60})`);
+                    for (const section of clone.querySelectorAll('.section')) {
+                        section.setAttribute('data-emotion', emotions[i]);
+                    }
                     sections.parentNode?.appendChild(clone);
                 }
 
