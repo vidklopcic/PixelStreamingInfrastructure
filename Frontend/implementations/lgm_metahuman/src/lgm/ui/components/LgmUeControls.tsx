@@ -38,6 +38,7 @@ export const LgmUeControls = observer(() => {
             <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cut')}>CUT</Button>
             <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('scratch')}>SCRATCH</Button>
             <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('slap')}>SLAP</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('yawn')}>YAWN</Button>
         </div>
 
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Character</Typography>

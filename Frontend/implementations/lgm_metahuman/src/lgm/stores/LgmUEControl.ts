@@ -55,7 +55,7 @@ export class LGMUeControl {
         });
     }
 
-    setUpperBodyAnimation(name: 'cry' | 'cut' | 'scratch' | 'slap') {
+    setUpperBodyAnimation(name: 'cry' | 'cut' | 'scratch' | 'slap' | 'yawn') {
         this.base.pixelStreaming?.emitUIInteraction({
             'namespace': 'animation',
             'action': 'setUpperBody',
