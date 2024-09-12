@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import React, { CSSProperties } from 'react';
 import { LgmRole } from '../../client/LgmData';
 import { LgmConfig } from '../../LgmConfig';
+import { Button, Typography } from '@mui/material';
 
 interface LgmRolePickerProps {
     onRoleSelected: (role: LgmRole) => void;
@@ -11,23 +12,19 @@ interface LgmRolePickerProps {
 export const LgmRolePicker = observer((props: LgmRolePickerProps) => {
     return (
         <div style={ContainerStyle}>
-            {/* Buttons for role selection */}
+            <Typography variant={'h5'}>
+                Select your role
+            </Typography>
             <div style={FlexRowStyle}>
-                <button
-                    onClick={() => props.onRoleSelected(LgmRole.instructor)}
-                >
+                <Button variant={'contained'} onClick={() => props.onRoleSelected(LgmRole.instructor)}>
                     Instructor
-                </button>
-                <button
-                    onClick={() => props.onRoleSelected(LgmRole.student)}
-                >
+                </Button>
+                <Button variant={'contained'} onClick={() => props.onRoleSelected(LgmRole.student)}>
                     Student
-                </button>
-                <button
-                    onClick={() => props.onRoleSelected(LgmRole.supervisor)}
-                >
+                </Button>
+                <Button variant={'contained'} onClick={() => props.onRoleSelected(LgmRole.supervisor)}>
                     Supervisor
-                </button>
+                </Button>
             </div>
         </div>
     );
