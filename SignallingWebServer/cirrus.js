@@ -20,9 +20,10 @@ const defaultConfig = {
 	UseHTTPS: false,
 	HTTPSCertFile: './certificates/client-cert.pem',
 	HTTPSKeyFile: './certificates/client-key.pem',
+	FrontendPath: '../Frontend/implementations/lgm_metahuman/dist',
 	LogToFile: true,
 	LogVerbose: true,
-	HomepageFile: 'player.html',
+    HomepageFile: 'index.html',
 	AdditionalRoutes: new Map(),
 	EnableWebserver: true,
 	MatchmakerAddress: "",
@@ -154,30 +155,30 @@ try {
 }
 
 if (config.UseHTTPS) {
-	app.use(helmet());
+    app.use(helmet());
 
-	app.use(hsts({
-		maxAge: 15552000  // 180 days in seconds
-	}));
+    app.use(hsts({
+        maxAge: 15552000  // 180 days in seconds
+    }));
 
-	//Setup http -> https redirect
-	console.log('Redirecting http->https');
-	app.use(function (req, res, next) {
-		if (!req.secure) {
-			if (req.get('Host')) {
-				var hostAddressParts = req.get('Host').split(':');
-				var hostAddress = hostAddressParts[0];
-				if (httpsPort != 443) {
-					hostAddress = `${hostAddress}:${httpsPort}`;
-				}
-				return res.redirect(['https://', hostAddress, req.originalUrl].join(''));
-			} else {
-				console.error(`unable to get host name from header. Requestor ${req.ip}, url path: '${req.originalUrl}', available headers ${JSON.stringify(req.headers)}`);
-				return res.status(400).send('Bad Request');
-			}
-		}
-		next();
-	});
+    //Setup http -> https redirect
+    console.log('Redirecting http->https');
+    app.use(function (req, res, next) {
+        if (!req.secure) {
+            if (req.get('Host')) {
+                var hostAddressParts = req.get('Host').split(':');
+                var hostAddress = hostAddressParts[0];
+                if (httpsPort != 443) {
+                    hostAddress = `${hostAddress}:${httpsPort}`;
+                }
+                return res.redirect(['https://', hostAddress, req.originalUrl].join(''));
+            } else {
+                console.error(`unable to get host name from header. Requestor ${req.ip}, url path: '${req.originalUrl}', available headers ${JSON.stringify(req.headers)}`);
+                return res.status(400).send('Bad Request');
+            }
+        }
+        next();
+    });
 }
 
 sendGameSessionData();
@@ -185,54 +186,61 @@ sendGameSessionData();
 // set up rate limiter: maximum of five requests per minute
 var RateLimit = require('express-rate-limit');
 var limiter = RateLimit({
-  windowMs: 1*60*1000, // 1 minute
-  max: 60
+    windowMs: 1*60*1000, // 1 minute
+    max: 60
 });
 
 // apply rate limiter to all requests
 app.use(limiter);
 
 if(config.EnableWebserver) {
-	//Setup folders
-	app.use(express.static(path.join(__dirname, '/Public')))
-	app.use('/images', express.static(path.join(__dirname, './images')))
-	app.use('/scripts', express.static(path.join(__dirname, '/scripts')));
-	app.use('/', express.static(path.join(__dirname, '/custom_html')))
+    // Serve the React frontend
+    app.use(express.static(path.join(__dirname, config.FrontendPath)));
+
+    // Keep existing static file serving
+    app.use('/images', express.static(path.join(__dirname, './images')))
+    app.use('/scripts', express.static(path.join(__dirname, '/scripts')));
 }
 
 try {
-	for (var property in config.AdditionalRoutes) {
-		if (config.AdditionalRoutes.hasOwnProperty(property)) {
-			console.log(`Adding additional routes "${property}" -> "${config.AdditionalRoutes[property]}"`)
-			app.use(property, express.static(path.join(__dirname, config.AdditionalRoutes[property])));
-		}
-	}
+    for (var property in config.AdditionalRoutes) {
+        if (config.AdditionalRoutes.hasOwnProperty(property)) {
+            console.log(`Adding additional routes "${property}" -> "${config.AdditionalRoutes[property]}"`)
+            app.use(property, express.static(path.join(__dirname, config.AdditionalRoutes[property])));
+        }
+    }
 } catch (err) {
-	console.error(`reading config.AdditionalRoutes: ${err}`)
+    console.error(`reading config.AdditionalRoutes: ${err}`)
 }
 
 if(config.EnableWebserver) {
+    // Request has been sent to site root, send the React app's index.html
+    app.get('*', function (req, res) {
+        let indexPath = path.join(__dirname, config.FrontendPath, 'index.html');
 
-	// Request has been sent to site root, send the homepage file
-	app.get('/', function (req, res) {
-		homepageFile = (typeof config.HomepageFile != 'undefined' && config.HomepageFile != '') ? config.HomepageFile.toString() : defaultConfig.HomepageFile;
-		
-		let pathsToTry = [ path.join(__dirname, homepageFile), path.join(__dirname, '/Public', homepageFile), path.join(__dirname, '/custom_html', homepageFile), homepageFile ];
+        if(fs.existsSync(indexPath)){
+            // Send the React app's index.html
+            res.sendFile(indexPath);
+        } else {
+            // Fallback to the original logic if the React app's index.html is not found
+            homepageFile = (typeof config.HomepageFile != 'undefined' && config.HomepageFile != '') ? config.HomepageFile.toString() : defaultConfig.HomepageFile;
 
-		// Try a few paths, see if any resolve to a homepage file the user has set
-		for(let pathToTry of pathsToTry){
-			if(fs.existsSync(pathToTry)){
-				// Send the file for browser to display it
-				res.sendFile(pathToTry);
-				return;
-			}
-		}
+            let pathsToTry = [ path.join(__dirname, homepageFile), path.join(__dirname, '/Public', homepageFile), path.join(__dirname, '/custom_html', homepageFile), homepageFile ];
 
-		// Catch file doesn't exist, and send back 404 if not
-		console.error('Unable to locate file ' + homepageFile)
-		res.status(404).send('Unable to locate file ' + homepageFile);
-		return;
-	});
+            // Try a few paths, see if any resolve to a homepage file the user has set
+            for(let pathToTry of pathsToTry){
+                if(fs.existsSync(pathToTry)){
+                    // Send the file for browser to display it
+                    res.sendFile(pathToTry);
+                    return;
+                }
+            }
+
+            // Catch file doesn't exist, and send back 404 if not
+            console.error('Unable to locate file ' + homepageFile)
+            res.status(404).send('Unable to locate file ' + homepageFile);
+        }
+    });
 }
 
 //Setup http and https servers
@@ -653,7 +661,7 @@ streamerServer.on('connection', function (ws, req) {
 		}
 		handler(streamer, msg);
 	});
-	
+
 	ws.on('close', function(code, reason) {
 		console.error(`streamer ${streamer.id} disconnected: ${code} - ${reason}`);
 		onStreamerDisconnected(streamer);
@@ -1001,7 +1009,7 @@ if (config.UseMatchmaker) {
 	matchmaker.on('connect', function() {
 		console.log(`Cirrus connected to Matchmaker ${matchmakerAddress}:${matchmakerPort}`);
 
-		// message.playerConnected is a new variable sent from the SS to help track whether or not a player 
+		// message.playerConnected is a new variable sent from the SS to help track whether or not a player
 		// is already connected when a 'connect' message is sent (i.e., reconnect). This happens when the MM
 		// and the SS get disconnected unexpectedly (was happening often at scale for some reason).
 		var playerConnected = false;
@@ -1034,7 +1042,7 @@ if (config.UseMatchmaker) {
 	matchmaker.on('close', (hadError) => {
 		console.logColor(logging.Blue, 'Setting Keep Alive to true');
         matchmaker.setKeepAlive(true, 60000); // Keeps it alive for 60 seconds
-		
+
 		console.log(`Matchmaker connection closed (hadError=${hadError})`);
 
 		reconnect();
@@ -1235,7 +1243,7 @@ function sendStreamerDisconnectedToMatchmaker() {
 		message = {
 			type: 'streamerDisconnected'
 		};
-		matchmaker.write(JSON.stringify(message));	
+		matchmaker.write(JSON.stringify(message));
 	} catch (err) {
 		console.logColor(logging.Red, `ERROR sending streamerDisconnected: ${err.message}`);
 	}
