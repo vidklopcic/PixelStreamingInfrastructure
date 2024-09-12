@@ -16,7 +16,12 @@ call setup_coturn.bat
 
 @Rem Move to cirrus.js directory and install its package.json
 pushd %~dp0\..\..\
-call platform_scripts\cmd\node\npm install --no-save
+
+@Rem Skip npm install if node_modules already exists
+if not exist node_modules (
+  echo Running npm install in Cirrus...
+  call platform_scripts\cmd\node\npm install --no-save
+)
 popd
 
 @Rem Pop working directory

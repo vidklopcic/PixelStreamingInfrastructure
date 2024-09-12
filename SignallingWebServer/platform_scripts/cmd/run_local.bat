@@ -7,6 +7,10 @@ pushd "%~dp0"
 
 title Cirrus
 
+@Rem Echo local IP address
+echo IP ADDRESS:
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| find "IPv4 Address"') do echo %%a
+
 @Rem Run setup to ensure we have node and cirrus installed.
 call setup.bat %*
 
