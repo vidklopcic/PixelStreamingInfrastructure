@@ -14,6 +14,7 @@ export const LgmChatMessages = observer(() => {
                 borderBottomRightRadius: isSelf ? 0 : 16
             }}>
                 {message.message}
+                <div style={RoleStyle}>{message.role}</div>
             </div>;
         })}
     </>;
@@ -21,9 +22,19 @@ export const LgmChatMessages = observer(() => {
 
 const MessageStyle: CSSProperties = {
     borderRadius: 16,
-    padding: 16,
+    padding: '24px 16px 16px 16px',
     width: '80%',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     fontWeight: 'normal',
-    fontSize: 14
+    fontSize: 14,
+    position: 'relative',
 };
+
+const RoleStyle: CSSProperties = {
+    position: 'absolute',
+    top: 8,
+    left: 16,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.5)',
+}
