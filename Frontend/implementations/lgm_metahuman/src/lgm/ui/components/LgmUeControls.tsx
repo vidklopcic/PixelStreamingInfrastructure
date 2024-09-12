@@ -28,7 +28,7 @@ export const LgmUeControls = observer(() => {
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Idle animation</Typography>
         <div style={ControlsGroupContainerStyle}>
             <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(0)}>RESTING</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(1)}>AT TABLE</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(1)}>UNEASY</Button>
             <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(2)}>EXPLAINING</Button>
         </div>
 

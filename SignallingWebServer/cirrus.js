@@ -631,6 +631,32 @@ streamerMessageHandlers.set('iceCandidate', forwardStreamerMessageToPlayer);
 streamerMessageHandlers.set('disconnectPlayer', onStreamerMessageDisconnectPlayer);
 streamerMessageHandlers.set('layerPreference', onStreamerMessageLayerPreference);
 
+// Add the new WebSocket server for /lgm/ws
+const lgmWs = new WebSocket.Server({
+	port: 8899,
+});
+
+lgmWs.on('connection', (ws) => {
+	console.log('Client connected to LGM ws');
+
+	// Broadcast received messages to all clients
+	ws.on('message', (message) => {
+		console.log(`Received on LGM ws: ${message}`);
+		lgmWs.clients.forEach((client) => {
+			if (client !== ws && client.readyState === WebSocket.OPEN) {
+				client.send(message.toString('utf-8'));
+			}
+		});
+	});
+
+	// Log when a client disconnects
+	ws.on('close', () => {
+		console.log('Client disconnected from LGM ws');
+	});
+});
+
+console.log(`LGM WebSocket server is running on ws://localhost:8899`);
+
 console.logColor(logging.Green, `WebSocket listening for Streamer connections on :${streamerPort}`)
 let streamerServer = new WebSocket.Server({ port: streamerPort, backlog: 1 });
 streamerServer.on('connection', function (ws, req) {
