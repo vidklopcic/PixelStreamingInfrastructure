@@ -17,7 +17,7 @@ export class LgmStore {
         name: undefined
     };
     client = new LgmClient(
-        LgmConfig.LGM_SERVER,
+        LgmConfig.SIGNALLING_SERVER,
         this.user.id
     );
 

@@ -22,11 +22,15 @@ export class LgmClient {
 
     private onMessage(message: string) {
         const messageObject = JSON.parse(message) as LgmApiMessage;
+        if (messageObject.namespace !== 'lgm') {
+            return;
+        }
         this.messages.next(messageObject);
     }
 
     broadcast(message: LgmApiMessage) {
         message.fromUserId = this.userId;
+        message.namespace = 'lgm';
         if (this.connected) {
             this.connection.send(JSON.stringify(message));
         }

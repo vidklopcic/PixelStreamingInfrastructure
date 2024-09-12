@@ -27,7 +27,7 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             TouchInput: !!props.interactive,
             StreamerAutoJoinInterval: 5000,
             AutoConnect: true,
-            ss: LgmConfig.MH_SERVER,
+            ss: LgmConfig.SIGNALLING_SERVER,
             StartVideoMuted: true,
             HoveringMouse: false,
             WaitForStreamer: true
