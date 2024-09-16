@@ -46,8 +46,9 @@ export class LgmWebRTCStore {
     }
 
     async createOffer(peerId: string) {
-        if (this.base.user.role !== LgmRole.student) {
-            // only the student creates offers
+        if (this.base.user.role === LgmRole.supervisor) {
+            // instructor and supervisor accept students' offers
+            // supervisor accepts instructors' offers
             return;
         }
         const peerConnection = await this.createPeerConnection(peerId);
@@ -68,7 +69,7 @@ export class LgmWebRTCStore {
     // Handle receiving an offer from a peer
     private async handleOffer(message: LgmApiMessage) {
         const { from, offer, to } = message;
-        if (to !== this.base.user.id) {
+        if (to !== this.base.user.id || this.base.user.role === LgmRole.student) {
             return;
         }
 
@@ -156,7 +157,7 @@ export class LgmWebRTCStore {
             }
         };
 
-        // If the user is a student, they will add their local media stream to the connection
+        // If the user is a student or instructor, they will add their local media stream to the connection
         if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
             if (!this.localStream) {
                 this.localStream = await navigator.mediaDevices?.getUserMedia({
