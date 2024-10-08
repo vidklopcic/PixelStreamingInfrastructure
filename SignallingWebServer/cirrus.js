@@ -855,6 +855,8 @@ sfuServer.on('connection', function (ws, req) {
     requestStreamerId(playerComponent.getSFUStreamerComponent());
 });
 
+let playerCount = 0;
+
 function sendPlayersCount() {
     const msg = {type: 'playerCount', count: players.size};
     logOutgoing("[players]", msg);
