@@ -40,7 +40,6 @@ export class LgmClient {
     }
 
     send(message: LgmApiMessage) {
-        console.log('Sending message', message);
         message.fromUserId = this.userId;
         message.namespace = 'lgm';
         message.sessionSecret = this.sessionSecret;

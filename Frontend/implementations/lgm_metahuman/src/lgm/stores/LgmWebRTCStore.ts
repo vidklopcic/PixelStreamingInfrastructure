@@ -22,10 +22,11 @@ export class LgmWebRTCStore {
             navigator.mediaDevices?.getUserMedia({
                 video: this.base.user.role === LgmRole.student,
                 audio: true
-            }).then((stream) => this.localStream = stream).catch((error) => {
-                console.error('Error accessing media devices:', error);
-                this.accessRejected = true;
-            });
+            }).then((stream) => this.localStream = stream)
+                .catch((error) => {
+                    console.error('Error accessing media devices:', error);
+                    this.accessRejected = true;
+                });
         }
     }
 
@@ -51,13 +52,13 @@ export class LgmWebRTCStore {
         }
     }
 
-    async createOffer(peerId: string) {
-        if (this.base.user.role === LgmRole.supervisor) {
+    async createOffer(toPeerRole: LgmRole, toPeerId: string) {
+        if (toPeerRole === LgmRole.student || this.base.user.role === LgmRole.supervisor) {
             // instructor and supervisor accept students' offers
             // supervisor accepts instructors' offers
             return;
         }
-        const peerConnection = await this.createPeerConnection(peerId);
+        const peerConnection = await this.createPeerConnection(toPeerId);
 
         // Create the offer
         const offer = await peerConnection.connection.createOffer();
@@ -68,7 +69,7 @@ export class LgmWebRTCStore {
             type: 'offer',
             offer,
             from: this.base.user.id,
-            to: peerId
+            to: toPeerId
         });
     }
 
@@ -101,6 +102,7 @@ export class LgmWebRTCStore {
     private async handleAnswer(message: LgmApiMessage) {
         const { from, answer, to } = message;
         if (to !== this.base.user.id) {
+            console.error('Invalid answer message');
             return;
         }
 
@@ -114,12 +116,17 @@ export class LgmWebRTCStore {
     private async handleIceCandidate(message: LgmApiMessage) {
         const { from, candidate, to } = message;
         if (to !== this.base.user.id) {
+            console.error('Invalid ICE candidate message');
             return;
         }
 
         const peerConnection = this.peerConnections.get(from!);
         if (peerConnection && candidate) {
-            await peerConnection.connection.addIceCandidate(new RTCIceCandidate(candidate));
+            try {
+                await peerConnection.connection.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+                console.error('Error adding ICE candidate:', e);
+            }
         }
     }
 
@@ -165,7 +172,7 @@ export class LgmWebRTCStore {
 
         // If the user is a student or instructor, they will add their local media stream to the connection
         if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
-            this.localStream?.getTracks().forEach((track) => peerConnection.addTrack(track, this.localStream));
+            this.localStream!.getTracks().forEach((track) => peerConnection.addTrack(track, this.localStream));
         }
 
         // Store the peer connection

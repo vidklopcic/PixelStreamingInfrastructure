@@ -21,7 +21,7 @@ export const LgmOnboardingUi = observer((props: LgmRolePickerProps) => {
             const session = urlParams.get('session');
             const store = new LgmStore(role, name, session);
             autorun((r) => {
-                if (store.isConnected && store.hasSession) {
+                if (lgmStore?.isConnected && lgmStore?.hasSession && lgmStore?.hasStream) {
                     store.join();
                     props.onLgmStore(store);
                     r.dispose();
@@ -32,7 +32,7 @@ export const LgmOnboardingUi = observer((props: LgmRolePickerProps) => {
             return undefined;
         }
     });
-    const readyToJoin = lgmStore?.isConnected && lgmStore?.hasSession;
+    const readyToJoin = lgmStore?.isConnected && lgmStore?.hasSession && lgmStore?.hasStream;
 
     if (!lgmStore) {
         return <LgmOnboardingEnterDetails onLgmStore={(store) => setLgmStore(store)} />;
@@ -59,6 +59,7 @@ export const LgmOnboardingUi = observer((props: LgmRolePickerProps) => {
                     } else {
                         lgmStore.dispose();
                         setLgmStore(undefined);
+                        window.location.hash = '';
                     }
                 }}
             >

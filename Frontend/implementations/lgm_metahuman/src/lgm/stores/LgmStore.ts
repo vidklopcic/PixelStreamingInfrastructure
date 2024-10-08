@@ -119,6 +119,9 @@ export class LgmStore {
     private onMessage(message: LgmApiMessage) {
         switch (message.type) {
             case 'ping':
+                if (!this.joined) {
+                    return;
+                }
                 const user = message.user as LgmUser;
                 if (user.role === undefined) {
                     console.error('Received ping message without role', user);
@@ -129,7 +132,7 @@ export class LgmStore {
                     peer.update(user);
                 } else {
                     this.peers.set(user.id, new LgmPeer(user));
-                    this.webrtc.createOffer(user.id);
+                    this.webrtc.createOffer(user.role, user.id);
                 }
                 break;
             case 'session':
