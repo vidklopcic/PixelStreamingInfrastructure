@@ -20,7 +20,7 @@ export const LgmUeControls = observer(() => {
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Environment</Typography>
         <div style={ControlsGroupContainerStyle}>
             <Button variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>LIVING ROOM</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(1)}>BEDROOM</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(1)}>FI ROOM</Button>
             <Button variant={'contained'} onClick={() => store.ueControl.setLevel(2)}>OFFICE</Button>
             <Button variant={'contained'} onClick={() => store.ueControl.setLevel(3)}>CLASSROOM</Button>
         </div>
