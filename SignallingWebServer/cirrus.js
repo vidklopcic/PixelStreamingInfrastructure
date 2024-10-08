@@ -955,6 +955,7 @@ playerServer.on('connection', function (ws, req) {
     }
 
     const setupPlayer = (id) => {
+        console.log(`player ${id} set-up`);
         playerId = id;
         var url = require('url');
         const parsedUrl = url.parse(req.url);
@@ -1073,6 +1074,8 @@ playerServer.on('connection', function (ws, req) {
                 return;
             }
             handler(player, msg);
+        } else {
+            console.error(`Received message from player ${playerId} before setup: ${msgRaw}`);
         }
     });
 
