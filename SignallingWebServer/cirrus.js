@@ -936,6 +936,9 @@ playerServer.on('connection', function (ws, req) {
 
     ++playerCount;
     let playerId = sanitizePlayerId(nextPlayerId++);
+    console.logColor(logging.Green, `player ${playerId} (${req.connection.remoteAddress}) connected`);
+    let player = new Player(playerId, ws, PlayerType.Regular, whoSendsOffer);
+    players.set(playerId, player);
 
     let sessionSecret = undefined;
     const sendLgm = (msgStringOrObject) => {
