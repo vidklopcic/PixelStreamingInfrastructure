@@ -1021,7 +1021,6 @@ playerServer.on('connection', function (ws, req) {
                         lgmClients.set(sessionSecret, new Map());
                     }
                     lgmClients.get(sessionSecret).set(msg.fromUserId, ws);
-                    setupPlayer(msg.fromUserId);
                     sendLgm({type: 'session', data: lgmSessions.get(msg.data.sessionSecret)});
                     broadcastLgm(msg.fromUserId, {type: 'request-chat-history'});
                     break;
