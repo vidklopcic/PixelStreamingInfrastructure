@@ -464,7 +464,6 @@ function logForward(srcName, destName, msg) {
 }
 
 let WebSocket = require('ws');
-const url = require("url");
 
 let sfuMessageHandlers = new Map();
 let playerMessageHandlers = new Map();
@@ -899,6 +898,7 @@ function onPlayerDisconnected(playerId) {
     const player = players.get(playerId);
     player.unsubscribe();
     players.delete(playerId);
+    --playerCount;
     sendPlayersCount();
     sendPlayerDisconnectedToFrontend();
     sendPlayerDisconnectedToMatchmaker();
@@ -921,7 +921,20 @@ let lgmClients = new Map();
 let lgmSessions = new Map();
 
 playerServer.on('connection', function (ws, req) {
-    let playerId = undefined;
+    var url = require('url');
+    const parsedUrl = url.parse(req.url);
+    const urlParams = new URLSearchParams(parsedUrl.search);
+    const whoSendsOffer = urlParams.has('OfferToReceive') && urlParams.get('OfferToReceive') !== 'false' ? WhoSendsOffer.Browser : WhoSendsOffer.Streamer;
+
+    if (playerCount + 1 > maxPlayerCount && maxPlayerCount !== -1) {
+        console.logColor(logging.Red, `new connection would exceed number of allowed concurrent connections. Max: ${maxPlayerCount}, Current ${playerCount}`);
+        ws.close(1013, `too many connections. max: ${maxPlayerCount}, current: ${playerCount}`);
+        return;
+    }
+
+    ++playerCount;
+    let playerId = sanitizePlayerId(nextPlayerId++);
+
     let sessionSecret = undefined;
     const sendLgm = (msgStringOrObject) => {
         if (typeof msgStringOrObject === 'object') {
@@ -953,28 +966,6 @@ playerServer.on('connection', function (ws, req) {
             }
         });
     }
-
-    const setupPlayer = (id) => {
-        console.log(`player ${id} set-up`);
-        playerId = id;
-        var url = require('url');
-        const parsedUrl = url.parse(req.url);
-        const urlParams = new URLSearchParams(parsedUrl.search);
-        const whoSendsOffer = urlParams.has('OfferToReceive') && urlParams.get('OfferToReceive') !== 'false' ? WhoSendsOffer.Browser : WhoSendsOffer.Streamer;
-
-        console.logColor(logging.Green, `player ${playerId} (${req.connection.remoteAddress}) connected`);
-        let player = new Player(playerId, ws, PlayerType.Regular, whoSendsOffer);
-        players.set(playerId, player);
-
-        sendPlayerConnectedToFrontend();
-        sendPlayerConnectedToMatchmaker();
-
-        const configStr = JSON.stringify(clientConfig);
-        logOutgoing(player.id, configStr)
-        player.ws.send(configStr);
-
-        sendPlayersCount();
-    };
 
     ws.on('message', (msgRaw) => {
         var msg;
@@ -1056,7 +1047,7 @@ playerServer.on('connection', function (ws, req) {
                     broadcastLgm(msg.fromUserId, msgRaw.toString('utf-8'));
                     break;
             }
-        } else if (playerId !== undefined) {
+        } else {
             let player = players.get(playerId);
             if (!player) {
                 console.error(`Received a message from a player not in the player list ${playerId}`);
@@ -1074,16 +1065,12 @@ playerServer.on('connection', function (ws, req) {
                 return;
             }
             handler(player, msg);
-        } else {
-            console.error(`Received message from player ${playerId} before setup: ${msgRaw}`);
         }
     });
 
     ws.on('close', function (code, reason) {
-        if (playerId !== undefined) {
-            console.logColor(logging.Yellow, `player ${playerId} connection closed: ${code} - ${reason}`);
-            onPlayerDisconnected(playerId);
-        }
+        console.logColor(logging.Yellow, `player ${playerId} connection closed: ${code} - ${reason}`);
+        onPlayerDisconnected(playerId);
     });
 
     ws.on('error', function (error) {
@@ -1094,6 +1081,15 @@ playerServer.on('connection', function (ws, req) {
         console.logColor(logging.Red, `Trying to reconnect...`);
         reconnect();
     });
+
+    sendPlayerConnectedToFrontend();
+    sendPlayerConnectedToMatchmaker();
+
+    const configStr = JSON.stringify(clientConfig);
+    logOutgoing(player.id, configStr)
+    player.ws.send(configStr);
+
+    sendPlayersCount();
 });
 
 function disconnectAllPlayers(streamerId) {
