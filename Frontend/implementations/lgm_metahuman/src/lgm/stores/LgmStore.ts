@@ -61,6 +61,12 @@ export class LgmStore {
     }
 
     constructor(role: LgmRole, participantName: string, sessionSecret: string, contextInfo?: string) {
+        const urlParams = new URLSearchParams();
+        urlParams.set('role', role);
+        urlParams.set('name', participantName);
+        urlParams.set('session', sessionSecret);
+        window.location.hash = urlParams.toString();
+
         this.user.role = role;
         this.user.name = participantName;
 

@@ -4,13 +4,34 @@ import { Button, CircularProgress, Typography } from '@mui/material';
 import { LgmStore } from '../../stores/LgmStore';
 import { LgmOnboardingEnterDetails } from './LgmOnboardingEnterDetails';
 import { DoneAll, Warning } from '@mui/icons-material';
+import { LgmRole } from '../../client/LgmData';
+import { autorun } from 'mobx';
 
 interface LgmRolePickerProps {
     onLgmStore: (role: LgmStore) => void;
 }
 
 export const LgmOnboardingUi = observer((props: LgmRolePickerProps) => {
-    const [lgmStore, setLgmStore] = React.useState<LgmStore | undefined>(undefined);
+    const [lgmStore, setLgmStore] = React.useState<LgmStore | undefined>(() => {
+        const hash = window.location.hash;
+        if (hash?.length ?? 0 > 1) {
+            const urlParams = new URLSearchParams(hash.substring(1));
+            const role = urlParams.get('role') as LgmRole;
+            const name = urlParams.get('name');
+            const session = urlParams.get('session');
+            const store = new LgmStore(role, name, session);
+            autorun((r) => {
+                if (store.isConnected && store.hasSession) {
+                    store.join();
+                    props.onLgmStore(store);
+                    r.dispose();
+                }
+            });
+            return store;
+        } else {
+            return undefined;
+        }
+    });
     const readyToJoin = lgmStore?.isConnected && lgmStore?.hasSession;
 
     if (!lgmStore) {
