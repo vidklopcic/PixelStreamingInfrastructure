@@ -7,7 +7,9 @@ export class LgmClient {
     connection: SocketConnector;
     connected = false;
     messages = new Subject<LgmApiMessage>();
-    private userId: string;
+    private readonly userId: string;
+    private sessionSecret?: string;
+
 
     constructor(wsEndpoint: string, userId: string) {
         // Create a new socket connector
@@ -20,20 +22,36 @@ export class LgmClient {
         makeAutoObservable(this);
     }
 
-    private onMessage(message: string) {
-        const messageObject = JSON.parse(message) as LgmApiMessage;
-        if (messageObject.namespace !== 'lgm') {
-            return;
-        }
-        this.messages.next(messageObject);
+    setSessionSecret(sessionSecret?: string) {
+        this.sessionSecret = sessionSecret;
     }
 
-    broadcast(message: LgmApiMessage) {
+    private onMessage(message: string) {
+        try {
+            const messageObject = JSON.parse(message) as LgmApiMessage;
+            if (messageObject.namespace !== 'lgm') {
+                return;
+            }
+            this.messages.next(messageObject);
+        } catch (error) {
+            console.error('Error parsing message', message);
+            return;
+        }
+    }
+
+    send(message: LgmApiMessage) {
+        console.log('Sending message', message);
         message.fromUserId = this.userId;
         message.namespace = 'lgm';
+        message.sessionSecret = this.sessionSecret;
         if (this.connected) {
             this.connection.send(JSON.stringify(message));
         }
+    }
+
+    dispose() {
+        this.connection.disconnect();
+        this.messages.complete();
     }
 }
 

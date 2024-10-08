@@ -62,4 +62,8 @@ export class LGMUeControl {
             'value': name
         });
     }
+
+    dispose() {
+
+    }
 }

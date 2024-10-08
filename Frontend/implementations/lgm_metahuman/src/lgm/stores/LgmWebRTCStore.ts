@@ -11,16 +11,22 @@ export class LgmWebRTCStore {
     private base: LgmStore;
     private peerConnections: ObservableMap<string, PeerConnection>;
     localStream?: MediaStream = undefined;
+    accessRejected = false;
 
     constructor(base: LgmStore) {
         this.base = base;
         this.peerConnections = new ObservableMap();
         this.base.client.messages.subscribe((message) => this.onMessage(message));
         makeAutoObservable(this);
-        navigator.mediaDevices?.getUserMedia({
-            video: this.base.user.role === LgmRole.student,
-            audio: true
-        }).then((stream) => this.localStream = stream);
+        if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
+            navigator.mediaDevices?.getUserMedia({
+                video: this.base.user.role === LgmRole.student,
+                audio: true
+            }).then((stream) => this.localStream = stream).catch((error) => {
+                console.error('Error accessing media devices:', error);
+                this.accessRejected = true;
+            });
+        }
     }
 
     get peerStreams() {
@@ -58,7 +64,7 @@ export class LgmWebRTCStore {
         await peerConnection.connection.setLocalDescription(offer);
 
         // Send the offer to the peer via WebSocket
-        this.base.client.broadcast({
+        this.base.client.send({
             type: 'offer',
             offer,
             from: this.base.user.id,
@@ -83,7 +89,7 @@ export class LgmWebRTCStore {
         await peerConnection.connection.setLocalDescription(answer);
 
         // Send the answer back to the peer via WebSocket
-        this.base.client.broadcast({
+        this.base.client.send({
             type: 'answer',
             answer,
             from: this.base.user.id,
@@ -128,7 +134,7 @@ export class LgmWebRTCStore {
         // Handle ICE candidates
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
-                this.base.client.broadcast({
+                this.base.client.send({
                     type: 'ice-candidate',
                     candidate: event.candidate,
                     from: this.base.user.id,
@@ -159,12 +165,6 @@ export class LgmWebRTCStore {
 
         // If the user is a student or instructor, they will add their local media stream to the connection
         if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
-            if (!this.localStream) {
-                this.localStream = await navigator.mediaDevices?.getUserMedia({
-                    video: true,
-                    audio: this.base.user.role === LgmRole.student
-                });
-            }
             this.localStream?.getTracks().forEach((track) => peerConnection.addTrack(track, this.localStream));
         }
 
@@ -182,5 +182,9 @@ export class LgmWebRTCStore {
             peer.connection.close();
             this.peerConnections.delete(peerId);
         }
+    }
+
+    dispose() {
+
     }
 }

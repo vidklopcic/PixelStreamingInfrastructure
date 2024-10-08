@@ -2,7 +2,7 @@ import { observer } from 'mobx-react-lite';
 import { LgmStore, LgmStoreContext } from './stores/LgmStore';
 import { LgmRole } from './client/LgmData';
 import React, { CSSProperties, useState } from 'react';
-import { LgmRolePicker } from './ui/components/LgmRolePicker';
+import { LgmOnboardingUi } from './ui/components/LgmOnboardingUi';
 import { LgmInstructorUi } from './ui/LgmInstructorUi';
 import { LgmStudentUi } from './ui/LgmStudentUi';
 import { LgmSupervisorUi } from './ui/LgmSupervisorUi';
@@ -12,7 +12,7 @@ export const LgmUiWrapper = observer(() => {
 
     return <LgmStoreContext.Provider value={lgmStore}>
         <div style={ComponentStyle}>
-            {!lgmStore && <LgmRolePicker onRoleSelected={(role) => setLgmStore(new LgmStore(role))} />}
+            {!lgmStore && <LgmOnboardingUi onLgmStore={(store) => setLgmStore(store)} />}
             {lgmStore?.user.role === LgmRole.instructor && <LgmInstructorUi />}
             {lgmStore?.user.role === LgmRole.student && <LgmStudentUi />}
             {lgmStore?.user.role === LgmRole.supervisor && <LgmSupervisorUi />}

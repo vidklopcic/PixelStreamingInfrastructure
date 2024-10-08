@@ -464,6 +464,7 @@ function logForward(srcName, destName, msg) {
 }
 
 let WebSocket = require('ws');
+const url = require("url");
 
 let sfuMessageHandlers = new Map();
 let playerMessageHandlers = new Map();
@@ -855,8 +856,6 @@ sfuServer.on('connection', function (ws, req) {
     requestStreamerId(playerComponent.getSFUStreamerComponent());
 });
 
-let playerCount = 0;
-
 function sendPlayersCount() {
     const msg = {type: 'playerCount', count: players.size};
     logOutgoing("[players]", msg);
@@ -900,7 +899,6 @@ function onPlayerDisconnected(playerId) {
     const player = players.get(playerId);
     player.unsubscribe();
     players.delete(playerId);
-    --playerCount;
     sendPlayersCount();
     sendPlayerDisconnectedToFrontend();
     sendPlayerDisconnectedToMatchmaker();
@@ -920,23 +918,62 @@ playerMessageHandlers.set('peerDataChannelsReady', forwardPlayerMessage);
 console.logColor(logging.Green, `WebSocket listening for Players connections on :${httpPort}`);
 let playerServer = new WebSocket.Server({server: config.UseHTTPS ? https : http});
 let lgmClients = new Map();
-playerServer.on('connection', function (ws, req) {
-    var url = require('url');
-    const parsedUrl = url.parse(req.url);
-    const urlParams = new URLSearchParams(parsedUrl.search);
-    const whoSendsOffer = urlParams.has('OfferToReceive') && urlParams.get('OfferToReceive') !== 'false' ? WhoSendsOffer.Browser : WhoSendsOffer.Streamer;
+let lgmSessions = new Map();
 
-    if (playerCount + 1 > maxPlayerCount && maxPlayerCount !== -1) {
-        console.logColor(logging.Red, `new connection would exceed number of allowed concurrent connections. Max: ${maxPlayerCount}, Current ${playerCount}`);
-        ws.close(1013, `too many connections. max: ${maxPlayerCount}, current: ${playerCount}`);
-        return;
+playerServer.on('connection', function (ws, req) {
+    let playerId = undefined;
+    let sessionSecret = undefined;
+    const sendLgm = (msgStringOrObject) => {
+        if (typeof msgStringOrObject === 'object') {
+            msgStringOrObject['namespace'] = 'lgm';
+            msgStringOrObject['sessionSecret'] = sessionSecret;
+            msgStringOrObject = JSON.stringify(msgStringOrObject);
+        }
+        ws.send(msgStringOrObject);
     }
 
-    ++playerCount;
-    let playerId = sanitizePlayerId(nextPlayerId++);
-    console.logColor(logging.Green, `player ${playerId} (${req.connection.remoteAddress}) connected`);
-    let player = new Player(playerId, ws, PlayerType.Regular, whoSendsOffer);
-    players.set(playerId, player);
+    const broadcastLgm = (fromUserId, msgStringOrObject) => {
+        if (typeof msgStringOrObject === 'object') {
+            msgStringOrObject['namespace'] = 'lgm';
+            msgStringOrObject['sessionSecret'] = sessionSecret;
+            msgStringOrObject = JSON.stringify(msgStringOrObject);
+        }
+        let sessionClients = lgmClients.get(sessionSecret);
+        if (!sessionClients) {
+            console.error(`Session ${sessionSecret} not found`);
+            return;
+        }
+        sessionClients.forEach((client, userId) => {
+            if (userId !== fromUserId) {
+                if (client.readyState !== WebSocket.OPEN) {
+                    sessionClients.delete(userId);
+                } else {
+                    client.send(msgStringOrObject);
+                }
+            }
+        });
+    }
+
+    const setupPlayer = (id) => {
+        playerId = id;
+        var url = require('url');
+        const parsedUrl = url.parse(req.url);
+        const urlParams = new URLSearchParams(parsedUrl.search);
+        const whoSendsOffer = urlParams.has('OfferToReceive') && urlParams.get('OfferToReceive') !== 'false' ? WhoSendsOffer.Browser : WhoSendsOffer.Streamer;
+
+        console.logColor(logging.Green, `player ${playerId} (${req.connection.remoteAddress}) connected`);
+        let player = new Player(playerId, ws, PlayerType.Regular, whoSendsOffer);
+        players.set(playerId, player);
+
+        sendPlayerConnectedToFrontend();
+        sendPlayerConnectedToMatchmaker();
+
+        const configStr = JSON.stringify(clientConfig);
+        logOutgoing(player.id, configStr)
+        player.ws.send(configStr);
+
+        sendPlayersCount();
+    };
 
     ws.on('message', (msgRaw) => {
         var msg;
@@ -949,18 +986,76 @@ playerServer.on('connection', function (ws, req) {
         }
 
         if (msg.namespace === 'lgm') {
-            lgmClients.set(msg.fromUserId, ws);
             console.log(`Received on LGM ws: ${msgRaw}`);
-            lgmClients.forEach((client, userId) => {
-                if (userId !== msg.fromUserId) {
-                    if (client.readyState !== WebSocket.OPEN) {
-                        lgmClients.delete(userId);
-                    } else {
-                        client.send(msgRaw.toString('utf-8'));
+
+            switch (msg.type) {
+                case 'join-session':
+                case 'create-session':
+                    if (!lgmSessions.has(msg.data.sessionSecret)) {
+                        if (msg.type === 'create-session') {
+                            if (lgmSessions.size > 0) {
+                                // prototype version only allows one session at a time
+                                ws.send(JSON.stringify({
+                                    type: 'error',
+                                    code: 'session-exists',
+                                    namespace: 'lgm',
+                                    message: `Only one session is allowed at a time. End the active session first or restart signalling server.`,
+                                }));
+                                return;
+                            }
+                            lgmSessions.set(msg.data.sessionSecret, {
+                                sessionSecret: msg.data.sessionSecret,
+                                contextText: msg.data.contextText,
+                                startedTimestamp: undefined,
+                                createdTimestamp: Date.now(),
+                            });
+                        } else {
+                            ws.send(JSON.stringify({
+                                type: 'error',
+                                code: 'session-not-found',
+                                namespace: 'lgm',
+                                message: `Session ${msg.data.sessionSecret} not found`,
+                            }));
+                            return;
+                        }
                     }
-                }
-            });
-        } else {
+                    sessionSecret = msg.data.sessionSecret;
+                    if (!lgmClients.has(sessionSecret)) {
+                        lgmClients.set(sessionSecret, new Map());
+                    }
+                    lgmClients.get(sessionSecret).set(msg.fromUserId, ws);
+                    setupPlayer(msg.fromUserId);
+                    sendLgm({type: 'session', data: lgmSessions.get(msg.data.sessionSecret)});
+                    broadcastLgm(msg.fromUserId, {type: 'request-chat-history'});
+                    break;
+                case 'close-session':
+                    if (!lgmSessions.has(sessionSecret)) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            code: 'session-not-found',
+                            namespace: 'lgm',
+                            message: `Session ${sessionSecret} not found`,
+                        }));
+                        return;
+                    }
+                    lgmSessions.delete(sessionSecret);
+                    broadcastLgm(undefined, {type: 'session-closed', data: msg.data.sessionSecret});
+                    break;
+                default:
+                    if (!lgmSessions.has(msg.sessionSecret)) {
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            code: 'session-not-found',
+                            namespace: 'lgm',
+                            message: `Session ${msg.sessionSecret} not found`,
+                        }));
+                        return;
+                    }
+                    // broadcast to all other clients
+                    broadcastLgm(msg.fromUserId, msgRaw.toString('utf-8'));
+                    break;
+            }
+        } else if (playerId !== undefined) {
             let player = players.get(playerId);
             if (!player) {
                 console.error(`Received a message from a player not in the player list ${playerId}`);
@@ -982,8 +1077,10 @@ playerServer.on('connection', function (ws, req) {
     });
 
     ws.on('close', function (code, reason) {
-        console.logColor(logging.Yellow, `player ${playerId} connection closed: ${code} - ${reason}`);
-        onPlayerDisconnected(playerId);
+        if (playerId !== undefined) {
+            console.logColor(logging.Yellow, `player ${playerId} connection closed: ${code} - ${reason}`);
+            onPlayerDisconnected(playerId);
+        }
     });
 
     ws.on('error', function (error) {
@@ -994,15 +1091,6 @@ playerServer.on('connection', function (ws, req) {
         console.logColor(logging.Red, `Trying to reconnect...`);
         reconnect();
     });
-
-    sendPlayerConnectedToFrontend();
-    sendPlayerConnectedToMatchmaker();
-
-    const configStr = JSON.stringify(clientConfig);
-    logOutgoing(player.id, configStr)
-    player.ws.send(configStr);
-
-    sendPlayersCount();
 });
 
 function disconnectAllPlayers(streamerId) {

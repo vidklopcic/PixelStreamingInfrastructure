@@ -22,7 +22,7 @@ export class LgmChatStore {
             ts: Date.now()
         } as LgmChatMessage;
         this.messages.push(lgmMessage);
-        this.base.client.broadcast({
+        this.base.client.send({
             type: 'chat',
             message: lgmMessage
         });
@@ -30,13 +30,13 @@ export class LgmChatStore {
 
     private onMessage(message: LgmApiMessage) {
         switch (message.type) {
-            case 'requestChatHistory':
-                this.base.client.broadcast({
-                    type: 'chatHistory',
+            case 'request-chat-history':
+                this.base.client.send({
+                    type: 'chat-history',
                     chat: this.messages
                 });
                 break;
-            case 'chatHistory':
+            case 'chat-history':
                 const chatHistory = message.chat as LgmChatMessage[];
                 this.messages = [...this.messages, ...chatHistory];
                 const uniqueMessages: { [k: string]: LgmChatMessage } = {};
@@ -52,5 +52,9 @@ export class LgmChatStore {
                 this.messages.sort((a, b) => a.ts - b.ts);
                 break;
         }
+    }
+
+    dispose() {
+
     }
 }

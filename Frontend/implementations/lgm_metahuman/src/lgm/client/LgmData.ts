@@ -9,15 +9,32 @@ export interface LgmChatMessage {
 export interface LgmApiMessage {
     type: string;
     namespace?: string;
+    sessionSecret?: string;
     fromUserId?: string;
 
     [key: string]: any;
+}
+
+export interface LgmSession {
+    sessionSecret?: string;
+    contextText?: string;
+    startedTimestamp?: number;
+    createdTimestamp?: number;
 }
 
 export interface LgmUser {
     id: string;
     role?: LgmRole;
     name?: string;
+}
+
+export interface LgmJoinSessionData {
+    userName: string;
+    sessionSecret: string;
+}
+
+export interface LgmCreateSessionData extends LgmJoinSessionData {
+    contextText: string;
 }
 
 export enum LgmRole {
