@@ -88,7 +88,8 @@ const InnerContainerStyle: CSSProperties = {
     ...ContainerStyle,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     padding: '16px',
-    borderRadius: '8px'
+    borderRadius: '8px',
+    overflow: 'hidden'
 };
 
 const FlexRowStyle: CSSProperties = {
