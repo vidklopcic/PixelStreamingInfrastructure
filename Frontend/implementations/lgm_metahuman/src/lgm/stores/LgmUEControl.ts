@@ -30,6 +30,13 @@ export class LGMUeControl {
         });
     }
 
+    resetGame() {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'game',
+            'action': 'reset'
+        });
+    }
+
     setEmotion(emotion: string, intensity: number) {
         this.base.pixelStreaming?.emitUIInteraction({
             'namespace': 'animation',
@@ -47,7 +54,7 @@ export class LGMUeControl {
         });
     }
 
-    setFullBodyAnimation(name: 'test') {
+    setFullBodyAnimation(name: 'walk') {
         this.base.pixelStreaming?.emitUIInteraction({
             'namespace': 'animation',
             'action': 'setFullBody',
@@ -60,6 +67,27 @@ export class LGMUeControl {
             'namespace': 'animation',
             'action': 'setUpperBody',
             'value': name
+        });
+    }
+
+    cancelUpperBodyAnimation() {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'animation',
+            'action': 'cancelUpperBody'
+        });
+    }
+
+    cancelFullBodyAnimation() {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'animation',
+            'action': 'cancelFullBody'
+        });
+    }
+
+    resetAllAnimation() {
+        this.base.pixelStreaming?.emitUIInteraction({
+            'namespace': 'animation',
+            'action': 'resetAll'
         });
     }
 

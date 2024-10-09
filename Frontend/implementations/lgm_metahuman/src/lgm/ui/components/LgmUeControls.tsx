@@ -17,6 +17,12 @@ export const LgmUeControls = observer(() => {
                 store.ueControl.setEmotion(e, i);
             }}
         />
+
+        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Game</Typography>
+        <div style={ControlsGroupContainerStyle}>
+            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>RESET ALL</Button>
+        </div>
+
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Environment</Typography>
         <div style={ControlsGroupContainerStyle}>
             <Button variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>LIVING ROOM</Button>
@@ -36,9 +42,16 @@ export const LgmUeControls = observer(() => {
         <div style={ControlsGroupContainerStyle}>
             <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cry')}>CRY</Button>
             <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cut')}>CUT</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('scratch')}>SCRATCH</Button>
+            <Button variant={'contained'}
+                    onClick={() => store.ueControl.setUpperBodyAnimation('scratch')}>SCRATCH</Button>
             <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('slap')}>SLAP</Button>
             <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('yawn')}>YAWN</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.setFullBodyAnimation('walk')}>WALK</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.cancelUpperBodyAnimation()}>CANCEL UPPER
+                BODY</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.cancelFullBodyAnimation()}>CANCEL FULL
+                BODY</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.resetAllAnimation()}>RESET ANIMATIONS</Button>
         </div>
 
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Character</Typography>

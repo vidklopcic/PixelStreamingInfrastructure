@@ -34,6 +34,11 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
         }}
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;
+
+            const handlePixelStramingResponse = (response: string) :void => {
+                console.log('Pixel streaming response:', response);
+            }
+            store.pixelStreaming.addResponseEventListener("handle_responses", handlePixelStramingResponse);
         }}
         onConneced={(connected) => {
             store.pixelStreamingConnected = connected;
