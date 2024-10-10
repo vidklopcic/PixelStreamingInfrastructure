@@ -20,7 +20,7 @@ export const LgmUeControls = observer(() => {
 
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Game</Typography>
         <div style={ControlsGroupContainerStyle}>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>RESET ALL</Button>
+            <Button variant={'contained'} onClick={() => store.ueControl.resetGame()}>RESET ALL</Button>
         </div>
 
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Environment</Typography>
