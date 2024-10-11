@@ -39,6 +39,7 @@ export class LgmStore {
     // Pixel streaming
     private pingInterval?: any;
     errorCode?: string = undefined;
+    sessionEnded = false;
 
     get hasSession() {
         return this.session !== undefined;
@@ -58,6 +59,14 @@ export class LgmStore {
 
     get streamRejected() {
         return this.webrtc.accessRejected;
+    }
+
+    get canStartSession() {
+        return this.user.role === LgmRole.instructor && !this.hasSession && this.session.startedTimestamp === undefined;
+    }
+
+    get canEndSession() {
+        return this.hasSession && this.session.startedTimestamp !== undefined && !this.sessionEnded;
     }
 
     constructor(role: LgmRole, participantName: string, sessionSecret: string, contextInfo?: string) {
@@ -86,7 +95,7 @@ export class LgmStore {
 
         autorun(() => {
             if (this.pixelStreaming !== undefined) {
-                this.pixelStreaming.addResponseEventListener("handle_responses", (response: string) => {
+                this.pixelStreaming.addResponseEventListener('handle_responses', (response: string) => {
                     this.ueControl.parseState(response);
                 });
             }
@@ -144,7 +153,12 @@ export class LgmStore {
                 }
                 break;
             case 'session':
+                this.sessionEnded = false;
                 this.session = message.data as LgmSession;
+                break;
+            case 'end-session':
+                this.dispose();
+                this.sessionEnded = true;
                 break;
             case 'error':
                 this.errorCode = message.code;
@@ -183,6 +197,17 @@ export class LgmStore {
                 data: data
             });
         }
+    }
+
+    startSession() {
+        if (this.user.role !== LgmRole.instructor) {
+            throw new Error('Only instructors can start a session');
+        }
+        this.client.send({ type: 'start-session' });
+    }
+
+    endSession() {
+        this.client.send({ type: 'end-session' });
     }
 }
 

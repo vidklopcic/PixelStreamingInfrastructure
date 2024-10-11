@@ -32,6 +32,7 @@ export const LgmStudentUi = observer(() => {
         {!!peerAudioStreams?.length && peerAudioStreams.map((s) => <LgmAudioStream stream={s} />)}
         {store.webrtc.localStream && <LgmVideoStream
             stream={store.webrtc.localStream}
+            canHide={true}
             style={VideoStyle(chat)}
             muted={true} />}
         <div style={ChatContainerStyle(chat)}>

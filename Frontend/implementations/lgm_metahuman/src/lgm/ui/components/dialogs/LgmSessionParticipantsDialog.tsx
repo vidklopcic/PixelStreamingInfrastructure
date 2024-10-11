@@ -8,7 +8,7 @@ export const LgmSessionParticipantsDialog = observer(({ onClose }: { onClose: ()
     const store = useContext(LgmStoreContext);
 
     return (
-        <LgmDialog onClose={onClose} title={'Session participants'}>
+        <LgmDialog onClose={onClose} title={'Participants'}>
             {/* Material-UI List of participants with styled avatar */}
             <List>
                 <ListItem key={store.user.id}>

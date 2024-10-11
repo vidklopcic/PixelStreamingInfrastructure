@@ -9,6 +9,7 @@ export class LgmClient {
     messages = new Subject<LgmApiMessage>();
     private readonly userId: string;
     private sessionSecret?: string;
+    private disposed = false;
 
 
     constructor(wsEndpoint: string, userId: string) {
@@ -40,6 +41,10 @@ export class LgmClient {
     }
 
     send(message: LgmApiMessage) {
+        if (this.disposed) {
+            console.warn('Trying to send message on disposed client', message);
+            return;
+        }
         message.fromUserId = this.userId;
         message.namespace = 'lgm';
         message.sessionSecret = this.sessionSecret;
@@ -51,6 +56,7 @@ export class LgmClient {
     dispose() {
         this.connection.disconnect();
         this.messages.complete();
+        this.disposed = true;
     }
 }
 

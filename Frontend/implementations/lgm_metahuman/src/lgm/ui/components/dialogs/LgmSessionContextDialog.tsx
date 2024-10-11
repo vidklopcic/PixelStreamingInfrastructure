@@ -5,7 +5,7 @@ import { useContext } from 'react';
 
 export const LgmSessionContextDialog = observer(({ onClose }: { onClose: () => any }) => {
     const store = useContext(LgmStoreContext);
-    return <LgmDialog onClose={() => onClose()} title={'Session information'}>
+    return <LgmDialog onClose={() => onClose()} title={'Information'}>
         <div style={{
             display: 'flex',
             flexDirection: 'column',
