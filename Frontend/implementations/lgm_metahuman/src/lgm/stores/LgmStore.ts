@@ -45,7 +45,7 @@ export class LgmStore {
     };
 
     ueControl: LGMUeControl;
-    pixelStreaming?: PixelStreaming;
+    pixelStreaming?: PixelStreaming = undefined;
     pixelStreamingConnected = false;
 
     get isConnected() {
@@ -81,6 +81,14 @@ export class LgmStore {
             if (this.client.connected) {
                 r.dispose();
                 this.createSession(sessionSecret, contextInfo);
+            }
+        });
+
+        autorun(() => {
+            if (this.pixelStreaming !== undefined) {
+                this.pixelStreaming.addResponseEventListener("handle_responses", (response: string) => {
+                    this.ueControl.parseState(response);
+                });
             }
         });
     }

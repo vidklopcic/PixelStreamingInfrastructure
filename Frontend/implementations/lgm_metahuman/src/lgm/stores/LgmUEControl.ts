@@ -1,8 +1,20 @@
-import { makeAutoObservable } from 'mobx';
+import { autorun, makeAutoObservable, toJS } from 'mobx';
 import { LgmStore } from './LgmStore';
 
 export class LGMUeControl {
     base: LgmStore;
+    state: LgmUeState = {
+        level: undefined,
+        camera: undefined,
+        childIndex: undefined,
+        child: {
+            idle: undefined,
+            upper_body: undefined,
+            full_body: undefined,
+            bias_type: undefined,
+            bias_level: undefined
+        }
+    };
 
     constructor(base: LgmStore) {
         this.base = base;
@@ -62,7 +74,14 @@ export class LGMUeControl {
         });
     }
 
-    setUpperBodyAnimation(name: 'cry' | 'cut' | 'scratch' | 'slap' | 'yawn') {
+    async setUpperBodyAnimation(name: 'cry' | 'cut' | 'scratch' | 'slap' | 'yawn') {
+        if (this.state.child.upper_body !== undefined) {
+            this.cancelUpperBodyAnimation();
+            if (this.state.child.upper_body === name) {
+                return;
+            }
+            await new Promise(r => setTimeout(r, 100));
+        }
         this.base.pixelStreaming?.emitUIInteraction({
             'namespace': 'animation',
             'action': 'setUpperBody',
@@ -94,4 +113,31 @@ export class LGMUeControl {
     dispose() {
 
     }
+
+    parseState(response: string) {
+        const state = JSON.parse(response) as LgmUeState;
+        const name2String = (name?: string) => name === 'None' ? undefined : name;
+        this.state.level = name2String(state.level);
+        this.state.camera = name2String(state.camera);
+        this.state.childIndex = state.childIndex;
+        this.state.child.idle = state.child.idle;
+        this.state.child.upper_body = name2String(state.child.upper_body);
+        this.state.child.full_body = name2String(state.child.full_body);
+        this.state.child.bias_type = state.child.bias_type;
+        this.state.child.bias_level = state.child.bias_level;
+        console.log(this.state.child.upper_body);
+    }
+}
+
+export interface LgmUeState {
+    level?: string;
+    camera?: string;
+    childIndex?: number;
+    child: {
+        idle?: number;
+        upper_body?: string;
+        full_body?: string;
+        bias_type?: number;
+        bias_level?: number;
+    };
 }

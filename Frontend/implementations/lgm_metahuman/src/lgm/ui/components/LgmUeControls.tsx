@@ -1,14 +1,21 @@
 import { observer } from 'mobx-react-lite';
 import { LgmStoreContext } from '../../stores/LgmStore';
 import { CSSProperties, useContext } from 'react';
-import { Button, Typography } from '@mui/material';
+import { Button, IconButton, Typography } from '@mui/material';
 import { LgmEmotionWheel } from './controls/LgmEmotionWheel';
+import { Refresh } from '@mui/icons-material';
 
 export const LgmUeControls = observer(() => {
     const store = useContext(LgmStoreContext);
 
     return <div style={RootStyle}>
-        <div style={HeaderStyle}>Controls</div>
+        <div style={HeaderStyle}>
+            Controls
+            <IconButton color={'secondary'} style={{ position: 'absolute', right: 8 }}
+                        onClick={() => store.ueControl.resetAllAnimation()}>
+                <Refresh />
+            </IconButton>
+        </div>
         <LgmEmotionWheel
             size={300}
             style={{ margin: '8px auto' }}
@@ -17,57 +24,45 @@ export const LgmUeControls = observer(() => {
                 store.ueControl.setEmotion(e, i);
             }}
         />
-
-        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Game</Typography>
-        <div style={ControlsGroupContainerStyle}>
-            <Button variant={'contained'} onClick={() => store.ueControl.resetGame()}>RESET ALL</Button>
-        </div>
-
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Environment</Typography>
         <div style={ControlsGroupContainerStyle}>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>LIVING ROOM</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(1)}>FI ROOM</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(2)}>OFFICE</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setLevel(3)}>CLASSROOM</Button>
+            <Button color={store.ueControl.state.level === 'DnevnaSoba' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>LIVING ROOM</Button>
+            <Button color={store.ueControl.state.level === 'OtroskaSoba' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(1)}>FI ROOM</Button>
+            <Button color={store.ueControl.state.level === 'Pisarna' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(2)}>OFFICE</Button>
+            <Button color={store.ueControl.state.level === 'Ucilnica' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(3)}>CLASSROOM</Button>
         </div>
 
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Idle animation</Typography>
         <div style={ControlsGroupContainerStyle}>
-            <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(0)}>RESTING</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(1)}>UNEASY</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(2)}>EXPLAINING</Button>
+            <Button color={store.ueControl.state.child.idle === 0 ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(0)}>RESTING</Button>
+            <Button color={store.ueControl.state.child.idle === 1 ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(1)}>UNEASY</Button>
+            <Button color={store.ueControl.state.child.idle === 2 ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(2)}>EXPLAINING</Button>
         </div>
 
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Actions</Typography>
         <div style={ControlsGroupContainerStyle}>
-            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cry')}>CRY</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cut')}>CUT</Button>
-            <Button variant={'contained'}
+            <Button color={store.ueControl.state.child.upper_body === 'cry' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cry')}>CRY</Button>
+            <Button color={store.ueControl.state.child.upper_body === 'cut' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('cut')}>CUT</Button>
+            <Button color={store.ueControl.state.child.upper_body === 'scratch' ? 'secondary' : undefined} variant={'contained'}
                     onClick={() => store.ueControl.setUpperBodyAnimation('scratch')}>SCRATCH</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('slap')}>SLAP</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('yawn')}>YAWN</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setFullBodyAnimation('walk')}>WALK</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.cancelUpperBodyAnimation()}>CANCEL UPPER
-                BODY</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.cancelFullBodyAnimation()}>CANCEL FULL
-                BODY</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.resetAllAnimation()}>RESET ANIMATIONS</Button>
+            <Button color={store.ueControl.state.child.upper_body === 'slap' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('slap')}>SLAP</Button>
+            <Button color={store.ueControl.state.child.upper_body === 'yawn' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('yawn')}>YAWN</Button>
         </div>
 
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Character</Typography>
         <div style={ControlsGroupContainerStyle}>
             {
-                Array.from({ length: 9 }, (_, i) => i).map(i => {
-                    return <Button variant={'contained'} onClick={() => store.ueControl.setChild(i)}>{i}</Button>;
+                Array.from({ length: 11 }, (_, i) => i).map(i => {
+                    return <Button color={store.ueControl.state.childIndex === i ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setChild(i)}>{i}</Button>;
                 })
             }
         </div>
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Camera</Typography>
         <div style={ControlsGroupContainerStyle}>
-            <Button variant={'contained'} onClick={() => store.ueControl.setCamera(0)}>CLOSEUP</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setCamera(1)}>WAIST-UP</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setCamera(2)}>FULL BODY</Button>
-            <Button variant={'contained'} onClick={() => store.ueControl.setCamera(3)}>SCENE</Button>
+            <Button color={store.ueControl.state.camera === 'Closeup' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(0)}>CLOSEUP</Button>
+            <Button color={store.ueControl.state.camera === 'Waist-up' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(1)}>WAIST-UP</Button>
+            <Button color={store.ueControl.state.camera === 'Full Body' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(2)}>FULL BODY</Button>
+            <Button color={store.ueControl.state.camera === 'Scene' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(3)}>SCENE</Button>
         </div>
     </div>;
 });
@@ -85,6 +80,7 @@ const RootStyle: CSSProperties = {
 };
 
 const HeaderStyle: CSSProperties = {
+    position: 'relative',
     height: 54,
     display: 'flex',
     alignItems: 'center',

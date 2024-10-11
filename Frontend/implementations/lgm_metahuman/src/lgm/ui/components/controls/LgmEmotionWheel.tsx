@@ -1,4 +1,6 @@
-import React, { CSSProperties, useEffect, useRef } from 'react';
+import React, { CSSProperties, useContext, useEffect, useRef } from 'react';
+import { autorun } from 'mobx';
+import { LgmStoreContext } from '../../../stores/LgmStore';
 
 interface LgmEmotionWheelProps {
     onEmotionSelected: (emotion: string, intensity: number) => void;
@@ -8,6 +10,7 @@ interface LgmEmotionWheelProps {
 
 export const LgmEmotionWheel: React.FC<LgmEmotionWheelProps> = ({ style, onEmotionSelected, size = 400 }) => {
     const svgRef = useRef<SVGSVGElement | null>(null);
+    const store = useContext(LgmStoreContext);
 
     useEffect(() => {
         if (svgRef.current) {
@@ -26,11 +29,15 @@ export const LgmEmotionWheel: React.FC<LgmEmotionWheelProps> = ({ style, onEmoti
 
                 // Add event listeners to each section
                 const allSections = svgRef.current.querySelectorAll('.section, .inner-circle');
+                const sectionMap: { [k: number]: { [k: number]: SVGElement } } = {};
                 allSections.forEach((section) => {
+                    const target = section as SVGElement;
+                    const emotion = target.getAttribute('data-emotion') || 'NEUTRAL';
+                    const emotionIndex = Math.max(0, emotions.indexOf(emotion));
+                    const intensity = calculateIntensity(target);
+                    if (!sectionMap[emotionIndex]) sectionMap[emotionIndex] = {};
+                    sectionMap[emotionIndex][intensity] = target;
                     section.addEventListener('click', (e) => {
-                        const target = e.target as SVGElement;
-                        const emotion = target.getAttribute('data-emotion') || 'NEUTRAL';
-                        const intensity = calculateIntensity(target);
                         onEmotionSelected(emotion, intensity);
 
                         section.classList.add('flash');
@@ -38,6 +45,16 @@ export const LgmEmotionWheel: React.FC<LgmEmotionWheelProps> = ({ style, onEmoti
                             section.classList.remove('flash');
                         }, 300);
                     });
+                });
+
+                return autorun(() => {
+                    svgRef.current.querySelectorAll('.emotion-selected').forEach((el) => el.classList.remove('emotion-selected'));
+                    const index = emotions.length - (store.ueControl.state.child.bias_type || 0) - 2;
+                    if (store.ueControl.state.child.bias_level === 0) {
+                        sectionMap[0][0].classList.add('emotion-selected');
+                    } else {
+                        sectionMap[index < 0 ? emotions.length - 1 : index || 0][store.ueControl.state.child.bias_level || 0]?.classList.add('emotion-selected');
+                    }
                 });
             }
         }
@@ -78,6 +95,9 @@ export const LgmEmotionWheel: React.FC<LgmEmotionWheelProps> = ({ style, onEmoti
             .flash {
               animation: flashAnimation 0.3s ease-in-out;
             }
+            .emotion-selected {
+              fill: rgba(255, 255, 255, 0.3);
+            }
             @keyframes flashAnimation {
               0% {
                 fill: rgba(255, 255, 255, 0.1);
@@ -86,7 +106,7 @@ export const LgmEmotionWheel: React.FC<LgmEmotionWheelProps> = ({ style, onEmoti
                 fill: rgba(255, 255, 255, 1);
               }
               100% {
-                fill: rgba(255, 255, 255, 0.1);
+                fill: rgba(255, 255, 255, 0.5);
               }
             }
             .emotion-label {
