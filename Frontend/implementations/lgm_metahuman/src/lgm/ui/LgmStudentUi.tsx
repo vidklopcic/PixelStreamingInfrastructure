@@ -5,7 +5,7 @@ import { LgmVideoStream } from './components/chat/LgmVideoStream';
 import { LgmStoreContext } from '../stores/LgmStore';
 import { LgmAudioStream } from './components/chat/LgmAudioStream';
 import { LgmChat } from './components/chat/LgmChat';
-import { Fab } from '@mui/material';
+import { Badge, Fab } from '@mui/material';
 import { Chat, ChevronLeft } from '@mui/icons-material';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
 
@@ -13,6 +13,7 @@ export const LgmStudentUi = observer(() => {
     const store = useContext(LgmStoreContext);
     const peerAudioStreams = store.webrtc.peerAudioStreams;
     const [chat, setChat] = React.useState(false);
+    const [lastChatCount, setLastChatCount] = React.useState(0);
     return <div style={RootStyle}>
         <div style={UnrealStyle(chat)}>
             <LgmUnreal cover />
@@ -43,9 +44,16 @@ export const LgmStudentUi = observer(() => {
                 left: chat ? (412 - 28) : 16,
                 transition: 'all 0.3s'
             }}
-            onClick={() => setChat(!chat)}>
-            {!chat && <Chat/>}
-            {chat && <ChevronLeft/>}
+            onClick={() => {
+                if (!chat) {
+                    setLastChatCount(store.chat.messages.length);
+                }
+                setChat(!chat);
+            }}>
+            {!chat && <Chat />}
+            {chat && <ChevronLeft />}
+            <Badge badgeContent={chat ? 0 : (store.chat.messages.length - lastChatCount)} color={'error'}
+                   style={{ transform: 'translate(0, 8px)' }} />
         </Fab>
     </div>;
 });
