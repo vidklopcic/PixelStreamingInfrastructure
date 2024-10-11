@@ -7,6 +7,7 @@ import { LgmAudioStream } from './components/chat/LgmAudioStream';
 import { LgmChat } from './components/chat/LgmChat';
 import { Fab } from '@mui/material';
 import { Chat, ChevronLeft } from '@mui/icons-material';
+import { LgmSessionInfo } from './components/LgmSessionInfo';
 
 export const LgmStudentUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -15,6 +16,17 @@ export const LgmStudentUi = observer(() => {
     return <div style={RootStyle}>
         <div style={UnrealStyle(chat)}>
             <LgmUnreal cover />
+            <div style={{
+                position: 'absolute',
+                top: 8,
+                left: 0,
+                right: 0,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+            }}>
+                <LgmSessionInfo />
+            </div>
         </div>
         {!!peerAudioStreams?.length && peerAudioStreams.map((s) => <LgmAudioStream stream={s} />)}
         {store.webrtc.localStream && <LgmVideoStream

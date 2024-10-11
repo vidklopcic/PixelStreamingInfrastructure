@@ -7,6 +7,7 @@ import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmUeControls } from './components/LgmUeControls';
 import { LgmAudioStream } from './components/chat/LgmAudioStream';
+import { LgmSessionInfo } from './components/LgmSessionInfo';
 
 export const LgmSupervisorUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -25,6 +26,17 @@ export const LgmSupervisorUi = observer(() => {
         </div>
         <div style={ChatContainerStyle}>
             <LgmChat />
+        </div>
+        <div style={{
+            position: 'absolute',
+            top: 8,
+            left: 0,
+            right: 400,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+        }}>
+            <LgmSessionInfo />
         </div>
     </div>;
 });

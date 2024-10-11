@@ -6,6 +6,7 @@ import React, { CSSProperties, useContext } from 'react';
 import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmUeControls } from './components/LgmUeControls';
+import { LgmSessionInfo } from './components/LgmSessionInfo';
 
 export const LgmInstructorUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -21,6 +22,17 @@ export const LgmInstructorUi = observer(() => {
                 stream={peerStreams[0]}
                 style={VideoStyle}
             />}
+            <div style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: 0,
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'center'
+            }}>
+                <LgmSessionInfo />
+            </div>
         </div>
         <div style={SideUiContainerStyle} className={'mobile-column desktop-row'}>
             <LgmUeControls />
@@ -48,6 +60,7 @@ const SideUiContainerStyle: CSSProperties = {
 };
 
 const StreamsStyle: CSSProperties = {
+    position: 'relative',
     flexGrow: 1,
     flexBasis: 0,
     maxWidth: '82vh',

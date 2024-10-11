@@ -3,6 +3,7 @@ import { LgmUiWrapper } from '../lgm/LgmUiWrapper';
 import { ToastContainer, toast } from 'react-toastify';
 import { ReactToastifyCss } from './ReactToastifyCss';
 import { createTheme, ThemeProvider } from '@mui/material';
+
 const textFieldInactiveColor = 'white';
 
 const theme = createTheme({
@@ -12,28 +13,38 @@ const theme = createTheme({
         }
     },
     components: {
+        MuiDialog: {
+            styleOverrides: {
+                paper: {
+                    backgroundColor: 'transparent',
+                    color: 'white',
+                    boxShadow: 'none',
+                    border: 'none'
+                }
+            }
+        },
         MuiTextField: {
             styleOverrides: {
                 root: {
                     '& .MuiOutlinedInput-root': {
                         '& fieldset': {
-                            borderColor: textFieldInactiveColor,
+                            borderColor: textFieldInactiveColor
                         },
                         '&:hover fieldset': {
-                            borderColor: textFieldInactiveColor,
+                            borderColor: textFieldInactiveColor
                         },
                         '&.Mui-focused fieldset': {
-                            borderColor: textFieldInactiveColor,
-                        },
+                            borderColor: textFieldInactiveColor
+                        }
                     },
                     '& .MuiInputBase-input': {
-                        color: textFieldInactiveColor,
+                        color: textFieldInactiveColor
                     },
                     '& .MuiInputLabel-root': {
-                        color: `${textFieldInactiveColor} !important`,
-                    },
-                },
-            },
+                        color: `${textFieldInactiveColor} !important`
+                    }
+                }
+            }
         },
         MuiButton: {
             styleOverrides: {
@@ -41,12 +52,12 @@ const theme = createTheme({
                     '&.Mui-disabled': {
                         backgroundColor: '#5c7fa2',
                         color: 'white',
-                        opacity: 0.5,
-                    },
-                },
-            },
-        },
-    },
+                        opacity: 0.5
+                    }
+                }
+            }
+        }
+    }
 });
 
 export const App = () => {
@@ -57,11 +68,11 @@ export const App = () => {
                 width: '100%'
             }}
         >
-            <ReactToastifyCss/>
+            <ReactToastifyCss />
             <ThemeProvider theme={theme}>
-                <LgmUiWrapper/>
+                <LgmUiWrapper />
             </ThemeProvider>
-            <ToastContainer position={'bottom-right'}/>
+            <ToastContainer position={'bottom-right'} />
         </div>
     );
 };
