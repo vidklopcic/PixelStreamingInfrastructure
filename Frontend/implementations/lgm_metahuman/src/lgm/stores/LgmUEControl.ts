@@ -90,6 +90,7 @@ export class LGMUeControl {
     }
 
     cancelUpperBodyAnimation() {
+        console.log('cancelUpperBody');
         this.base.pixelStreaming?.emitUIInteraction({
             'namespace': 'animation',
             'action': 'cancelUpperBody'
@@ -116,12 +117,19 @@ export class LGMUeControl {
 
     parseState(response: string) {
         const state = JSON.parse(response) as LgmUeState;
-        const name2String = (name?: string) => name === 'None' ? undefined : name;
+        const name2String = (name?: string, lower?: boolean) => {
+            const result = name === 'None' ? undefined : name;
+            if (lower) {
+                return result?.toLowerCase();
+            } else {
+                return result;
+            }
+        };
         this.state.level = name2String(state.level);
         this.state.camera = name2String(state.camera);
         this.state.childIndex = state.childIndex;
         this.state.child.idle = state.child.idle;
-        this.state.child.upper_body = name2String(state.child.upper_body);
+        this.state.child.upper_body = name2String(state.child.upper_body, true);
         this.state.child.full_body = name2String(state.child.full_body);
         this.state.child.bias_type = state.child.bias_type;
         this.state.child.bias_level = state.child.bias_level;
