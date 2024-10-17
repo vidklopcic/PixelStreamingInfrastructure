@@ -2,6 +2,7 @@ export interface LgmChatMessage {
     id: string;
     from: string;
     role: LgmRole;
+    user: string;
     message: string;
     ts: number;
 }

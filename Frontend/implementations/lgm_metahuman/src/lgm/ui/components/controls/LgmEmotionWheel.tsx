@@ -14,6 +14,7 @@ export const LgmEmotionWheel: React.FC<LgmEmotionWheelProps> = ({ style, onEmoti
 
     useEffect(() => {
         if (svgRef.current) {
+            console.log('init wheel');
             const sections = svgRef.current.getElementById('sections');
 
             if (sections) {
@@ -58,7 +59,7 @@ export const LgmEmotionWheel: React.FC<LgmEmotionWheelProps> = ({ style, onEmoti
                 });
             }
         }
-    }, [onEmotionSelected]);
+    }, []);
 
     const calculateIntensity = (element: SVGElement): number => {
         const classNames = element.getAttribute('class')?.split(' ') || [];

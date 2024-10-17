@@ -14,7 +14,7 @@ export const LgmChatMessages = observer(() => {
                 borderBottomRightRadius: isSelf ? 0 : 16
             }}>
                 {message.message}
-                <div style={RoleStyle}>{message.role}</div>
+                <div style={RoleStyle}>{message.user} ({message.role})</div>
             </div>;
         })}
     </>;

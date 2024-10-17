@@ -18,6 +18,7 @@ export class LgmChatStore {
             id: Math.random().toString(),
             from: this.base.user.id,
             role: this.base.user.role,
+            user: this.base.user.name,
             message: message,
             ts: Date.now()
         } as LgmChatMessage;

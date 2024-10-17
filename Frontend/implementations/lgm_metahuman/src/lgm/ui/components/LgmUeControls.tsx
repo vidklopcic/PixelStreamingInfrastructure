@@ -24,14 +24,6 @@ export const LgmUeControls = observer(() => {
                 store.ueControl.setEmotion(e, i);
             }}
         />
-        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Environment</Typography>
-        <div style={ControlsGroupContainerStyle}>
-            <Button color={store.ueControl.state.level === 'DnevnaSoba' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>LIVING ROOM</Button>
-            <Button color={store.ueControl.state.level === 'OtroskaSoba' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(1)}>FI ROOM</Button>
-            <Button color={store.ueControl.state.level === 'Pisarna' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(2)}>OFFICE</Button>
-            <Button color={store.ueControl.state.level === 'Ucilnica' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(3)}>CLASSROOM</Button>
-        </div>
-
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Idle animation</Typography>
         <div style={ControlsGroupContainerStyle}>
             <Button color={store.ueControl.state.child.idle === 0 ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setIdleAnimation(0)}>RESTING</Button>
@@ -49,6 +41,22 @@ export const LgmUeControls = observer(() => {
             <Button color={store.ueControl.state.child.upper_body === 'yawn' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setUpperBodyAnimation('yawn')}>YAWN</Button>
         </div>
 
+        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Camera</Typography>
+        <div style={ControlsGroupContainerStyle}>
+            <Button color={store.ueControl.state.camera === 'Closeup' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(0)}>CLOSEUP</Button>
+            <Button color={store.ueControl.state.camera === 'Waist-up' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(1)}>WAIST-UP</Button>
+            <Button color={store.ueControl.state.camera === 'Full Body' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(2)}>FULL BODY</Button>
+            <Button color={store.ueControl.state.camera === 'Scene' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(3)}>SCENE</Button>
+        </div>
+
+        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Environment</Typography>
+        <div style={ControlsGroupContainerStyle}>
+            <Button color={store.ueControl.state.level === 'DnevnaSoba' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(0)}>LIVING ROOM</Button>
+            <Button color={store.ueControl.state.level === 'OtroskaSoba' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(1)}>FI ROOM</Button>
+            <Button color={store.ueControl.state.level === 'Pisarna' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(2)}>OFFICE</Button>
+            <Button color={store.ueControl.state.level === 'Ucilnica' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setLevel(3)}>CLASSROOM</Button>
+        </div>
+
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Character</Typography>
         <div style={ControlsGroupContainerStyle}>
             {
@@ -56,13 +64,6 @@ export const LgmUeControls = observer(() => {
                     return <Button color={store.ueControl.state.childIndex === i ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setChild(i)}>{i}</Button>;
                 })
             }
-        </div>
-        <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Camera</Typography>
-        <div style={ControlsGroupContainerStyle}>
-            <Button color={store.ueControl.state.camera === 'Closeup' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(0)}>CLOSEUP</Button>
-            <Button color={store.ueControl.state.camera === 'Waist-up' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(1)}>WAIST-UP</Button>
-            <Button color={store.ueControl.state.camera === 'Full Body' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(2)}>FULL BODY</Button>
-            <Button color={store.ueControl.state.camera === 'Scene' ? 'secondary' : undefined} variant={'contained'} onClick={() => store.ueControl.setCamera(3)}>SCENE</Button>
         </div>
     </div>;
 });
