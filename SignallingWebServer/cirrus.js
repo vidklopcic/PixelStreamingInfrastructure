@@ -982,93 +982,104 @@ playerServer.on('connection', function (ws, req) {
             return;
         }
 
-        if (msg.namespace === 'lgm') {
-            console.log(`Received on LGM ws: ${msgRaw}`);
+        try {
+            if (msg.namespace === 'lgm') {
+                console.log(`Received on LGM ws: ${msgRaw}`);
 
-            switch (msg.type) {
-                case 'join-session':
-                case 'create-session':
-                    if (!lgmSessions.has(msg.data.sessionSecret)) {
-                        if (msg.type === 'create-session') {
-                            if (lgmSessions.size > 0) {
-                                // prototype version only allows one session at a time
+                switch (msg.type) {
+                    case 'join-session':
+                    case 'create-session':
+                        if (!lgmSessions.has(msg.data.sessionSecret)) {
+                            if (msg.type === 'create-session') {
+                                if (lgmSessions.size > 0) {
+                                    // prototype version only allows one session at a time
+                                    ws.send(JSON.stringify({
+                                        type: 'error',
+                                        code: 'session-exists',
+                                        namespace: 'lgm',
+                                        message: `Only one session is allowed at a time. End the active session first or restart signalling server.`,
+                                    }));
+                                    return;
+                                }
+                                lgmSessions.set(msg.data.sessionSecret, {
+                                    sessionSecret: msg.data.sessionSecret,
+                                    contextText: msg.data.contextText,
+                                    startedTimestamp: undefined,
+                                    createdTimestamp: Date.now(),
+                                });
+                            } else {
                                 ws.send(JSON.stringify({
                                     type: 'error',
-                                    code: 'session-exists',
+                                    code: 'session-not-found',
                                     namespace: 'lgm',
-                                    message: `Only one session is allowed at a time. End the active session first or restart signalling server.`,
+                                    message: `Session ${msg.data.sessionSecret} not found`,
                                 }));
                                 return;
                             }
-                            lgmSessions.set(msg.data.sessionSecret, {
-                                sessionSecret: msg.data.sessionSecret,
-                                contextText: msg.data.contextText,
-                                startedTimestamp: undefined,
-                                createdTimestamp: Date.now(),
-                            });
-                        } else {
+                        }
+                        sessionSecret = msg.data.sessionSecret;
+                        if (!lgmClients.has(sessionSecret)) {
+                            lgmClients.set(sessionSecret, new Map());
+                        }
+                        lgmClients.get(sessionSecret).set(msg.fromUserId, ws);
+                        const session = lgmSessions.get(sessionSecret);
+                        session.contextText = msg.data.contextText;
+                        sendLgm({type: 'session', data: session});
+                        broadcastLgm(msg.fromUserId, {type: 'request-chat-history'});
+                        break;
+                    case 'close-session':
+                        if (!lgmSessions.has(sessionSecret)) {
                             ws.send(JSON.stringify({
                                 type: 'error',
                                 code: 'session-not-found',
                                 namespace: 'lgm',
-                                message: `Session ${msg.data.sessionSecret} not found`,
+                                message: `Session ${sessionSecret} not found`,
                             }));
                             return;
                         }
+                        lgmSessions.delete(sessionSecret);
+                        broadcastLgm(undefined, {type: 'session-closed'});
+                        break;
+                    default: {
+                        const session = lgmSessions.get(sessionSecret);
+                        if (!session) {
+                            ws.send(JSON.stringify({
+                                type: 'error',
+                                code: 'session-not-found',
+                                namespace: 'lgm',
+                                message: `Session ${msg.sessionSecret} not found`,
+                            }));
+                            return;
+                        }
+                        if (msg.type === 'session') {
+                            session.startedTimestamp = msg.data?.startedTimestamp;
+                        }
+                        // broadcast to all other clients
+                        broadcastLgm(msg.fromUserId, msgRaw.toString('utf-8'));
+                        break;
                     }
-                    sessionSecret = msg.data.sessionSecret;
-                    if (!lgmClients.has(sessionSecret)) {
-                        lgmClients.set(sessionSecret, new Map());
-                    }
-                    lgmClients.get(sessionSecret).set(msg.fromUserId, ws);
-                    sendLgm({type: 'session', data: lgmSessions.get(msg.data.sessionSecret)});
-                    broadcastLgm(msg.fromUserId, {type: 'request-chat-history'});
-                    break;
-                case 'close-session':
-                    if (!lgmSessions.has(sessionSecret)) {
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            code: 'session-not-found',
-                            namespace: 'lgm',
-                            message: `Session ${sessionSecret} not found`,
-                        }));
-                        return;
-                    }
-                    lgmSessions.delete(sessionSecret);
-                    broadcastLgm(undefined, {type: 'session-closed', data: msg.data.sessionSecret});
-                    break;
-                default:
-                    if (!lgmSessions.has(msg.sessionSecret)) {
-                        ws.send(JSON.stringify({
-                            type: 'error',
-                            code: 'session-not-found',
-                            namespace: 'lgm',
-                            message: `Session ${msg.sessionSecret} not found`,
-                        }));
-                        return;
-                    }
-                    // broadcast to all other clients
-                    broadcastLgm(msg.fromUserId, msgRaw.toString('utf-8'));
-                    break;
-            }
-        } else {
-            let player = players.get(playerId);
-            if (!player) {
-                console.error(`Received a message from a player not in the player list ${playerId}`);
-                ws.close(1001, 'Broken');
-                return;
-            }
-
-            let handler = playerMessageHandlers.get(msg.type);
-            if (!handler || (typeof handler != 'function')) {
-                if (config.LogVerbose) {
-                    console.logColor(logging.White, "\x1b[37m-> %s\x1b[34m: %s", playerId, msgRaw);
                 }
-                console.error(`unsupported player message type: ${msg.type}`);
-                ws.close(1008, 'Unsupported message type');
-                return;
+            } else {
+                let player = players.get(playerId);
+                if (!player) {
+                    console.error(`Received a message from a player not in the player list ${playerId}`);
+                    ws.close(1001, 'Broken');
+                    return;
+                }
+
+                let handler = playerMessageHandlers.get(msg.type);
+                if (!handler || (typeof handler != 'function')) {
+                    if (config.LogVerbose) {
+                        console.logColor(logging.White, "\x1b[37m-> %s\x1b[34m: %s", playerId, msgRaw);
+                    }
+                    console.error(`unsupported player message type: ${msg.type}`);
+                    ws.close(1008, 'Unsupported message type');
+                    return;
+                }
+                handler(player, msg);
             }
-            handler(player, msg);
+        } catch (err) {
+            console.error(`Error handling message: ${err}`);
         }
     });
 
