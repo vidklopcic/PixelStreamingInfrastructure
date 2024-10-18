@@ -1,6 +1,6 @@
 import { LgmStore } from './LgmStore';
 import { LgmApiMessage, LgmRole } from '../client/LgmData';
-import { makeAutoObservable, ObservableMap } from 'mobx';
+import { autorun, makeAutoObservable, ObservableMap } from 'mobx';
 
 interface PeerConnection {
     connection: RTCPeerConnection;
@@ -12,6 +12,7 @@ export class LgmWebRTCStore {
     private peerConnections: ObservableMap<string, PeerConnection>;
     localStream?: MediaStream = undefined;
     accessRejected = false;
+    muted = false;
 
     constructor(base: LgmStore) {
         this.base = base;
@@ -28,6 +29,16 @@ export class LgmWebRTCStore {
                     this.accessRejected = true;
                 });
         }
+        autorun(() => {
+            if (!this.localStream) {
+                return;
+            }
+            if (this.muted) {
+                this.localStream?.getAudioTracks().forEach((track) => track.enabled = false);
+            } else {
+                this.localStream?.getAudioTracks().forEach((track) => track.enabled = true);
+            }
+        });
     }
 
     get peerStreams() {

@@ -5,8 +5,8 @@ import { LgmVideoStream } from './components/chat/LgmVideoStream';
 import { LgmStoreContext } from '../stores/LgmStore';
 import { LgmAudioStream } from './components/chat/LgmAudioStream';
 import { LgmChat } from './components/chat/LgmChat';
-import { Badge, Fab } from '@mui/material';
-import { Chat, ChevronLeft } from '@mui/icons-material';
+import { Badge, Fab, Typography } from '@mui/material';
+import { Chat, ChevronLeft, Mic, MicOff, Videocam } from '@mui/icons-material';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
 
 export const LgmStudentUi = observer(() => {
@@ -16,7 +16,8 @@ export const LgmStudentUi = observer(() => {
     const [lastChatCount, setLastChatCount] = React.useState(0);
     return <div style={RootStyle}>
         <div style={UnrealStyle(chat)}>
-            <LgmUnreal cover />
+            {store.sessionActive && <LgmUnreal cover />}
+            {!store.sessionActive && <LgmUnrealPlaceholder />}
             <div style={{
                 position: 'absolute',
                 top: 8,
@@ -30,11 +31,22 @@ export const LgmStudentUi = observer(() => {
             </div>
         </div>
         {!!peerAudioStreams?.length && peerAudioStreams.map((s) => <LgmAudioStream stream={s} />)}
-        {store.webrtc.localStream && <LgmVideoStream
-            stream={store.webrtc.localStream}
-            canHide={true}
-            style={VideoStyle(chat)}
-            muted={true} />}
+        <div
+            style={VideoContainerStyle(chat)}>
+            <Fab
+                onClick={() => {
+                    store.webrtc.muted = !store.webrtc.muted;
+                }}>
+                {!store.webrtc.muted && <Mic />}
+                {store.webrtc.muted && <MicOff />}
+            </Fab>
+            {store.webrtc.localStream && <LgmVideoStream
+                stream={store.webrtc.localStream}
+                style={VideoStyle}
+                canHide={true}
+                muted={true} />}
+
+        </div>
         <div style={ChatContainerStyle(chat)}>
             <LgmChat />
         </div>
@@ -59,6 +71,24 @@ export const LgmStudentUi = observer(() => {
     </div>;
 });
 
+const LgmUnrealPlaceholder = () => {
+    return <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center'
+    }}>
+        <Typography variant={'h6'} textAlign={'center'}>
+            Session has not started yet.<br />
+            Please wait for the instructor to start the session.
+        </Typography>
+    </div>;
+};
+
 const RootStyle: CSSProperties = {
     position: 'absolute',
     right: 0,
@@ -79,15 +109,22 @@ const UnrealStyle = (chat: boolean): CSSProperties => ({
     transition: 'all 0.3s'
 });
 
-const VideoStyle = (chat: boolean): CSSProperties => ({
+const VideoContainerStyle = (chat: boolean): CSSProperties => ({
     position: 'absolute',
+    display: 'flex',
     bottom: 16 + (chat ? 8 : 0),
     right: 16 + (chat ? 8 : 0),
-    backgroundColor: 'gray',
+    transition: 'all 0.3s',
+    gap: 8,
+    alignItems: 'end'
+});
+
+const VideoStyle = {
     width: 240,
     height: 180,
+    backgroundColor: 'gray',
     transition: 'all 0.3s'
-});
+};
 
 const ChatContainerStyle = (chat: boolean): CSSProperties => ({
     position: 'absolute',

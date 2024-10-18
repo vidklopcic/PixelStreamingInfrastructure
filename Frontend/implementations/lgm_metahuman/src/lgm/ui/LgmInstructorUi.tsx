@@ -7,6 +7,8 @@ import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmUeControls } from './components/LgmUeControls';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
+import { ExitToApp, FullscreenExit, Mic, MicOff, PlayArrow, Stop, TransitEnterexit } from '@mui/icons-material';
+import { Fab } from '@mui/material';
 
 export const LgmInstructorUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -33,6 +35,40 @@ export const LgmInstructorUi = observer(() => {
             }}>
                 <LgmSessionInfo />
             </div>
+            <Fab
+                style={{
+                    position: 'absolute',
+                    bottom: 16,
+                    alignSelf: 'center',
+                    height: 56,
+                    borderRadius: 28,
+                    display: 'flex',
+                    gap: 8
+                }}
+                disabled={store.sessionEnded || !store.hasSession}
+                variant={'extended'}
+                onClick={() => {
+                    if (store.sessionActive) {
+                        store.endSession();
+                    } else {
+                        store.startSession();
+                    }
+                }}>
+                {!store.sessionActive && <><PlayArrow />START SESSION</>}
+                {store.sessionActive && <><Stop />END SESSION</>}
+            </Fab>
+            <Fab
+                style={{
+                    position: 'absolute',
+                    bottom: 16,
+                    right: 16
+                }}
+                onClick={() => {
+                    store.webrtc.muted = !store.webrtc.muted;
+                }}>
+                {!store.webrtc.muted && <Mic />}
+                {store.webrtc.muted && <MicOff />}
+            </Fab>
         </div>
         <div style={SideUiContainerStyle} className={'mobile-column desktop-row'}>
             <LgmUeControls />

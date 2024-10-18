@@ -6,6 +6,8 @@ import { LgmOnboardingUi } from './ui/components/LgmOnboardingUi';
 import { LgmInstructorUi } from './ui/LgmInstructorUi';
 import { LgmStudentUi } from './ui/LgmStudentUi';
 import { LgmSupervisorUi } from './ui/LgmSupervisorUi';
+import { Dialog, Fab, Typography } from '@mui/material';
+import { Refresh } from '@mui/icons-material';
 
 export const LgmUiWrapper = observer(() => {
     const [lgmStore, setLgmStore] = useState<LgmStore | undefined>(undefined);
@@ -17,6 +19,33 @@ export const LgmUiWrapper = observer(() => {
             {lgmStore?.user.role === LgmRole.student && <LgmStudentUi />}
             {lgmStore?.user.role === LgmRole.supervisor && <LgmSupervisorUi />}
         </div>
+        <Dialog sx={{
+            backgroundColor: 'rgba(0, 0, 0, 0.8)'
+        }} open={lgmStore?.sessionEnded}
+                onClose={() => {
+                }}>
+            <div style={{
+                padding: 16,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center'
+            }}>
+                <Typography variant={'h4'}>Session has ended</Typography>
+                <p>Session has ended. You can now close this window.</p>
+                <Fab
+                    style={{
+                        marginTop: 32,
+                        display: 'flex',
+                        gap: 8
+                    }}
+                    variant={'extended'}
+                    onClick={() => {
+                        window.location.reload();
+                    }}>
+                    <Refresh/> START NEW SESSION
+                </Fab>
+            </div>
+        </Dialog>
     </LgmStoreContext.Provider>;
 });
 

@@ -45,6 +45,10 @@ export class LgmStore {
         return this.session !== undefined;
     };
 
+    get sessionActive() {
+        return this.session?.startedTimestamp !== undefined;
+    }
+
     ueControl: LGMUeControl;
     pixelStreaming?: PixelStreaming = undefined;
     pixelStreamingConnected = false;
@@ -156,9 +160,10 @@ export class LgmStore {
                 this.sessionEnded = false;
                 this.session = message.data as LgmSession;
                 break;
-            case 'end-session':
+            case 'session-closed':
                 this.dispose();
                 this.sessionEnded = true;
+                window.location.hash = '';
                 break;
             case 'error':
                 this.errorCode = message.code;
@@ -203,11 +208,14 @@ export class LgmStore {
         if (this.user.role !== LgmRole.instructor) {
             throw new Error('Only instructors can start a session');
         }
-        this.client.send({ type: 'start-session' });
+        this.session.startedTimestamp = Date.now();
+        this.client.send({
+            type: 'session', data: this.session
+        });
     }
 
     endSession() {
-        this.client.send({ type: 'end-session' });
+        this.client.send({ type: 'close-session' });
     }
 }
 
