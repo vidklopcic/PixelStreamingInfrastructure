@@ -52,7 +52,7 @@ export const LgmOnboardingEnterDetails = observer((props: { onLgmStore: (store: 
                 style={{
                     transition: 'all 0.3s',
                     opacity: role === LgmRole.instructor ? 1 : 0,
-                    height: role === LgmRole.instructor ? '56px' : 0
+                    height: role === LgmRole.instructor ? 'auto' : 0
                 }}
                 label={'Session context'}
                 multiline={true}
@@ -87,6 +87,7 @@ const ContainerStyle: CSSProperties = {
 const InnerContainerStyle: CSSProperties = {
     ...ContainerStyle,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    boxSizing: 'border-box',
     padding: '16px',
     borderRadius: '8px',
     overflow: 'hidden'
@@ -114,6 +115,9 @@ const DisableAutocomplete = {
         autocomplete: 'off',
         form: {
             autocomplete: 'off'
+        },
+        style: {
+            width: 'calc(100% - 32px)',
         }
     }
 };
