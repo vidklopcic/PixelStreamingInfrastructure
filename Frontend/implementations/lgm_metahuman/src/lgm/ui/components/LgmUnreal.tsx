@@ -34,7 +34,7 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
         }}
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;
-            let i = setInterval((i) => {
+            let i = setInterval(() => {
                 const websocketConnected = streaming.webSocketController.webSocket.readyState === 1;
                 if (websocketConnected) {
                     clearInterval(i);
