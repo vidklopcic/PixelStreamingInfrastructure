@@ -335,7 +335,6 @@ class Player {
     }
 
     streamer() {
-        console.log('DEBUG: getStreamer', this.streamerIndex, streamerList);
         return streamerList[this.streamerIndex];
     }
 
