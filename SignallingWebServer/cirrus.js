@@ -331,15 +331,12 @@ class Player {
         this.ws = ws;
         this.type = type;
         this.whoSendsOffer = whoSendsOffer;
-        this.sessionSecret = undefined;
+        this.streamerIndex = undefined;
     }
 
     streamer() {
-        const session = lgmSessions.get(this.sessionSecret);
-        if (session) {
-            return streamerList[session.streamerIndex];
-        }
-        return undefined;
+        console.log('DEBUG: getStreamer', this.streamerIndex, streamerList);
+        return streamerList[this.streamerIndex];
     }
 
     isSFU() {
@@ -1028,7 +1025,6 @@ playerServer.on('connection', function (ws, req) {
                                     createdTimestamp: Date.now(),
                                     streamerIndex: lgmSessions.size,
                                 });
-                                player.sessionSecret = msg.data.sessionSecret;
                             } else {
                                 ws.send(JSON.stringify({
                                     type: 'error',
@@ -1045,6 +1041,8 @@ playerServer.on('connection', function (ws, req) {
                         }
                         lgmClients.get(sessionSecret).set(msg.fromUserId, ws);
                         const session = lgmSessions.get(sessionSecret);
+                        player.streamerIndex = session.streamerIndex;
+                        console.log('DEBUG: player.streamerIndex', player.streamerIndex);
                         if (msg.type === 'create-session') {
                             session.contextText = msg.data.contextText;
                         }
@@ -1061,6 +1059,7 @@ playerServer.on('connection', function (ws, req) {
                             }));
                             return;
                         }
+                        player.streamerIndex = undefined;
                         lgmSessions.delete(sessionSecret);
                         broadcastLgm(undefined, {type: 'session-closed'});
                         break;
