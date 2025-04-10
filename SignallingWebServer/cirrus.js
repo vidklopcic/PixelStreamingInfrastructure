@@ -31,7 +31,7 @@ const defaultConfig = {
     PublicIp: "localhost",
     HttpPort: 80,
     HttpsPort: 443,
-    StreamerPort: 8888,
+    StreamerPorts: process.env.STREAMER_PORTS ? process.env.STREAMER_PORTS.split(',').map(Number) : [8888],
     SFUPort: 8889,
     MaxPlayerCount: -1,
     DisableSSLCert: true
@@ -82,7 +82,7 @@ if (config.UseFrontend) {
     var httpsPort = config.HttpsPort;
 }
 
-var streamerPort = config.StreamerPort; // port to listen to Streamer connections
+var streamerPorts = config.StreamerPorts; // port to listen to Streamer connections
 var sfuPort = config.SFUPort;
 
 var matchmakerAddress = '127.0.0.1';
@@ -115,8 +115,8 @@ try {
         httpsPort = config.HttpsPort;
     }
 
-    if (typeof config.StreamerPort != 'undefined') {
-        streamerPort = config.StreamerPort;
+    if (typeof config.StreamerPorts != 'undefined') {
+        streamerPorts = config.StreamerPorts;
     }
 
     if (typeof config.SFUPort != 'undefined') {
@@ -331,6 +331,15 @@ class Player {
         this.ws = ws;
         this.type = type;
         this.whoSendsOffer = whoSendsOffer;
+        this.sessionSecret = undefined;
+    }
+
+    streamer() {
+        const session = lgmSessions.get(this.sessionSecret);
+        if (session) {
+            return streamerList[session.streamerIndex];
+        }
+        return undefined;
     }
 
     isSFU() {
@@ -424,6 +433,10 @@ class Player {
 };
 
 let streamers = new Map();		// streamerId <-> streamer
+let streamerList = [];	// streamerIndex <-> streamer
+for (let i = 0; i < streamerPorts.length; ++i) {
+    streamerList.push(undefined);
+}
 let players = new Map(); 		// playerId <-> player/peer/viewer
 const LegacyStreamerPrefix = "__LEGACY_STREAMER__"; // old streamers that dont know how to ID will be assigned this id prefix.
 const LegacySFUPrefix = "__LEGACY_SFU__"; 					// same as streamer version but for SFUs
@@ -639,58 +652,64 @@ streamerMessageHandlers.set('iceCandidate', forwardStreamerMessageToPlayer);
 streamerMessageHandlers.set('disconnectPlayer', onStreamerMessageDisconnectPlayer);
 streamerMessageHandlers.set('layerPreference', onStreamerMessageLayerPreference);
 
-console.logColor(logging.Green, `WebSocket listening for Streamer connections on :${streamerPort}`)
-let streamerServer = new WebSocket.Server({port: streamerPort, backlog: 1});
-streamerServer.on('connection', function (ws, req) {
-    console.logColor(logging.Green, `Streamer connected: ${req.connection.remoteAddress}`);
-    sendStreamerConnectedToMatchmaker();
+console.logColor(logging.Green, `WebSocket listening for Streamer connections on :${streamerPorts}`)
+const streamerServers = [];
+for (let i = 0; i < streamerPorts.length; ++i) {
+    let streamerPort = streamerPorts[i];
+    let streamerServer = new WebSocket.Server({port: streamerPort, backlog: 1});
+    streamerServers.push(streamerServer);
+    streamerServer.on('connection', function (ws, req) {
+        console.logColor(logging.Green, `Streamer connected: ${req.connection.remoteAddress}`);
+        sendStreamerConnectedToMatchmaker();
 
-    const temporaryId = req.connection.remoteAddress;
-    let streamer = new Streamer(temporaryId, ws, StreamerType.Regular);
+        const temporaryId = req.connection.remoteAddress;
+        let streamer = new Streamer(temporaryId, ws, StreamerType.Regular);
+        streamerList[i] = streamer;
 
-    ws.on('message', (msgRaw) => {
-        var msg;
-        try {
-            msg = JSON.parse(msgRaw);
-        } catch (err) {
-            console.error(`Cannot parse Streamer message: ${msgRaw}\nError: ${err}`);
-            ws.close(1008, 'Cannot parse');
-            return;
-        }
-
-        let handler = streamerMessageHandlers.get(msg.type);
-        if (!handler || (typeof handler != 'function')) {
-            if (config.LogVerbose) {
-                console.logColor(logging.White, "\x1b[37m-> %s\x1b[34m: %s", streamer.id, msgRaw);
+        ws.on('message', (msgRaw) => {
+            var msg;
+            try {
+                msg = JSON.parse(msgRaw);
+            } catch (err) {
+                console.error(`Cannot parse Streamer message: ${msgRaw}\nError: ${err}`);
+                ws.close(1008, 'Cannot parse');
+                return;
             }
-            console.error(`unsupported Streamer message type: ${msg.type}`);
-            ws.close(1008, 'Unsupported message type');
-            return;
-        }
-        handler(streamer, msg);
+
+            let handler = streamerMessageHandlers.get(msg.type);
+            if (!handler || (typeof handler != 'function')) {
+                if (config.LogVerbose) {
+                    console.logColor(logging.White, "\x1b[37m-> %s\x1b[34m: %s", streamer.id, msgRaw);
+                }
+                console.error(`unsupported Streamer message type: ${msg.type}`);
+                ws.close(1008, 'Unsupported message type');
+                return;
+            }
+            handler(streamer, msg);
+        });
+
+        ws.on('close', function (code, reason) {
+            console.error(`streamer ${streamer.id} disconnected: ${code} - ${reason}`);
+            onStreamerDisconnected(streamer);
+        });
+
+        ws.on('error', function (error) {
+            console.error(`streamer ${streamer.id} connection error: ${error}`);
+            onStreamerDisconnected(streamer);
+            try {
+                ws.close(1006 /* abnormal closure */, `streamer ${streamer.id} connection error: ${error}`);
+            } catch (err) {
+                console.error(`ERROR: ws.on error: ${err.message}`);
+            }
+        });
+
+        const configStr = JSON.stringify(clientConfig);
+        logOutgoing(streamer.id, configStr)
+        ws.send(configStr);
+
+        requestStreamerId(streamer);
     });
-
-    ws.on('close', function (code, reason) {
-        console.error(`streamer ${streamer.id} disconnected: ${code} - ${reason}`);
-        onStreamerDisconnected(streamer);
-    });
-
-    ws.on('error', function (error) {
-        console.error(`streamer ${streamer.id} connection error: ${error}`);
-        onStreamerDisconnected(streamer);
-        try {
-            ws.close(1006 /* abnormal closure */, `streamer ${streamer.id} connection error: ${error}`);
-        } catch (err) {
-            console.error(`ERROR: ws.on error: ${err.message}`);
-        }
-    });
-
-    const configStr = JSON.stringify(clientConfig);
-    logOutgoing(streamer.id, configStr)
-    ws.send(configStr);
-
-    requestStreamerId(streamer);
-});
+}
 
 function forwardSFUMessageToPlayer(sfuPlayer, msg) {
     const playerId = getPlayerIdFromMessage(msg);
@@ -883,8 +902,8 @@ function onPlayerMessageListStreamers(player, msg) {
     logIncoming(player.id, msg);
 
     let reply = {type: 'streamerList', ids: []};
-    for (let [streamerId, streamer] of streamers) {
-        reply.ids.push(streamerId);
+    if (player.streamer && player.streamer.idCommitted) {
+        reply.ids.push(player.streamer.id);
     }
 
     logOutgoing(player.id, reply);
@@ -991,13 +1010,13 @@ playerServer.on('connection', function (ws, req) {
                     case 'create-session':
                         if (!lgmSessions.has(msg.data.sessionSecret)) {
                             if (msg.type === 'create-session') {
-                                if (lgmSessions.size > 0) {
+                                if (lgmSessions.size > config.StreamerPorts.length) {
                                     // prototype version only allows one session at a time
                                     ws.send(JSON.stringify({
                                         type: 'error',
-                                        code: 'session-exists',
+                                        code: 'sessions-exhausted',
                                         namespace: 'lgm',
-                                        message: `Only one session is allowed at a time. End the active session first or restart signalling server.`,
+                                        message: `Maximum number of sessions has been reached. Please close an existing session before creating a new one.`,
                                     }));
                                     return;
                                 }
@@ -1006,7 +1025,9 @@ playerServer.on('connection', function (ws, req) {
                                     contextText: msg.data.contextText,
                                     startedTimestamp: undefined,
                                     createdTimestamp: Date.now(),
+                                    streamerIndex: lgmSessions.size,
                                 });
+                                player.sessionSecret = msg.data.sessionSecret;
                             } else {
                                 ws.send(JSON.stringify({
                                     type: 'error',

@@ -45,7 +45,7 @@ export const LgmOnboardingUi = observer((props: LgmRolePickerProps) => {
                 <PendingItem error={lgmStore.streamRejected} done={lgmStore?.hasStream}>
                     camera and microphone access
                 </PendingItem>
-                <PendingItem error={['session-not-found', 'session-exists'].includes(lgmStore.errorCode)}
+                <PendingItem error={['session-not-found', 'sessions-exhausted'].includes(lgmStore.errorCode)}
                              done={lgmStore?.hasSession}>
                     session
                 </PendingItem>
