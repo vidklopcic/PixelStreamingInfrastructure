@@ -947,6 +947,18 @@ let playerServer = new WebSocket.Server({server: config.UseHTTPS ? https : http}
 let lgmClients = new Map();
 let lgmSessions = new Map();
 
+setInterval(() => {
+    // close inactive sessions
+    const now = Date.now();
+    lgmSessions.forEach((session, sessionSecret) => {
+        if (session.lastMessageTs && now - session.lastMessageTs > 30000) {
+            console.log(`Closing inactive session ${sessionSecret}`);
+            lgmSessions.delete(sessionSecret);
+            lgmClients.delete(sessionSecret);
+        }
+    });
+}, 1000);
+
 playerServer.on('connection', function (ws, req) {
     var url = require('url');
     const parsedUrl = url.parse(req.url);
@@ -1016,7 +1028,7 @@ playerServer.on('connection', function (ws, req) {
                     case 'create-session':
                         if (!lgmSessions.has(msg.data.sessionSecret)) {
                             if (msg.type === 'create-session') {
-                                if (lgmSessions.size > config.StreamerPorts.length) {
+                                if (lgmSessions.size >= config.StreamerPorts.length) {
                                     // prototype version only allows one session at a time
                                     ws.send(JSON.stringify({
                                         type: 'error',
@@ -1032,6 +1044,7 @@ playerServer.on('connection', function (ws, req) {
                                     startedTimestamp: undefined,
                                     createdTimestamp: Date.now(),
                                     streamerIndex: lgmSessions.size,
+                                    lastMessageTs: Date.now(),
                                 });
                             } else {
                                 ws.send(JSON.stringify({
@@ -1049,6 +1062,7 @@ playerServer.on('connection', function (ws, req) {
                         }
                         lgmClients.get(sessionSecret).set(msg.fromUserId, ws);
                         const session = lgmSessions.get(sessionSecret);
+                        session.lastMessageTs = Date.now();
                         player.streamerIndex = session.streamerIndex;
                         if (msg.type === 'create-session') {
                             session.contextText = msg.data.contextText;
@@ -1081,6 +1095,7 @@ playerServer.on('connection', function (ws, req) {
                             }));
                             return;
                         }
+                        session.lastMessageTs = Date.now();
                         if (msg.type === 'session') {
                             session.startedTimestamp = msg.data?.startedTimestamp;
                         }
