@@ -902,8 +902,9 @@ function onPlayerMessageListStreamers(player, msg) {
     logIncoming(player.id, msg);
 
     let reply = {type: 'streamerList', ids: []};
-    if (player.streamer && player.streamer.idCommitted) {
-        reply.ids.push(player.streamer.id);
+    const streamer = player.streamer();
+    if (streamer && streamer.idCommitted) {
+        reply.ids.push(streamer.id);
     }
 
     logOutgoing(player.id, reply);
