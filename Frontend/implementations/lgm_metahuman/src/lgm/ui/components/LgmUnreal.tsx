@@ -34,14 +34,20 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
         }}
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;
+            let i = setInterval((i) => {
+                const websocketConnected = streaming.webSocketController.webSocket.readyState === 1;
+                if (websocketConnected) {
+                    clearInterval(i);
+                    store.pixelStreaming.webSocketController.webSocket.send(JSON.stringify({
+                        type: 'setSessionId',
+                        sessionSecret: store.session.sessionSecret,
+                        userId: store.user.id
+                    }));
+                }
+            }, 500);
         }}
         onConneced={(connected) => {
             store.pixelStreamingConnected = connected;
-            store.pixelStreaming.webSocketController.webSocket.send(JSON.stringify({
-                type: 'setSessionId',
-                sessionSecret: store.session.sessionSecret,
-                userId: store.user.id
-            }));
         }}
     />;
 });
