@@ -881,6 +881,14 @@ function sendPlayersCount() {
     }
 }
 
+function onPlayerSetSessionId(player, msg) {
+    const session = lgmSessions.get(msg.sessionSecret)
+    if (session) {
+        player.streamerIndex = session.streamerIndex;
+        console.log('Setting sessionId', msg.sessionSecret, 'for client', player.id, 'streamerIndex', player.streamerIndex);
+    }
+}
+
 function onPlayerMessageSubscribe(player, msg) {
     logIncoming(player.id, msg);
     player.subscribe(msg.streamerId);
@@ -923,6 +931,7 @@ function onPlayerDisconnected(playerId) {
     sendPlayerDisconnectedToMatchmaker();
 }
 
+playerMessageHandlers.set('setSessionId', onPlayerSetSessionId);
 playerMessageHandlers.set('subscribe', onPlayerMessageSubscribe);
 playerMessageHandlers.set('unsubscribe', onPlayerMessageUnsubscribe);
 playerMessageHandlers.set('stats', onPlayerMessageStats);
@@ -1042,7 +1051,6 @@ playerServer.on('connection', function (ws, req) {
                         lgmClients.get(sessionSecret).set(msg.fromUserId, ws);
                         const session = lgmSessions.get(sessionSecret);
                         player.streamerIndex = session.streamerIndex;
-                        console.log('DEBUG: player.streamerIndex', player.streamerIndex);
                         if (msg.type === 'create-session') {
                             session.contextText = msg.data.contextText;
                         }
