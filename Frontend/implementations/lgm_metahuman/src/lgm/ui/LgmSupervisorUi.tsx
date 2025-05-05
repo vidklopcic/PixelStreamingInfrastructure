@@ -5,7 +5,6 @@ import { LgmStoreContext } from '../stores/LgmStore';
 import React, { CSSProperties, useContext } from 'react';
 import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
-import { LgmUeControls } from './components/LgmUeControls';
 import { LgmAudioStream } from './components/chat/LgmAudioStream';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
 

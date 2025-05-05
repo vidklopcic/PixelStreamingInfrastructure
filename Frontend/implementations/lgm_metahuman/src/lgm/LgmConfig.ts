@@ -1,4 +1,3 @@
 export abstract class LgmConfig {
-    static SIGNALLING_SERVER = `wss://${window.location.hostname}`;
-    // static SIGNALLING_SERVER = `wss://192.168.30.235`;
+    static SIGNALLING_SERVER = `wss://${window.location.hostname.includes('localhost') ? 'metka.ai' : window.location.hostname}`;
 }

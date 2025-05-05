@@ -1,9 +1,11 @@
 import { observer } from 'mobx-react-lite';
 import { LgmStoreContext } from '../../stores/LgmStore';
-import { CSSProperties, useContext } from 'react';
-import { Button, IconButton, Typography } from '@mui/material';
+import { CSSProperties, useContext, useState } from 'react';
+import { Button, Dialog, IconButton, Typography } from '@mui/material';
 import { LgmEmotionWheel } from './controls/LgmEmotionWheel';
 import { Refresh } from '@mui/icons-material';
+import { LgmDialog } from './dialogs/LgmDialog';
+import { LiveLinkTutorial } from '../../../components/LiveLinkTutorial';
 
 const characterNames: [number, string, string, string][] = [
     [0, 'A', 'M', '15'],
@@ -21,7 +23,7 @@ const characterNames: [number, string, string, string][] = [
 
 export const LgmUeControls = observer(() => {
     const store = useContext(LgmStoreContext);
-
+    const [showHowToConnectDialog, setShowHowToConnectDialog] = useState(false);
     return <div style={RootStyle}>
         <div style={HeaderStyle}>
             Controls
@@ -30,6 +32,12 @@ export const LgmUeControls = observer(() => {
                 <Refresh />
             </IconButton>
         </div>
+        <Button
+            variant={'outlined'}
+            onClick={() => setShowHowToConnectDialog(true)}
+            style={{
+                textTransform: 'none'
+            }}>How to connect iPhone LiveLink app?</Button>
         <LgmEmotionWheel
             size={300}
             style={{ margin: '8px auto' }}
@@ -115,6 +123,16 @@ export const LgmUeControls = observer(() => {
                     {age}{gender}</Button>)
             }
         </div>
+        <Dialog fullWidth={true} open={showHowToConnectDialog} onClose={() => setShowHowToConnectDialog(false)}>
+            <LgmDialog
+                style={{
+                    width: '100%',
+                    boxSizing: 'border-box'
+                }}
+                onClose={() => setShowHowToConnectDialog(false)} title={'Connect iPhone LiveLink'}>
+                <LiveLinkTutorial onClose={() => setShowHowToConnectDialog(false)} />
+            </LgmDialog>
+        </Dialog>
     </div>;
 });
 
@@ -127,6 +145,13 @@ const RootStyle: CSSProperties = {
     flexDirection: 'column',
     flexGrow: 1,
     flexBasis: 0,
+    padding: 8
+};
+
+const InfoCardStyle: CSSProperties = {
+    borderRadius: 8,
+    border: '1px solid #3c3c3c',
+    backgroundColor: 'black',
     padding: 8
 };
 
