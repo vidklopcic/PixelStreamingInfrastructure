@@ -11,6 +11,11 @@ title Cirrus
 echo IP ADDRESS:
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| find "IPv4 Address"') do echo %%a
 
+@Rem Set LIVE_LINK_IP to local IP address
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| find "IPv4 Address"') do set LIVE_LINK_IP=%%a
+@Rem Remove leading space from IP address
+set LIVE_LINK_IP=%LIVE_LINK_IP:~1%
+
 @Rem Run setup to ensure we have node and cirrus installed.
 call setup.bat %*
 

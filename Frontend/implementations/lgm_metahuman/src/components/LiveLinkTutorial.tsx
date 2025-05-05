@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Typography, Box, Link, Button, Paper } from '@mui/material';
+import { LgmStoreContext } from '../lgm/stores/LgmStore';
 
 // Custom circled number component
 const CircledNumber = ({ number }: { number: number }) => {
@@ -27,11 +28,13 @@ const CircledNumber = ({ number }: { number: number }) => {
 };
 
 export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
+    const store = useContext(LgmStoreContext);
+    let number = 1;
     return (
         <Box sx={{ p: 3, bgcolor: '#121212', color: 'white' }}>
             <Paper elevation={0} sx={{ bgcolor: '#1e1e1e', p: 2, mb: 3, borderRadius: 2, border: '1px solid #333' }}>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={1} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
                             Download LiveLink Face app from App Store (<Link
@@ -45,7 +48,7 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={2} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
                             Open the app and select Live Link (ARKit) Capture Mode
@@ -57,7 +60,7 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={3} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
                             Click settings icon in the top left corner
@@ -69,7 +72,7 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={4} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
                             Under STREAMING, click on Live Link button
@@ -81,7 +84,7 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={5} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
                             Under TARGETS, click on Add Target
@@ -93,10 +96,10 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={6} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
-                            Under IP Address field, enter 141.255.217.40
+                            Under IP Address field, enter {store.session?.liveLinkIp ?? '[waiting for ip info]'}
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#aaa' }}>
                             This is the server address to stream your facial expressions to.
@@ -104,8 +107,21 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                     </Box>
                 </Box>
 
+                {store.session.liveLinkPort !== '11111' &&
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                        <CircledNumber number={number++} />
+                        <Box>
+                            <Typography variant="body1" sx={{ color: 'white' }}>
+                                Under Port field, enter {store.session?.liveLinkPort ?? '[waiting for port info]'}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#aaa' }}>
+                                This is the port number to stream your facial expressions to.
+                            </Typography>
+                        </Box>
+                    </Box>}
+
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={7} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
                             Click Add in the upper right corner
@@ -117,7 +133,7 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={8} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
                             Click back (← Settings) in the top left corner
@@ -129,7 +145,7 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                    <CircledNumber number={9} />
+                    <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
                             Click Done in the top right corner

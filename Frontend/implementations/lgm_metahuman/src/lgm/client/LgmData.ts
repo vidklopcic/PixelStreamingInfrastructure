@@ -18,6 +18,8 @@ export interface LgmApiMessage {
 
 export interface LgmSession {
     sessionSecret?: string;
+    liveLinkIp?: string;
+    liveLinkPort?: string;
     contextText?: string;
     startedTimestamp?: number;
     createdTimestamp?: number;

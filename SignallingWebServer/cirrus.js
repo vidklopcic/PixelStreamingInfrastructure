@@ -1040,6 +1040,8 @@ playerServer.on('connection', function (ws, req) {
                                 }
                                 lgmSessions.set(msg.data.sessionSecret, {
                                     sessionSecret: msg.data.sessionSecret,
+                                    liveLinkIp: process.env.LIVE_LINK_IP ?? 'LIVE_LINK_IP',
+                                    liveLinkPort: process.env.LIVE_LINK_PORT ?? '11111',
                                     contextText: msg.data.contextText,
                                     startedTimestamp: undefined,
                                     createdTimestamp: Date.now(),
