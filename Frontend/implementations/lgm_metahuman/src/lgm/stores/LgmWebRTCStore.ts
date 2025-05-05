@@ -147,7 +147,13 @@ export class LgmWebRTCStore {
             return this.peerConnections.get(peerId)!;
         }
 
-        const peerConnection = new RTCPeerConnection();
+        const peerConnection = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+            ],
+            iceCandidatePoolSize: 10
+        });
 
         // Handle ICE candidates
         peerConnection.onicecandidate = (event) => {
