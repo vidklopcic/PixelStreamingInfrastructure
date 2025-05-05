@@ -146,15 +146,29 @@ export class LgmWebRTCStore {
         if (this.peerConnections.has(peerId)) {
             return this.peerConnections.get(peerId)!;
         }
+        console.log('Creating peer connection for', peerId);
 
         const peerConnection = new RTCPeerConnection({
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
+                    urls: "stun:openrelay.metered.ca:80",
+                },
+                {
+                    urls: "turn:openrelay.metered.ca:80",
+                    username: "openrelayproject",
+                    credential: "openrelayproject",
+                },
+                {
+                    urls: "turn:openrelay.metered.ca:443",
+                    username: "openrelayproject",
+                    credential: "openrelayproject",
+                },
+                {
+                    urls: "turn:openrelay.metered.ca:443?transport=tcp",
+                    username: "openrelayproject",
+                    credential: "openrelayproject",
                 },
             ],
             iceCandidatePoolSize: 10
@@ -170,6 +184,10 @@ export class LgmWebRTCStore {
                     to: peerId
                 });
             }
+        };
+
+        peerConnection.onicecandidateerror = (event) => {
+            console.error('ICE candidate error:', event);
         };
 
         // Handle track event to receive remote stream
