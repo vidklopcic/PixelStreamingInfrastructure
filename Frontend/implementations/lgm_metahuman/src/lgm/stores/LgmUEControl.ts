@@ -133,7 +133,6 @@ export class LGMUeControl {
         this.state.child.full_body = name2String(state.child.full_body);
         this.state.child.bias_type = state.child.bias_type;
         this.state.child.bias_level = state.child.bias_level;
-        console.log(this.state.child.upper_body);
     }
 }
 

@@ -152,11 +152,6 @@ export class LgmWebRTCStore {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                {
-                    urls: 'relay1.expressturn.com:3478',
-                    username: 'ef7IWHQHDRI4HK7OSR',
-                    credential: 'VsFRsO7Zcoo6Gqxt'
-                }
             ]
         });
 
