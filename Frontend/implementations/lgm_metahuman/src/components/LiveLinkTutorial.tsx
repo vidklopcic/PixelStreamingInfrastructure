@@ -99,7 +99,7 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                     <CircledNumber number={number++} />
                     <Box>
                         <Typography variant="body1" sx={{ color: 'white' }}>
-                            Under IP Address field, enter {store.session?.liveLinkIp ?? '[waiting for ip info]'}
+                            Under IP Address field, enter <b>{store.session?.liveLinkIp ?? '[waiting for ip info]'}</b>
                         </Typography>
                         <Typography variant="body2" sx={{ color: '#aaa' }}>
                             This is the server address to stream your facial expressions to.
@@ -112,7 +112,7 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                         <CircledNumber number={number++} />
                         <Box>
                             <Typography variant="body1" sx={{ color: 'white' }}>
-                                Under Port field, enter {store.session?.liveLinkPort ?? '[waiting for port info]'}
+                                Under Port field, enter <b>{store.session?.liveLinkPort ?? '[waiting for port info]'}</b>
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#aaa' }}>
                                 This is the port number to stream your facial expressions to.
