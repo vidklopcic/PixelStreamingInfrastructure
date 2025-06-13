@@ -94,6 +94,8 @@ export const LgmUeControls = observer(() => {
                     onClick={() => store.ueControl.setLevel(2)}>OFFICE</Button>
             <Button color={store.ueControl.state.level === 'Ucilnica' ? 'secondary' : undefined} variant={'contained'}
                     onClick={() => store.ueControl.setLevel(3)}>CLASSROOM</Button>
+            <Button color={store.ueControl.state.level === 'RazmetanaSoba' ? 'secondary' : undefined} variant={'contained'}
+                    onClick={() => store.ueControl.setLevel(4)}>BEDROOM</Button>
         </div>
 
         <Typography style={{ marginTop: 8 }} variant={'subtitle1'}>Character</Typography>
