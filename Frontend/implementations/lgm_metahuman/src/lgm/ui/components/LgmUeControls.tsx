@@ -18,7 +18,8 @@ const characterNames: [number, string, string, string][] = [
     [3, 'H', 'F', '15'],
     [4, 'I', 'F', '13'],
     [5, 'J', 'F', '13'],
-    [10, 'K', 'F', '9']
+    [10, 'K', 'F', '9'],
+    [11, 'L', 'MD', '9']
 ];
 
 export const LgmUeControls = observer(() => {
