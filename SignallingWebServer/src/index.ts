@@ -14,6 +14,7 @@ import { beautify, IProgramOptions } from './Utils';
 import { initInputHandler } from './InputHandler';
 import { Command, Option } from 'commander';
 import { initialize } from 'express-openapi';
+import { createLgmExtension, LgmConfig } from './lgm';
 
 // eslint-disable-next-line  @typescript-eslint/no-unsafe-assignment
 const pjson = require('../package.json');
@@ -177,6 +178,31 @@ program
         'After arguments are parsed the config.json is saved with whatever arguments were specified at launch.',
         config_file.save || false
     )
+    // LGM Extension options
+    .option('--lgm', 'Enables LGM session management extension.', config_file.lgm || false)
+    .addOption(
+        new Option(
+            '--streamer_ports <ports>',
+            'Comma-separated list of ports for multiple streamers (one per session). First port should match streamer_port.'
+        )
+            .argParser((val: string) => val.split(',').map(Number))
+            .default(config_file.streamer_ports || [8888])
+    )
+    .option(
+        '--live_link_ip <ip>',
+        'LiveLink IP address for UE communication.',
+        config_file.live_link_ip || process.env.LIVE_LINK_IP || 'localhost'
+    )
+    .option(
+        '--live_link_port <port>',
+        'LiveLink port for UE communication.',
+        config_file.live_link_port || process.env.LIVE_LINK_PORT || '11111'
+    )
+    .option(
+        '--session_timeout <ms>',
+        'Session inactivity timeout in milliseconds.',
+        config_file.session_timeout || '30000'
+    )
     .helpOption('-h, --help', 'Display this help text.')
     .allowUnknownOption() // ignore unknown options which will allow versions to be swapped out into existing scripts with maybe older/newer options
     .parse();
@@ -269,6 +295,28 @@ if (options.serve) {
 }
 
 const signallingServer = new SignallingServer(serverOpts);
+
+// Initialize LGM extension if enabled
+if (options.lgm) {
+    const lgmConfig: LgmConfig = {
+        streamerPorts: options.streamer_ports,
+        liveLinkIp: options.live_link_ip,
+        liveLinkPort: options.live_link_port,
+        sessionTimeoutMs: parseInt(options.session_timeout, 10)
+    };
+    const lgmExtension = createLgmExtension(signallingServer, lgmConfig);
+    Logger.info('LGM extension enabled');
+
+    // Handle graceful shutdown
+    process.on('SIGTERM', () => {
+        Logger.info('Received SIGTERM, shutting down LGM extension...');
+        lgmExtension.shutdown();
+    });
+    process.on('SIGINT', () => {
+        Logger.info('Received SIGINT, shutting down LGM extension...');
+        lgmExtension.shutdown();
+    });
+}
 
 if (options.stdin) {
     initInputHandler(options, signallingServer);

@@ -19,5 +19,10 @@
 	"peer_options": "",
 	"log_config": true,
 	"stdin": false,
-	"console_messages": "verbose"
+	"console_messages": "verbose",
+	"lgm": true,
+	"streamer_ports": [8888, 8890, 8891, 8892],
+	"live_link_ip": "localhost",
+	"live_link_port": "11111",
+	"session_timeout": "30000"
 }
