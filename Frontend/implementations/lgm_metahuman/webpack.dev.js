@@ -3,6 +3,21 @@
 const { merge } = require('webpack-merge');
 const common = require('./webpack.common.js');
 const path = require('path');
+const fs = require('fs');
+
+// SSL certificates for HTTPS (required for WebRTC camera/mic access)
+const certsPath = path.resolve(__dirname, '../../../SignallingWebServer/certificates');
+let serverOptions = {};
+
+if (fs.existsSync(path.join(certsPath, 'client-key.pem'))) {
+    serverOptions = {
+        type: 'https',
+        options: {
+            key: fs.readFileSync(path.join(certsPath, 'client-key.pem')),
+            cert: fs.readFileSync(path.join(certsPath, 'client-cert.pem')),
+        },
+    };
+}
 
 module.exports = merge(common, {
     mode: 'development',
@@ -18,12 +33,14 @@ module.exports = merge(common, {
         hot: true,
         liveReload: true,
         historyApiFallback: true,
-        // Proxy WebSocket connections to SignallingWebServer
+        server: serverOptions,
+        // Proxy WebSocket connections to SignallingWebServer (HTTPS)
         proxy: [
             {
                 context: ['/ws'],
-                target: 'ws://localhost:80',
+                target: 'wss://localhost:443',
                 ws: true,
+                secure: false, // Accept self-signed certs
                 changeOrigin: true,
             },
         ],

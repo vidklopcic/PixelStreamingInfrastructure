@@ -8,7 +8,7 @@
 	"serve": true,
 	"http_root": "../Frontend/implementations/lgm_metahuman/dist",
 	"homepage": "index.html",
-	"https": false,
+	"https": true,
 	"https_port": 443,
 	"ssl_key_path": "certificates/client-key.pem",
 	"ssl_cert_path": "certificates/client-cert.pem",
