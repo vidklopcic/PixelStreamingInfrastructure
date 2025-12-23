@@ -35,14 +35,13 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;
             let i = setInterval(() => {
-                const websocketConnected = streaming.webSocketController.webSocket.readyState === 1;
-                if (websocketConnected) {
+                if (streaming.signallingProtocol?.isConnected()) {
                     clearInterval(i);
-                    store.pixelStreaming.webSocketController.webSocket.send(JSON.stringify({
+                    streaming.signallingProtocol.sendMessage({
                         type: 'setSessionId',
                         sessionSecret: store.session.sessionSecret,
                         userId: store.user.id
-                    }));
+                    } as any);
                 }
             }, 500);
         }}
