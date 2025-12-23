@@ -148,7 +148,6 @@ export class LgmExtension {
         const playerId = player.playerId;
 
         // Listen on transport 'message' event for all parsed messages
-        // This fires before the protocol's 'unhandled' event
         transport.on('message', (msg: any) => {
             // Check for LGM namespace
             if (msg.namespace === 'lgm') {
@@ -159,19 +158,53 @@ export class LgmExtension {
             if (msg.type === 'setSessionId') {
                 this.handleSetSessionId(player, msg);
             }
+        });
 
-            // Check for listStreamers - we need to filter by session
-            if (msg.type === 'listStreamers') {
-                const binding = this.playerSessionBindings.get(playerId);
-                if (binding && binding.streamerIndex !== undefined) {
-                    // Override listStreamers to only show the session's streamer
-                    this.handleFilteredListStreamers(player, binding.streamerIndex);
-                }
+        // Override listStreamers handler to filter by session
+        // Block until session is bound to prevent video leaks
+        protocol.removeAllListeners('listStreamers');
+        protocol.on('listStreamers', () => {
+            const binding = this.playerSessionBindings.get(playerId);
+            if (binding && binding.streamerIndex !== undefined) {
+                // Only show the session's streamer
+                this.handleFilteredListStreamers(player, binding.streamerIndex);
+            } else {
+                // No session binding - return empty list to prevent premature connection
+                Logger.debug(`LGM: Returning empty streamer list for player ${playerId} - no session binding yet`);
+                player.sendMessage({ type: 'streamerList', ids: [] });
             }
         });
 
+        // Override subscribe handler to validate streamer belongs to session
+        // Block subscription until session is bound to prevent video leaks
+        const originalSubscribe = player.subscribe?.bind(player);
+        if (originalSubscribe) {
+            player.subscribe = (streamerId: string) => {
+                const binding = this.playerSessionBindings.get(playerId);
+                if (!binding) {
+                    // No session binding yet - block subscription
+                    Logger.info(`LGM: Blocking subscription for player ${playerId} - no session binding yet`);
+                    return;
+                }
+
+                if (binding.streamerIndex !== undefined) {
+                    // Validate that the streamer belongs to this session
+                    const allowedStreamer = this.getStreamerByIndex(binding.streamerIndex);
+                    if (allowedStreamer && allowedStreamer.streamerId === streamerId) {
+                        originalSubscribe(streamerId);
+                    } else {
+                        Logger.warn(`LGM: Player ${playerId} tried to subscribe to ${streamerId} but is bound to streamer index ${binding.streamerIndex}`);
+                        // Auto-subscribe to correct streamer if available
+                        if (allowedStreamer) {
+                            Logger.info(`LGM: Auto-subscribing player ${playerId} to correct streamer ${allowedStreamer.streamerId}`);
+                            originalSubscribe(allowedStreamer.streamerId);
+                        }
+                    }
+                }
+            };
+        }
+
         // Suppress 'unhandled' warnings for LGM messages
-        // Remove the existing unhandled listener and add our own that filters LGM
         protocol.removeAllListeners('unhandled');
         protocol.on('unhandled', (message: any) => {
             // Silently ignore LGM namespace messages
@@ -216,7 +249,7 @@ export class LgmExtension {
 
     /**
      * Handle setSessionId message from player
-     * Binds player to session's streamer index
+     * Binds player to session's streamer index and resubscribes if needed
      */
     private handleSetSessionId(player: any, msg: any): void {
         const session = this.sessionManager.getSession(msg.sessionSecret);
@@ -227,7 +260,22 @@ export class LgmExtension {
                 streamerIndex: session.streamerIndex,
                 userId: msg.userId
             });
-            Logger.info(`LGM: Player ${player.playerId} bound to session ${msg.sessionSecret} (streamer ${session.streamerIndex})`);
+            Logger.info(`LGM: Player ${player.playerId} bound to session ${msg.sessionSecret} (streamer index ${session.streamerIndex})`);
+
+            // Check if player is subscribed to wrong streamer and resubscribe
+            const correctStreamer = this.getStreamerByIndex(session.streamerIndex);
+            const currentStreamer = player.subscribedStreamer;
+
+            if (currentStreamer && correctStreamer && currentStreamer !== correctStreamer) {
+                Logger.info(`LGM: Player ${player.playerId} subscribed to wrong streamer (${currentStreamer.streamerId}), resubscribing to ${correctStreamer.streamerId}`);
+                player.unsubscribe();
+                player.subscribe(correctStreamer.streamerId);
+            } else if (!currentStreamer && correctStreamer) {
+                Logger.info(`LGM: Player ${player.playerId} not subscribed, subscribing to ${correctStreamer.streamerId}`);
+                player.subscribe(correctStreamer.streamerId);
+            } else if (!correctStreamer) {
+                Logger.warn(`LGM: No streamer available for session ${msg.sessionSecret} (streamer index ${session.streamerIndex})`);
+            }
         }
     }
 
