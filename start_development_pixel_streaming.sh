@@ -110,7 +110,9 @@ install_deps() {
 }
 
 # Build all packages in correct order
+# Pass "skip_frontend" as first arg to skip lgm_metahuman build (for dev mode)
 build_all() {
+    local skip_frontend="${1:-}"
     log "Building all packages..."
 
     # 1. Common library
@@ -129,9 +131,13 @@ build_all() {
     log "  Building SignallingWebServer..."
     (cd SignallingWebServer && npm run build)
 
-    # 5. lgm_metahuman frontend (initial build)
-    log "  Building lgm_metahuman frontend..."
-    (cd Frontend/implementations/lgm_metahuman && npm run build)
+    # 5. lgm_metahuman frontend (skip for dev mode - webpack-dev-server handles it)
+    if [ "$skip_frontend" != "skip_frontend" ]; then
+        log "  Building lgm_metahuman frontend..."
+        (cd Frontend/implementations/lgm_metahuman && npm run build)
+    else
+        log "  Skipping lgm_metahuman build (dev server will handle it)"
+    fi
 
     log "All packages built"
 }
@@ -164,7 +170,8 @@ start_dev() {
         --names "SIGNAL,FRONTEND" \
         --prefix-colors "blue,magenta" \
         --kill-others \
-        "cd SignallingWebServer && nodemon --watch src --watch ../Signalling/dist -e ts,js,json --exec 'npm run build && node ./dist/index.js'" \
+        --handle-input \
+        "cd SignallingWebServer && nodemon --signal SIGTERM --watch src --watch ../Signalling/dist -e ts,js,json --exec 'npm run build && node ./dist/index.js'" \
         "cd Frontend/implementations/lgm_metahuman && npm run serve -- --port 3000 --host 0.0.0.0"
 }
 
@@ -174,11 +181,11 @@ quick_start() {
 
     ensure_certificates
 
-    # Check if builds exist
+    # Check if library builds exist (frontend is handled by webpack-dev-server)
     if [ ! -d "Common/dist" ] || [ ! -d "Signalling/dist" ] || [ ! -d "SignallingWebServer/dist" ]; then
         warn "Some packages not built, running full build..."
         install_deps
-        build_all
+        build_all skip_frontend
     else
         log "Builds found, skipping initial build"
     fi
@@ -211,10 +218,11 @@ start_dev_watch() {
         --names "COMMON,SIGNAL-LIB,FE-LIB,SIGNAL-SRV,FRONTEND" \
         --prefix-colors "gray,cyan,green,blue,magenta" \
         --kill-others \
+        --handle-input \
         "cd Common && npm run watch" \
         "cd Signalling && npm run watch" \
         "cd Frontend/library && npm run watch" \
-        "cd SignallingWebServer && nodemon --watch src --watch ../Signalling/dist -e ts,js,json --exec 'npm run build && node ./dist/index.js'" \
+        "cd SignallingWebServer && nodemon --signal SIGTERM --watch src --watch ../Signalling/dist -e ts,js,json --exec 'npm run build && node ./dist/index.js'" \
         "cd Frontend/implementations/lgm_metahuman && npm run serve -- --port 3000 --host 0.0.0.0"
 }
 
@@ -241,7 +249,7 @@ case "${1:-start}" in
     start)
         check_requirements
         install_deps
-        build_all
+        build_all skip_frontend
         start_dev
         ;;
     quick)
@@ -251,7 +259,7 @@ case "${1:-start}" in
     watch)
         check_requirements
         install_deps
-        build_all
+        build_all skip_frontend
         start_dev_watch
         ;;
     build)

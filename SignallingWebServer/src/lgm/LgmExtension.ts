@@ -139,54 +139,55 @@ export class LgmExtension {
 
     /**
      * Hook into a player's protocol to handle LGM messages
+     * We listen on transport 'message' event for LGM messages
      */
     private hookPlayerProtocol(player: any): void {
-        const ws = (player.transport as any).socket as wslib.WebSocket;
+        const transport = player.transport as any;
+        const protocol = player.protocol as any;
+        const ws = transport.webSocket as wslib.WebSocket;
         const playerId = player.playerId;
 
-        // Store original onMessage handler
-        const originalOnMessage = player.transport.onMessage;
-
-        // Create wrapped message handler
-        player.transport.onMessage = (msgStr: string) => {
-            try {
-                const msg = JSON.parse(msgStr);
-
-                // Check for LGM namespace
-                if (msg.namespace === 'lgm') {
-                    this.handleLgmMessage(ws, msg, playerId);
-                    return; // Don't pass to original handler
-                }
-
-                // Check for setSessionId (special player message for session binding)
-                if (msg.type === 'setSessionId') {
-                    this.handleSetSessionId(player, msg);
-                    // Still pass to original handler for logging
-                }
-
-                // Check for listStreamers - we need to filter by session
-                if (msg.type === 'listStreamers') {
-                    const binding = this.playerSessionBindings.get(playerId);
-                    if (binding && binding.streamerIndex !== undefined) {
-                        // Override listStreamers to only show the session's streamer
-                        this.handleFilteredListStreamers(player, binding.streamerIndex);
-                        return; // Don't pass to original handler
-                    }
-                }
-            } catch (e) {
-                // Parse error, let original handler deal with it
+        // Listen on transport 'message' event for all parsed messages
+        // This fires before the protocol's 'unhandled' event
+        transport.on('message', (msg: any) => {
+            // Check for LGM namespace
+            if (msg.namespace === 'lgm') {
+                this.handleLgmMessage(ws, msg, playerId);
             }
 
-            // Pass to original handler
-            if (originalOnMessage) {
-                originalOnMessage(msgStr);
+            // Check for setSessionId (special player message for session binding)
+            if (msg.type === 'setSessionId') {
+                this.handleSetSessionId(player, msg);
             }
-        };
+
+            // Check for listStreamers - we need to filter by session
+            if (msg.type === 'listStreamers') {
+                const binding = this.playerSessionBindings.get(playerId);
+                if (binding && binding.streamerIndex !== undefined) {
+                    // Override listStreamers to only show the session's streamer
+                    this.handleFilteredListStreamers(player, binding.streamerIndex);
+                }
+            }
+        });
+
+        // Suppress 'unhandled' warnings for LGM messages
+        // Remove the existing unhandled listener and add our own that filters LGM
+        protocol.removeAllListeners('unhandled');
+        protocol.on('unhandled', (message: any) => {
+            // Silently ignore LGM namespace messages
+            if (message.namespace === 'lgm') {
+                return;
+            }
+            // Log warning for non-LGM unhandled messages
+            Logger.warn(`Unhandled player protocol message: ${JSON.stringify(message)}`);
+        });
 
         // Handle player disconnect
-        player.transport.on('close', () => {
+        transport.on('close', () => {
             this.playerSessionBindings.delete(playerId);
-            this.wsToUserId.delete(ws);
+            if (ws) {
+                this.wsToUserId.delete(ws);
+            }
         });
     }
 

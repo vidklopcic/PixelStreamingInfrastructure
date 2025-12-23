@@ -307,15 +307,17 @@ if (options.lgm) {
     const lgmExtension = createLgmExtension(signallingServer, lgmConfig);
     Logger.info('LGM extension enabled');
 
-    // Handle graceful shutdown
-    process.on('SIGTERM', () => {
-        Logger.info('Received SIGTERM, shutting down LGM extension...');
+    // Handle graceful shutdown - use once to prevent multiple calls
+    let isShuttingDown = false;
+    const shutdown = (signal: string) => {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+        Logger.info(`Received ${signal}, shutting down LGM extension...`);
         lgmExtension.shutdown();
-    });
-    process.on('SIGINT', () => {
-        Logger.info('Received SIGINT, shutting down LGM extension...');
-        lgmExtension.shutdown();
-    });
+        process.exit(0);
+    };
+    process.once('SIGTERM', () => shutdown('SIGTERM'));
+    process.once('SIGINT', () => shutdown('SIGINT'));
 }
 
 if (options.stdin) {

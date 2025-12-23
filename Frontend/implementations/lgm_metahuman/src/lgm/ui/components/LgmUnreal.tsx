@@ -39,6 +39,7 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
                     clearInterval(i);
                     streaming.signallingProtocol.sendMessage({
                         type: 'setSessionId',
+                        namespace: 'lgm',
                         sessionSecret: store.session.sessionSecret,
                         userId: store.user.id
                     } as any);
