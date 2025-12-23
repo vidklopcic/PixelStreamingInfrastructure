@@ -110,9 +110,7 @@ install_deps() {
 }
 
 # Build all packages in correct order
-# Pass "skip_frontend" as first arg to skip lgm_metahuman build (for dev mode)
 build_all() {
-    local skip_frontend="${1:-}"
     log "Building all packages..."
 
     # 1. Common library
@@ -131,13 +129,9 @@ build_all() {
     log "  Building SignallingWebServer..."
     (cd SignallingWebServer && npm run build)
 
-    # 5. lgm_metahuman frontend (skip for dev mode - webpack-dev-server handles it)
-    if [ "$skip_frontend" != "skip_frontend" ]; then
-        log "  Building lgm_metahuman frontend..."
-        (cd Frontend/implementations/lgm_metahuman && npm run build)
-    else
-        log "  Skipping lgm_metahuman build (dev server will handle it)"
-    fi
+    # 5. lgm_metahuman frontend
+    log "  Building lgm_metahuman frontend..."
+    (cd Frontend/implementations/lgm_metahuman && npm run build)
 
     log "All packages built"
 }
@@ -181,11 +175,11 @@ quick_start() {
 
     ensure_certificates
 
-    # Check if library builds exist (frontend is handled by webpack-dev-server)
+    # Check if builds exist
     if [ ! -d "Common/dist" ] || [ ! -d "Signalling/dist" ] || [ ! -d "SignallingWebServer/dist" ]; then
         warn "Some packages not built, running full build..."
         install_deps
-        build_all skip_frontend
+        build_all
     else
         log "Builds found, skipping initial build"
     fi
@@ -249,7 +243,7 @@ case "${1:-start}" in
     start)
         check_requirements
         install_deps
-        build_all skip_frontend
+        build_all
         start_dev
         ;;
     quick)
@@ -259,7 +253,7 @@ case "${1:-start}" in
     watch)
         check_requirements
         install_deps
-        build_all skip_frontend
+        build_all
         start_dev_watch
         ;;
     build)

@@ -147,8 +147,12 @@ export class LgmExtension {
         const ws = transport.webSocket as wslib.WebSocket;
         const playerId = player.playerId;
 
+        Logger.info(`LGM: Hooking player ${playerId} - subscribedStreamer: ${player.subscribedStreamer?.streamerId || 'none'}`);
+
         // Listen on transport 'message' event for all parsed messages
         transport.on('message', (msg: any) => {
+            Logger.debug(`LGM: [${playerId}] Received message type: ${msg.type}, namespace: ${msg.namespace || 'none'}`);
+
             // Check for LGM namespace
             if (msg.namespace === 'lgm') {
                 this.handleLgmMessage(ws, msg, playerId);
@@ -161,29 +165,28 @@ export class LgmExtension {
         });
 
         // Override listStreamers handler to filter by session
-        // Block until session is bound to prevent video leaks
+        // Ignore requests until session is bound (no response = no retry timer)
         protocol.removeAllListeners('listStreamers');
         protocol.on('listStreamers', () => {
             const binding = this.playerSessionBindings.get(playerId);
             if (binding && binding.streamerIndex !== undefined) {
                 // Only show the session's streamer
                 this.handleFilteredListStreamers(player, binding.streamerIndex);
-            } else {
-                // No session binding - return empty list to prevent premature connection
-                Logger.debug(`LGM: Returning empty streamer list for player ${playerId} - no session binding yet`);
-                player.sendMessage({ type: 'streamerList', ids: [] });
             }
+            // No binding = ignore request, setSessionId will send streamerList
         });
 
         // Override subscribe handler to validate streamer belongs to session
         // Block subscription until session is bound to prevent video leaks
+        Logger.info(`LGM: [${playerId}] Overriding subscribe handler`);
         const originalSubscribe = player.subscribe?.bind(player);
         if (originalSubscribe) {
             player.subscribe = (streamerId: string) => {
                 const binding = this.playerSessionBindings.get(playerId);
+                Logger.info(`LGM: [${playerId}] subscribe(${streamerId}) called - binding: ${binding ? `session=${binding.sessionSecret}` : 'NONE'}`);
                 if (!binding) {
                     // No session binding yet - block subscription
-                    Logger.info(`LGM: Blocking subscription for player ${playerId} - no session binding yet`);
+                    Logger.info(`LGM: [${playerId}] BLOCKING subscription - no session binding yet`);
                     return;
                 }
 
@@ -202,6 +205,27 @@ export class LgmExtension {
                     }
                 }
             };
+        }
+
+        // Block WebRTC signaling messages (offer/answer/iceCandidate) until session is bound
+        // These trigger sendToStreamer which auto-subscribes to first streamer if not subscribed
+        const webrtcMessageTypes = ['offer', 'answer', 'iceCandidate', 'dataChannelRequest', 'peerDataChannelsReady'];
+        for (const msgType of webrtcMessageTypes) {
+            protocol.removeAllListeners(msgType);
+            protocol.on(msgType, (message: any) => {
+                const binding = this.playerSessionBindings.get(playerId);
+                if (!binding) {
+                    Logger.info(`LGM: Blocking ${msgType} for player ${playerId} - no session binding yet`);
+                    return;
+                }
+                // Forward to streamer if subscribed
+                if (player.subscribedStreamer) {
+                    message.playerId = playerId;
+                    player.subscribedStreamer.protocol.sendMessage(message);
+                } else {
+                    Logger.warn(`LGM: Player ${playerId} sent ${msgType} but not subscribed to any streamer`);
+                }
+            });
         }
 
         // Suppress 'unhandled' warnings for LGM messages
@@ -249,34 +273,35 @@ export class LgmExtension {
 
     /**
      * Handle setSessionId message from player
-     * Binds player to session's streamer index and resubscribes if needed
+     * This is the primary way to bind a player to a session (comes through player's WS)
      */
     private handleSetSessionId(player: any, msg: any): void {
         const session = this.sessionManager.getSession(msg.sessionSecret);
-        if (session) {
-            this.playerSessionBindings.set(player.playerId, {
-                playerId: player.playerId,
-                sessionSecret: msg.sessionSecret,
-                streamerIndex: session.streamerIndex,
-                userId: msg.userId
-            });
-            Logger.info(`LGM: Player ${player.playerId} bound to session ${msg.sessionSecret} (streamer index ${session.streamerIndex})`);
-
-            // Check if player is subscribed to wrong streamer and resubscribe
-            const correctStreamer = this.getStreamerByIndex(session.streamerIndex);
-            const currentStreamer = player.subscribedStreamer;
-
-            if (currentStreamer && correctStreamer && currentStreamer !== correctStreamer) {
-                Logger.info(`LGM: Player ${player.playerId} subscribed to wrong streamer (${currentStreamer.streamerId}), resubscribing to ${correctStreamer.streamerId}`);
-                player.unsubscribe();
-                player.subscribe(correctStreamer.streamerId);
-            } else if (!currentStreamer && correctStreamer) {
-                Logger.info(`LGM: Player ${player.playerId} not subscribed, subscribing to ${correctStreamer.streamerId}`);
-                player.subscribe(correctStreamer.streamerId);
-            } else if (!correctStreamer) {
-                Logger.warn(`LGM: No streamer available for session ${msg.sessionSecret} (streamer index ${session.streamerIndex})`);
-            }
+        if (!session) {
+            Logger.warn(`LGM: setSessionId - session ${msg.sessionSecret} not found`);
+            return;
         }
+
+        const playerId = player.playerId;
+        const existingBinding = this.playerSessionBindings.get(playerId);
+
+        // Skip if already bound to the same session
+        if (existingBinding?.sessionSecret === msg.sessionSecret) {
+            Logger.debug(`LGM: Player ${playerId} already bound to session ${msg.sessionSecret}`);
+            return;
+        }
+
+        // Create/update binding
+        this.playerSessionBindings.set(playerId, {
+            playerId,
+            sessionSecret: msg.sessionSecret,
+            streamerIndex: session.streamerIndex,
+            userId: msg.userId
+        });
+        Logger.info(`LGM: Player ${playerId} bound to session ${msg.sessionSecret} (streamer index ${session.streamerIndex})`);
+
+        // Send streamer list now that binding exists
+        this.handleFilteredListStreamers(player, session.streamerIndex);
     }
 
     /**

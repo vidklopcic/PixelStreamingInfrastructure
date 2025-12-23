@@ -34,17 +34,26 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
         }}
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;
-            let i = setInterval(() => {
-                if (streaming.signallingProtocol?.isConnected()) {
-                    clearInterval(i);
-                    streaming.signallingProtocol.sendMessage({
-                        type: 'setSessionId',
-                        namespace: 'lgm',
-                        sessionSecret: store.session.sessionSecret,
-                        userId: store.user.id
-                    } as any);
+            // Send setSessionId as soon as connected
+            // Server ignores listStreamers until this is received
+            const sendSessionId = () => {
+                try {
+                    const protocol = streaming.signallingProtocol;
+                    if (protocol?.isConnected()) {
+                        protocol.sendMessage({
+                            type: 'setSessionId',
+                            namespace: 'lgm',
+                            sessionSecret: store.session.sessionSecret,
+                            userId: store.user.id
+                        } as any);
+                        return;
+                    }
+                } catch (e) {
+                    // WebSocket not ready yet, retry
                 }
-            }, 500);
+                setTimeout(sendSessionId, 50);
+            };
+            sendSessionId();
         }}
         onConneced={(connected) => {
             store.pixelStreamingConnected = connected;
