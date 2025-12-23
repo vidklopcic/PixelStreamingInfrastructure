@@ -5,7 +5,7 @@ import {
     Config,
     AllSettings,
     PixelStreaming
-} from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
+} from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
 import { LgmStyles } from '../lgm/ui/LgmStyles';
 
 export interface PixelStreamingWrapperProps {
