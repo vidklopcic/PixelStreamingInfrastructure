@@ -151,7 +151,7 @@ Ported from: _lgm_backup/cirrus.js.backup
 | Order | Task | Branch Name | Status |
 |-------|------|-------------|--------|
 | 1 | Update frontend imports to UE5.7 | `update-frontend-ue56` | Done ✓ |
-| 2 | Port LGM session logic | `port-lgm-sessions` | Pending |
+| 2 | Port LGM session logic | `port-lgm-sessions` | Done ✓ |
 | 3 | Docker infrastructure setup | `docker-infrastructure` | Pending |
 | 4 | Media server implementation | `media-server` | Pending |
 | 5 | Frontend SFU migration | `frontend-sfu` | Pending |
