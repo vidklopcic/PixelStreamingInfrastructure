@@ -24,6 +24,140 @@ This document outlines the complete restructuring of the LGM Pixel Streaming Inf
 5. [Build System](#5-build-system)
 6. [Migration Strategy](#6-migration-strategy)
 7. [Implementation Phases](#7-implementation-phases)
+8. [Git Workflow](#8-git-workflow)
+
+---
+
+## Git Workflow
+
+### Branch Strategy
+
+We use **sub-branches with squash merges** for clean, atomic commits per task.
+
+```
+master (production)
+    │
+    └── feature/architecture-overhaul (main feature branch)
+            │
+            ├── feature/architecture-overhaul/update-frontend-ue56
+            │       └── squash merge → "Update lgm_metahuman frontend to UE5.6"
+            │
+            ├── feature/architecture-overhaul/port-lgm-sessions
+            │       └── squash merge → "Port LGM session logic to SignallingServer"
+            │
+            ├── feature/architecture-overhaul/docker-infrastructure
+            │       └── squash merge → "Add Docker Compose infrastructure"
+            │
+            ├── feature/architecture-overhaul/media-server
+            │       └── squash merge → "Implement mediasoup media server"
+            │
+            └── ... (one sub-branch per task)
+```
+
+### Branch Naming Convention
+
+```
+feature/architecture-overhaul/<task-name>
+```
+
+Task names should be kebab-case and descriptive:
+- `update-frontend-ue56`
+- `port-lgm-sessions`
+- `docker-infrastructure`
+- `media-server`
+- `rvc-integration`
+- `recording-service`
+
+### Workflow Process
+
+#### Starting a Task
+
+```bash
+# Ensure main feature branch is up to date
+git checkout feature/architecture-overhaul
+git pull origin feature/architecture-overhaul
+
+# Create sub-branch for task
+git checkout -b feature/architecture-overhaul/<task-name>
+```
+
+#### Working on a Task
+
+```bash
+# Multiple commits are OK - they will be squashed
+git commit -m "wip: initial implementation"
+git commit -m "wip: add tests"
+git commit -m "fix: edge case handling"
+
+# Push to remote for backup (optional)
+git push -u origin feature/architecture-overhaul/<task-name>
+```
+
+#### Completing a Task
+
+```bash
+# Switch to main feature branch
+git checkout feature/architecture-overhaul
+
+# Squash merge the task branch
+git merge --squash feature/architecture-overhaul/<task-name>
+
+# Commit with descriptive message
+git commit -m "Short description of completed task
+
+Detailed description of what was done:
+- Item 1
+- Item 2
+- Item 3"
+
+# Delete the sub-branch (local)
+git branch -d feature/architecture-overhaul/<task-name>
+
+# Delete remote sub-branch (if pushed)
+git push origin --delete feature/architecture-overhaul/<task-name>
+```
+
+### Commit Message Format
+
+For squash merge commits on `feature/architecture-overhaul`:
+
+```
+<Short summary in imperative mood>
+
+<Detailed description>:
+- What was added/changed
+- Key implementation details
+- Any breaking changes
+
+<Optional: Related issues or notes>
+```
+
+Example:
+```
+Port LGM session logic to SignallingServer
+
+Extends the new TypeScript SignallingServer with LGM session management:
+- Add LgmSessionManager class for multi-session handling
+- Add LgmSession class with participant tracking
+- Implement message handlers: create-session, join-session, close-session
+- Add session timeout and cleanup logic
+- Add streamer index assignment per session
+
+Ported from: _lgm_backup/cirrus.js.backup
+```
+
+### Current Task Queue
+
+| Order | Task | Branch Name | Status |
+|-------|------|-------------|--------|
+| 1 | Update frontend imports to UE5.6 | `update-frontend-ue56` | Pending |
+| 2 | Port LGM session logic | `port-lgm-sessions` | Pending |
+| 3 | Docker infrastructure setup | `docker-infrastructure` | Pending |
+| 4 | Media server implementation | `media-server` | Pending |
+| 5 | Frontend SFU migration | `frontend-sfu` | Pending |
+| 6 | RVC service integration | `rvc-integration` | Pending |
+| 7 | Recording service | `recording-service` | Pending |
+| 8 | Production hardening | `production-hardening` | Pending |
 
 ---
 
