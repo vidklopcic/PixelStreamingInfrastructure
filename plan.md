@@ -4,6 +4,7 @@
 
 This document outlines the complete restructuring of the LGM Pixel Streaming Infrastructure into a production-ready, containerized monorepo with:
 
+- **Pixel Streaming 2 (PS2)** migration from UE5.4 to UE5.5
 - **Server-mediated WebRTC** (replacing P2P) for recording and voice processing
 - **RVC voice changing** integration
 - **Session recording** (side-by-side video)
@@ -15,6 +16,7 @@ This document outlines the complete restructuring of the LGM Pixel Streaming Inf
 
 ## Table of Contents
 
+0. [Pixel Streaming 2 Migration](#0-pixel-streaming-2-migration)
 1. [Architecture Overview](#1-architecture-overview)
 2. [Repository Structure](#2-repository-structure)
 3. [Component Specifications](#3-component-specifications)
@@ -22,6 +24,161 @@ This document outlines the complete restructuring of the LGM Pixel Streaming Inf
 5. [Build System](#5-build-system)
 6. [Migration Strategy](#6-migration-strategy)
 7. [Implementation Phases](#7-implementation-phases)
+
+---
+
+## 0. Pixel Streaming 2 Migration
+
+### 0.1 Why PS2 First?
+
+Pixel Streaming 2 (PS2) is the new plugin from UE 5.5 onwards. Migrating first ensures:
+
+1. **Infrastructure compatibility** - PS2 works with PixelStreamingInfra UE5.5 branch
+2. **Stream sharing removal** - Aligns with our SFU architecture (PS2 removed "stream sharing" hack)
+3. **Signalling abstraction** - Cleaner API, less maintenance surface
+4. **Future-proofing** - Original plugin will eventually be deprecated
+
+### 0.2 Key PS2 Changes Affecting Us
+
+#### Settings/Launch Arguments Changes
+
+| Old (UE5.4) | New (PS2/UE5.5) | Notes |
+|-------------|-----------------|-------|
+| `-PixelStreamingURL` | `-PixelStreamingSignallingURL` | Deprecation warning if old used |
+| `-PixelStreamingIP` | `-PixelStreamingSignallingURL` | Deprecated |
+| `-PixelStreamingPort` | `-PixelStreamingSignallingURL` | Deprecated |
+| `-PixelStreamingID` | `-PixelStreamingID` | Now settable via command line |
+| `-PixelStreamingWebRTCMaxBitrate` | Same | Default lowered: 100→40 Mbps |
+| `-PixelStreamingEncoderMaxQP` | `-PixelStreamingEncoderMinQuality` | Range [0-100], inverted meaning |
+| `-PixelStreamingEncoderMinQP` | `-PixelStreamingEncoderMaxQuality` | Range [0-100], inverted meaning |
+| `-PixelStreamingEncoderPreset` | `-PixelStreamingEncoderQualityPreset` + `-PixelStreamingEncoderLatencyMode` | Split into two settings |
+| `-SimulcastParameters` | `-PixelStreamingEncoderEnableSimulcast` + `-PixelStreamingEncoderScalabilityMode` | Split |
+| `-PixelStreamingEncoderKeyframeInterval` | Same | Default now `-1` (no periodic keyframes) |
+
+#### Removed Settings (No Longer Needed)
+
+```bash
+# These can be removed from launch args:
+-PixelStreamingWebRTCDisableReceiveAudio=true    # Still works but verify
+-PixelStreamingWebRTCDisableTransmitAudio=true   # Still works but verify
+-PixelStreamingWebRTCDisableAudioSync=true       # Still works but verify
+```
+
+#### New Useful Settings
+
+```bash
+-PixelStreamingSignalingKeepAliveInterval=30     # Keep-alive interval (seconds)
+-PixelStreamingUseMediaCapture=true              # Now default, better capture
+```
+
+### 0.3 Infrastructure Changes Required
+
+#### Merge UE5.5 Branch
+
+```bash
+# Current branch is based on UE5.4, need to merge UE5.5
+git fetch origin
+git checkout feature/architecture-overhaul
+git merge origin/UE5.5 --no-commit
+
+# Resolve conflicts, keeping our LGM customizations
+# Key files to watch:
+# - SignallingWebServer/cirrus.js (our session logic)
+# - Frontend/implementations/lgm_metahuman/* (our custom UI)
+```
+
+#### Frontend Library Update
+
+```json
+// package.json - Update pixel streaming library
+{
+  "dependencies": {
+    // Old
+    "@epicgames-ps/lib-pixelstreamingfrontend-ue5.4": "...",
+    // New
+    "@epicgames-ps/lib-pixelstreamingfrontend-ue5.5": "..."
+  }
+}
+```
+
+#### API Changes in Frontend
+
+```typescript
+// Most changes are internal, but watch for:
+
+// 1. Codec setting (if used)
+// Old: pixelStreaming.setCodec(...)
+// New: Use CVar via emitCommand or config
+
+// 2. Data channel messages
+// Old: Custom datachannel handling
+// New: Use streamer's input handler message registration
+
+// 3. Player layer preference
+// Old: SetPlayerLayerPreference()
+// New: Removed - use frontend setting instead
+```
+
+### 0.4 UE Project Changes
+
+The Unreal Engine project (lgm_metahuman) needs to:
+
+1. **Upgrade to UE 5.5**
+2. **Enable PixelStreaming2 plugin** (disable old PixelStreaming)
+3. **Update any Blueprint nodes** - PS2 versions need manual recreation
+4. **Update C++ code** if using PixelStreaming API directly
+
+#### Blueprint Migration
+
+All blueprint nodes need recreation with PS2 versions:
+- `PixelStreaming*` → `PixelStreaming2*` equivalent nodes
+- Relink all connections manually (no redirectors possible)
+
+### 0.5 Updated Launch Arguments
+
+**Current (UE5.4):**
+```bash
+/app/lgm_metahuman_54.sh \
+    -Windowed \
+    -PixelStreamingURL="ws://localhost:8888" \
+    -RenderOffscreen \
+    -ForceRes \
+    -ResX=1280 \
+    -ResY=720 \
+    -PixelStreamingWebRTCDisableReceiveAudio=true \
+    -PixelStreamingWebRTCDisableTransmitAudio=true \
+    -PixelStreamingWebRTCDisableAudioSync=true \
+    -PixelStreamingWebRTCDisableFrameDropper=true \
+    -PixelStreamingID=Streamer8888
+```
+
+**New (PS2/UE5.5):**
+```bash
+/app/lgm_metahuman_55.sh \
+    -Windowed \
+    -PixelStreamingSignallingURL="ws://signalling:3000" \
+    -RenderOffscreen \
+    -ForceRes \
+    -ResX=1280 \
+    -ResY=720 \
+    -PixelStreamingID=Streamer0 \
+    -PixelStreamingSignalingKeepAliveInterval=30 \
+    -PixelStreamingEncoderLatencyMode=Default \
+    -PixelStreamingEncoderQualityPreset=Default
+```
+
+### 0.6 PS2 Migration Checklist
+
+- [ ] Upgrade UE project to 5.5
+- [ ] Enable PixelStreaming2 plugin, disable PixelStreaming
+- [ ] Recreate all PixelStreaming blueprint nodes as PS2 versions
+- [ ] Update any C++ PixelStreaming API usage
+- [ ] Build new Linux shipping build
+- [ ] Merge PixelStreamingInfra UE5.5 branch
+- [ ] Update frontend npm package to ue5.5 version
+- [ ] Update launch arguments in entrypoint.sh
+- [ ] Test basic pixel streaming functionality
+- [ ] Test with our custom session/room system
 
 ---
 
@@ -1090,23 +1247,43 @@ class LgmWebRTCStore {
 
 ## 7. Implementation Phases
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 0: Pixel Streaming 2 Migration (Week 1)
+
+**Goals:** Upgrade to UE 5.5 and Pixel Streaming 2
+
+**Tasks:**
+- [ ] Merge PixelStreamingInfra UE5.5 branch into our branch
+- [ ] Resolve merge conflicts (preserve LGM session customizations)
+- [ ] Update frontend package.json to use `@epicgames-ps/lib-pixelstreamingfrontend-ue5.5`
+- [ ] Update any frontend code affected by PS2 API changes
+- [ ] Update cirrus.js for any PS2 signalling changes
+- [ ] Coordinate with UE team on project upgrade to 5.5
+- [ ] Update UE project: enable PixelStreaming2, disable PixelStreaming
+- [ ] Recreate PixelStreaming blueprint nodes as PS2 versions
+- [ ] Build new Linux shipping build (lgm_metahuman_55)
+- [ ] Update launch arguments for new PS2 settings
+- [ ] Test basic pixel streaming functionality
+- [ ] Test custom session/room system with PS2
+
+**Deliverable:** Working PS2-based pixel streaming with current P2P functionality
+
+### Phase 1: Foundation (Week 2-3)
 
 **Goals:** Repository structure, containerization, basic infrastructure
 
 **Tasks:**
-- [ ] Create new repository structure
+- [ ] Create new repository structure (monorepo layout)
 - [ ] Setup ue-build submodule with LFS
 - [ ] Create pull.sh and build.sh scripts
 - [ ] Setup docker-compose.yml with all services (stubs)
 - [ ] Configure host nginx for HTTPS termination
-- [ ] Containerize UE instances
+- [ ] Containerize UE instances (PS2 builds)
 - [ ] Setup internal nginx for static files
 - [ ] Move frontend build to multi-stage Docker
 
-**Deliverable:** Running infrastructure with current P2P functionality
+**Deliverable:** Containerized infrastructure with PS2-based P2P functionality
 
-### Phase 2: Signalling Rewrite (Week 3-4)
+### Phase 2: Signalling Rewrite (Week 4-5)
 
 **Goals:** TypeScript rewrite of cirrus.js with modular architecture
 
@@ -1123,7 +1300,7 @@ class LgmWebRTCStore {
 
 **Deliverable:** TypeScript signalling server, feature-parity with current
 
-### Phase 3: Media Server (Week 5-6)
+### Phase 3: Media Server (Week 6-7)
 
 **Goals:** mediasoup-based media routing
 
@@ -1138,7 +1315,7 @@ class LgmWebRTCStore {
 
 **Deliverable:** Working SFU routing (without RVC/recording)
 
-### Phase 4: Frontend Migration (Week 7)
+### Phase 4: Frontend Migration (Week 8)
 
 **Goals:** Update frontend for SFU-style connections
 
@@ -1151,7 +1328,7 @@ class LgmWebRTCStore {
 
 **Deliverable:** Frontend working with media server
 
-### Phase 5: RVC Integration (Week 8-9)
+### Phase 5: RVC Integration (Week 9-10)
 
 **Goals:** Voice changing pipeline
 
@@ -1165,7 +1342,7 @@ class LgmWebRTCStore {
 
 **Deliverable:** Working voice changing
 
-### Phase 6: Recording (Week 10)
+### Phase 6: Recording (Week 11)
 
 **Goals:** Session recording
 
@@ -1178,7 +1355,7 @@ class LgmWebRTCStore {
 
 **Deliverable:** Working session recording
 
-### Phase 7: Production Hardening (Week 11-12)
+### Phase 7: Production Hardening (Week 12-13)
 
 **Goals:** Production readiness
 
