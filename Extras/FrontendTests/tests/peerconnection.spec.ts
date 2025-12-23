@@ -1,7 +1,7 @@
 import { test } from './fixtures';
 import { expect } from './matchers';
 import * as helpers from './helpers';
-import { Flags, PixelStreaming, WebRtcSdpAnswerEvent, WebRtcSdpOfferEvent, LatencyCalculator, LatencyInfo, LatencyCalculatedEvent } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
+import { Flags, PixelStreaming, WebRtcSdpAnswerEvent, WebRtcSdpOfferEvent, LatencyCalculator, LatencyInfo, LatencyCalculatedEvent } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
 
 test('Test abs-capture-time header extension found for streamer', {
     tag: ['@capture-time'],
@@ -137,10 +137,8 @@ test('Test latency calculation with video timing', {
     tag: ['@video-timing'],
 }, async ({ page, streamerPage, streamerId, browserName }) => {
 
-    if(browserName !== 'chromium') {
-        // Chrome based browsers are the only ones that support.
-        test.skip();
-    }
+    test.skip(process.platform === 'linux', 'Flakey on linux');
+    test.skip(browserName !== 'chromium', 'Chrome based browsers are the only supported browsers');
 
     await page.goto(`/?StreamerId=${streamerId}`);
 

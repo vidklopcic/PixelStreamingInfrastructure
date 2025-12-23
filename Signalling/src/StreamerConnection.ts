@@ -8,7 +8,7 @@ import {
     Messages,
     EventEmitter,
     MessageHelpers
-} from '@epicgames-ps/lib-pixelstreamingcommon-ue5.6';
+} from '@epicgames-ps/lib-pixelstreamingcommon-ue5.7';
 import { IStreamer, IStreamerInfo } from './StreamerRegistry';
 import { stringify } from './Utils';
 import { Logger } from './Logger';
@@ -136,7 +136,6 @@ export class StreamerConnection extends EventEmitter implements IStreamer, LogUt
         } else {
             const player = this.server.playerRegistry.get(message.playerId);
             if (player) {
-                delete message.playerId;
                 LogUtils.logForward(this, player, message);
                 player.protocol.sendMessage(message);
             }

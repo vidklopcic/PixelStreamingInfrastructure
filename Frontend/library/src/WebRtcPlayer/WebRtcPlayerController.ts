@@ -9,7 +9,7 @@ import {
     MessageHelpers,
     BaseMessage,
     KeepaliveMonitor
-} from '@epicgames-ps/lib-pixelstreamingcommon-ue5.6';
+} from '@epicgames-ps/lib-pixelstreamingcommon-ue5.7';
 import { StreamController } from '../VideoPlayer/StreamController';
 import { FreezeFrameController } from '../FreezeFrame/FreezeFrameController';
 import { AFKController } from '../AFK/AFKController';
@@ -109,6 +109,7 @@ export class WebRtcPlayerController {
     signallingUrlBuilder: () => string;
     autoJoinTimer: ReturnType<typeof setTimeout> = undefined;
     keepalive: KeepaliveMonitor;
+    playerId: string | null = null;
 
     /**
      *
@@ -1358,6 +1359,11 @@ export class WebRtcPlayerController {
     handleWebRtcAnswer(Answer: Messages.answer) {
         Logger.Info(`Got answer sdp ${Answer.sdp}`);
 
+        // Extract the player id if it is present
+        if (Answer.playerId) {
+            this.playerId = Answer.playerId;
+        }
+
         const sdpAnswer: RTCSessionDescriptionInit = {
             sdp: Answer.sdp,
             type: 'answer'
@@ -1374,6 +1380,11 @@ export class WebRtcPlayerController {
     handleWebRtcOffer(Offer: Messages.offer) {
         Logger.Info(`Got offer sdp ${Offer.sdp}`);
 
+        // Extract the player id if it is present
+        if (Offer.playerId) {
+            this.playerId = Offer.playerId;
+        }
+
         this.isUsingSFU = Offer.sfu ? Offer.sfu : false;
         this.isUsingSVC = Offer.scalabilityMode ? Offer.scalabilityMode != 'L1T1' : false;
         if (this.isUsingSFU || this.isUsingSVC) {
@@ -1389,7 +1400,7 @@ export class WebRtcPlayerController {
         if (this.isUsingSFU) {
             if (!this.isUsingSVC) {
                 // User is using an SFU without any temporal scalability. Just offer easily readable names
-                availableQualities = ['Low', 'Medium', 'High'];
+                availableQualities = ['High', 'Medium', 'Low'];
             } else {
                 // User is using SVC. Generate all available options.
                 availableQualities = [];
@@ -1407,7 +1418,7 @@ export class WebRtcPlayerController {
         this.config.setOptionSettingOptions(OptionParameters.PreferredQuality, availableQualities);
 
         // Update the selected video quality with the highest possible resolution
-        this.config.setOptionSettingValue(OptionParameters.PreferredQuality, availableQualities.slice(-1)[0]);
+        this.config.setOptionSettingValue(OptionParameters.PreferredQuality, availableQualities[0]);
 
         const sdpOffer: RTCSessionDescriptionInit = {
             sdp: Offer.sdp,

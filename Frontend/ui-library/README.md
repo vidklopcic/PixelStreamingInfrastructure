@@ -1,13 +1,14 @@
 ## lib-pixelstreamingfrontend-ui
 
-A plugin library that adds UI support to the `lib-pixelstreamingfrontend` library.
+A library that adds UI support to the `lib-pixelstreamingfrontend` library.
 
 ### Adding it to your project
+
 This UI library depends on a the frontend library, so to include this library in your project:
 
-`npm i @epicgames-ps/lib-pixelstreamingfrontend-ue5.6`
+`npm i @epicgames-ps/lib-pixelstreamingfrontend-ue5.7`
 
-`npm i @epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.6`
+`npm i @epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.7`
 
 ### Key features
 - Default Pixel Streaming frontend look-and-feel

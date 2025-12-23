@@ -1,12 +1,12 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import { Logger } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.6';
+import { Logger } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.7';
 import { Config, OptionParameters, Flags } from '../Config/Config';
 import { AggregatedStats } from './AggregatedStats';
 import { parseRtpParameters, splitSections } from 'sdp';
 import { RTCUtils } from '../Util/RTCUtils';
 import { CodecStats } from './CodecStats';
-import { SDPUtils } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.6';
+import { SDPUtils } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.7';
 import { LatencyCalculator, LatencyInfo } from './LatencyCalculator';
 
 export const kAbsCaptureTime = 'http://www.webrtc.org/experiments/rtp-hdrext/abs-capture-time';
@@ -171,7 +171,7 @@ export class PeerConnectionController {
      * Generate Aggregated Stats and then fire a onVideo Stats event
      */
     generateStats() {
-        this.peerConnection.getStats().then((statsData: RTCStatsReport) => {
+        this.peerConnection?.getStats().then((statsData: RTCStatsReport) => {
             this.aggregatedStats.processStats(statsData);
 
             this.onVideoStats(this.aggregatedStats);
