@@ -1,14 +1,51 @@
-[![Run library unit tests](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/run-library-unit-tests.yml/badge.svg?branch=master)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/run-library-unit-tests.yml)
+# Experimental Pixel Streaming 2 plugin release in 5.5
 
-| Branch | UE5.5 | UE5.4 | UE5.3 |
-| -------|--|--|--|
-| Frontend lib  | [![Publish frontend lib](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-library-to-npm.yml/badge.svg?branch=UE5.5)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-library-to-npm.yml) | [![Publish frontend lib](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-library-to-npm.yml/badge.svg?branch=UE5.4)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-library-to-npm.yml) | [![Publish frontend lib](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-library-to-npm.yml/badge.svg?branch=UE5.3)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-library-to-npm.yml) |
-| Frontend ui lib | [![Publish ui-lib](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-ui-library-to-npm.yml/badge.svg?branch=UE5.5)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-ui-library-to-npm.yml) | [![Publish ui-lib](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-ui-library-to-npm.yml/badge.svg?branch=UE5.4)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-ui-library-to-npm.yml) | [![Publish ui-lib](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-ui-library-to-npm.yml/badge.svg?branch=UE5.3)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-ui-library-to-npm.yml) |
-| SignallingWebServer | [![Publish cirrus container](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/container-images.yml/badge.svg?branch=UE5.5)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/container-images.yml) | [![Publish cirrus container](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/container-images.yml/badge.svg?branch=UE5.4)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/container-images.yml) | [![Publish cirrus container](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/container-images.yml/badge.svg?branch=UE5.3)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/container-images.yml) |
-| Release | [![Releases](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml/badge.svg?branch=UE5.5)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml) | [![Releases](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml/badge.svg?branch=UE5.4)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml) | [![Releases](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml/badge.svg?branch=UE5.3)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml) |
- 
+From UE 5.5 onwards, Epic Games introduced a layer that makes it easier to maintain WebRTC internally. As the original Pixel Streaming plugin used WebRTC directly, this change meant that we had to introduce a new plugin to ensure a better transition phase for the developers who have developed custom solutions on top of the PixelStreaming plugin. For now, both the original Pixel Streaming plugin and the Pixel Streaming 2 plugin will be shipped with Unreal Engine to give users time to migrate.
+
+We have created a [migration guide](/Docs/pixel-streaming-2-migration-guide.md) to ensure a smooth transition for all licensees using the plugin and to highlight all major changes between the plugins.
+
+# Repository health checks and actions
+
+| Health Checks | UE5.6 | UE5.5 | UE5.4 |
+| - | - | - | - |
+| [![Libraries](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-libraries.yml/badge.svg?branch=master)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-libraries.yml) | [![Publish NPM libraries](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/changesets-publish-npm-packages.yml/badge.svg?branch=UE5.6)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/changesets-publish-npm-packages.yml) | [![Publish NPM libraries](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/changesets-publish-npm-packages.yml/badge.svg?branch=UE5.5)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/changesets-publish-npm-packages.yml) | [![Publish frontend lib](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-library-to-npm.yml/badge.svg?branch=UE5.4)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-library-to-npm.yml) |
+| [![Platform Scripts](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-platform-scripts.yml/badge.svg?branch=master)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-platform-scripts.yml) | [![Publish container images](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-container-images.yml/badge.svg?branch=UE5.6)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-container-images.yml) | [![Publish container images](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-container-images.yml/badge.svg?branch=UE5.5)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-container-images.yml) | [![Publish ui-lib](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-ui-library-to-npm.yml/badge.svg?branch=UE5.4)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/publish-ui-library-to-npm.yml) |
+| [![Signalling Protocol](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-signalling-protocol.yml/badge.svg?branch=master)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-signalling-protocol.yml) | [![Releases](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml/badge.svg?branch=UE5.6)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml) | [![Releases](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml/badge.svg?branch=UE5.5)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml) | [![Releases](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml/badge.svg?branch=UE5.4)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/create-gh-release.yml) |
+| [![Signalling Server Image](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-image-wilbur.yml/badge.svg?branch=master)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-image-wilbur.yml) | | | |
+| [![SFU Docker Image](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-image-sfu.yml/badge.svg?branch=master)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-image-sfu.yml) | | | |
+| [![Documentation Links](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-markdown-links.yml/badge.svg?branch=master)](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/actions/workflows/healthcheck-markdown-links.yml) | | | |
+
 # The official home for the Pixel Streaming servers and frontend!
 The frontend and web server elements for Unreal Pixel Streaming (previously located in `Samples/PixelStreaming/WebServers`) are now in this repository, for all to contribute to. They are referred to as the **Pixel Streaming Infrastructure**.
+
+## Getting Started
+To **build** and **run** everything you need to connect to the Pixel Streaming plugin simply run the following in the root of your `PixelStreamingInfrastructure` directory:
+
+**Windows**
+```
+.\SignallingWebServer\platform_scripts\cmd\start.bat
+```
+
+**Linux or Mac**
+```
+./SignallingWebServer/platform_scripts/bash/start.sh
+```
+
+If you want to work on a specific library within this monorepo then `cd` into that directory and run:
+
+`npm install`
+`npm run build`
+
+If you want to install all the dependencies and flush any existing `node_modules`, go to the root of the repo and run:
+
+`npm install`
+
+This works because this monorepo is using [NPM workspaces](https://docs.npmjs.com/cli/v7/using-npm/workspaces?v=true). Using NPM workspaces means:
+
+- Each sub-workspace within the monorepo does not have its own `package-lock.json`. There is only a single one in the root.
+- Common dependencies are hoisted into the root `node_modules` directory.
+- Some sub-workspaces will not have a `node_modules` directory because all their dependencies exist in the root `node_modules`.
+- When working locally within the monorepo dependencies on sub-workspaces will first try to use a local `symlink` to those dependencies instead of downloading the published packages from NPM. For example, `pixelstreaming-frontend` depends on `pixelstreaming-common`, when working in this repo that dependency will first be attempted to be resolved using the local `./Common` directory.
 
 ## Goals
 
@@ -28,12 +65,12 @@ If you would like to contribute to our repository, please reference our [contrib
 The Pixel Streaming Infrastructure contains reference implementations for all the components needed to run a pixel streaming application. They are structured as separate projects, which work together, but are designed to be modular and interoperable with other implementations which use WebRTC technology. These implementations include: 
 - A signalling web server, called Cirrus, found in [`SignallingWebServer/`](SignallingWebServer/).
 - An SFU (Selective Forwarding Unit), found in [`SFU/`](SFU/).
-- A matchmaker, found in [`Matchmaker/`](Matchmaker/).
+- A common library for frontend applications, found in [`Common/`](Common/).
 - Several frontend projects for the WebRTC player and input, found in [`Frontend/`](Frontend/):
   - shared libraries for [communication](Frontend/library/) and [UI](Frontend/ui-library/) functionality
-  - separate [implementations](Frontend/implementations/) using different technologies such as TypeScript or React/JSX
-
-  For detailed information, see the [/frontend](/Frontend/).
+  - separate [implementations](Frontend/implementations/) using different techologies such as TypeScript or React/JSX
+  - For detailed information, see the [/frontend](/Frontend/).
+- A signalling protocol test application that validates implementations of the signalling protocol, found in [`Extras/SS_Test/`](Extras/SS_Test/).
 
 ## Releases
 We release a number of different components under this repository, specifically:
@@ -52,27 +89,26 @@ The following container images are built from this repository:
 ### NPM Packages
 The following are `unofficial` NPM packages (official ones coming soon):
 
-| Branch | Frontend library | Frontend reference ui |
-|--------|------------------|-----------------------|
-| UE5.3  |[lib-pixelstreamingfrontend-ue5.2](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ue5.2)|[lib-pixelstreamingfrontend-ui-ue5.2](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.2)|
-| UE5.3  |[lib-pixelstreamingfrontend-ue5.3](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ue5.3)|[lib-pixelstreamingfrontend-ui-ue5.3](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.3)|
-| UE5.4  |[lib-pixelstreamingfrontend-ue5.4](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ue5.4)|[lib-pixelstreamingfrontend-ui-ue5.4](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.4)|
-| UE5.5  |[lib-pixelstreamingfrontend-ue5.5](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ue5.5)|[lib-pixelstreamingfrontend-ui-ue5.5](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.5)|
+| NPM Package | 5.6 | 5.5 | 5.4 |
+|-------------|-----|-----|-----|
+| Frontend lib | [lib-pixelstreamingfrontend-ue5.6](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ue5.6) | [lib-pixelstreamingfrontend-ue5.5](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ue5.5) | [lib-pixelstreamingfrontend-ue5.4](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ue5.4) |
+| Frontend-ui lib | [lib-pixelstreamingfrontend-ui-ue5.6](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.6) | [lib-pixelstreamingfrontend-ui-ue5.5](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.5) | [lib-pixelstreamingfrontend-ui-ue5.4](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.4) |
+| Signalling lib  | [lib-pixelstreamingsignalling-ue5.6](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingsignalling-ue5.6)  | `N/A` | `N/A` |
+| Common lib  | [lib-pixelstreamingcommon-ue5.6](https://www.npmjs.com/package/@epicgames-ps/lib-pixelstreamingcommon-ue5.6)  | `N/A` | `N/A` |
 
 ### NPM getting started
 
 ```bash
 #frontend (core lib)
-npm i @epicgames-ps/lib-pixelstreamingfrontend-ue5.4
+npm i @epicgames-ps/lib-pixelstreamingfrontend-ue5.6
 #frontend ui
-npm i @epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.4
+npm i @epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.6
 ```
 
 ## Documentation 
 * [General Docs](/Docs/README.md)
 * [Frontend Docs](/Frontend/README.md)
 * [Signalling Server Docs](/SignallingWebServer/README.md)
-* [Matchmaker Docs](/Matchmaker/README.md)
 * [SFU Docs](/SFU/README.md)
 
 ### Tagged source releases + built typescript frontend
@@ -92,14 +128,10 @@ This repository contains the following in branches that track Unreal Engine vers
 | Branch | Status |
 |--------|--------|
 |[Master](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/master)| Dev |
-|[UE5.5](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.5)| Pre-release |
-|[UE5.4](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.4)| Current |
-|[UE5.3](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.3)| Supported |
-|[UE5.2](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.2)| End of life |
-|[UE5.1](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.1)| Unsupported |
-|[UE5.0](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.0)| Unsupported |
-|[UE4.27](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE4.27)| Unsupported |
-|[UE4.26](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE4.26)| Unsupported |
+|[UE5.6](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.6)| Current |
+|[UE5.5](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.5)| Supported |
+|[UE5.4](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.4)| End of life |
+|[UE5.3](https://github.com/EpicGamesExt/PixelStreamingInfrastructure/tree/UE5.3)| Unsupported |
 
 | Legend | Meaning |
 |---------|-----------|

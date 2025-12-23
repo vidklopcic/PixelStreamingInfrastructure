@@ -1,14 +1,14 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 import { Config, Flags } from '../Config/Config';
-import { Logger } from '../Logger/Logger';
+import { Logger } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.6';
 
 /**
  * Extra types for the HTMLElement
  */
 declare global {
     interface HTMLElement {
-        mozRequestPointerLock?(): void;
+        mozRequestPointerLock(): Promise<void>;
     }
 }
 
@@ -43,9 +43,7 @@ export class VideoPlayer {
         videoElementParent.appendChild(this.videoElement);
 
         this.onResizePlayerCallback = () => {
-            console.log(
-                'Resolution changed, restyling player, did you forget to override this function?'
-            );
+            console.log('Resolution changed, restyling player, did you forget to override this function?');
         };
         this.onMatchViewportResolutionCallback = () => {
             console.log(
@@ -69,12 +67,22 @@ export class VideoPlayer {
 
         // set resize events to the windows if it is resized or its orientation is changed
         window.addEventListener('resize', () => this.resizePlayerStyle(), true);
-        window.addEventListener('orientationchange', () =>
-            this.onOrientationChange()
-        );
+        window.addEventListener('orientationchange', () => this.onOrientationChange());
     }
 
-    public setAudioElement(audioElement: HTMLAudioElement) : void {
+    public destroy() {
+        this.videoElement.src = '';
+        this.videoElement.srcObject = null;
+        this.videoElement.remove();
+
+        if (this.audioElement) {
+            this.audioElement.src = '';
+            this.audioElement.srcObject = null;
+            this.audioElement.remove();
+        }
+    }
+
+    public setAudioElement(audioElement: HTMLAudioElement): void {
         this.audioElement = audioElement;
     }
 
@@ -83,12 +91,8 @@ export class VideoPlayer {
      * @returns A promise for if playing the video was successful or not.
      */
     play(): Promise<void> {
-        this.videoElement.muted = this.config.isFlagEnabled(
-            Flags.StartVideoMuted
-        );
-        this.videoElement.autoplay = this.config.isFlagEnabled(
-            Flags.AutoPlayVideo
-        );
+        this.videoElement.muted = this.config.isFlagEnabled(Flags.StartVideoMuted);
+        this.videoElement.autoplay = this.config.isFlagEnabled(Flags.AutoPlayVideo);
         return this.videoElement.play();
     }
 
@@ -103,20 +107,14 @@ export class VideoPlayer {
      * @returns - whether the video element is playing.
      */
     isVideoReady(): boolean {
-        return (
-            this.videoElement.readyState !== undefined &&
-            this.videoElement.readyState > 0
-        );
+        return this.videoElement.readyState !== undefined && this.videoElement.readyState > 0;
     }
 
     /**
      * @returns True if the video element has a valid video source (srcObject).
      */
     hasVideoSource(): boolean {
-        return (
-            this.videoElement.srcObject !== undefined &&
-            this.videoElement.srcObject !== null
-        );
+        return this.videoElement.srcObject !== undefined && this.videoElement.srcObject !== null;
     }
 
     /**
@@ -131,8 +129,8 @@ export class VideoPlayer {
      * Get the current context of the html video elements parent
      * @returns - the current context of the video elements parent
      */
-    getVideoParentElement(): HTMLElement {
-        return this.videoElement.parentElement;
+    getVideoParentElement(): HTMLElement | undefined {
+        return this.videoElement.parentElement ?? undefined;
     }
 
     /**
@@ -231,16 +229,9 @@ export class VideoPlayer {
 
             this.lastTimeResized = new Date().getTime();
         } else {
-            Logger.Log(
-                Logger.GetStackTrace(),
-                'Resizing too often - skipping',
-                6
-            );
+            Logger.Info('Resizing too often - skipping');
             clearTimeout(this.resizeTimeoutHandle);
-            this.resizeTimeoutHandle = window.setTimeout(
-                () => this.updateVideoStreamSize(),
-                100
-            );
+            this.resizeTimeoutHandle = window.setTimeout(() => this.updateVideoStreamSize(), 100);
         }
     }
 }

@@ -1,9 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import { Logger } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
-import {
-    DataChannelLatencyTestResult
-} from "@epicgames-ps/lib-pixelstreamingfrontend-ue5.4/types/DataChannel/DataChannelLatencyTestResults";
+import { Logger, DataChannelLatencyTestResult } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
+import { StatsSections } from './UIConfigurationTypes';
 
 /**
  * DataChannel Latency test UI elements and results handling.
@@ -29,7 +27,7 @@ export class DataChannelLatencyTest {
             this._rootElement.appendChild(heading);
 
             const headingText = document.createElement('div');
-            headingText.innerHTML = 'Data Channel Latency Test';
+            headingText.innerHTML = StatsSections.DataChannelLatencyTest;
             heading.appendChild(headingText);
             heading.appendChild(this.latencyTestButton);
 
@@ -67,14 +65,10 @@ export class DataChannelLatencyTest {
 
     /**
      * Populate the UI based on the latency test's results.
-     * @param result The latency test results.
+     * @param result - The latency test results.
      */
     public handleTestResult(result: DataChannelLatencyTestResult) {
-        Logger.Log(
-            Logger.GetStackTrace(),
-            result.toString(),
-            6
-        );
+        Logger.Info(JSON.stringify(result));
         /**
          * Check we have results, NaN would mean that UE version we talk to doesn't support our test
          */
@@ -83,10 +77,7 @@ export class DataChannelLatencyTest {
             return;
         }
         let latencyStatsInnerHTML = '';
-        latencyStatsInnerHTML +=
-            '<div>Data channel RTT (ms): ' +
-            result.dataChannelRtt +
-            '</div>';
+        latencyStatsInnerHTML += '<div>Data channel RTT (ms): ' + result.dataChannelRtt + '</div>';
         /**
          * Separate path time discovery works only when UE and Player clocks have been synchronized.
          */
@@ -94,36 +85,32 @@ export class DataChannelLatencyTest {
             latencyStatsInnerHTML +=
                 '<div>Player to Streamer path (ms): ' + result.playerToStreamerTime + '</div>';
             latencyStatsInnerHTML +=
-                '<div>Streamer to Player path (ms): ' +
-                result.streamerToPlayerTime +
-                '</div>';
+                '<div>Streamer to Player path (ms): ' + result.streamerToPlayerTime + '</div>';
         }
         this.latencyTestResultsElement.innerHTML = latencyStatsInnerHTML;
         //setup button to download the detailed results
-        let downloadButton: HTMLInputElement = document.createElement('input');
+        const downloadButton: HTMLInputElement = document.createElement('input');
         downloadButton.type = 'button';
         downloadButton.value = 'Download';
         downloadButton.classList.add('streamTools-button');
         downloadButton.classList.add('btn-flat');
         downloadButton.onclick = () => {
-            let file = new Blob([result.exportLatencyAsCSV()], {type: 'text/plain'});
-            let a = document.createElement("a"),
-                url = URL.createObjectURL(file);
+            const file = new Blob([result.exportLatencyAsCSV()], { type: 'text/plain' });
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(file);
             a.href = url;
-            a.download = "data_channel_latency_test_results.csv";
+            a.download = 'data_channel_latency_test_results.csv';
             document.body.appendChild(a);
             a.click();
-            setTimeout(function() {
+            setTimeout(function () {
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             }, 0);
-        }
+        };
         this.latencyTestResultsElement.appendChild(downloadButton);
     }
 
     public handleTestStart() {
-        this.latencyTestResultsElement.innerHTML =
-            '<div>Test in progress</div>';
+        this.latencyTestResultsElement.innerHTML = '<div>Test in progress</div>';
     }
-
 }

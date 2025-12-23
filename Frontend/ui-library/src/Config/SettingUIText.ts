@@ -1,14 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import type {
-    SettingText,
-    TextParametersIds
-} from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import type { SettingText, TextParametersIds } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
 import { SettingUIBase } from './SettingUIBase';
 
-export class SettingUIText<
-    CustomIds extends string = TextParametersIds
-> extends SettingUIBase {
+export class SettingUIText<CustomIds extends string = TextParametersIds> extends SettingUIBase {
     /* A text box that reflects the value of this setting. */
     _textbox: HTMLInputElement; // input type="text"
 
@@ -25,7 +20,7 @@ export class SettingUIText<
     /**
      * @returns The setting component.
      */
-    public get setting(): SettingText<CustomIds> {
+    public override get setting(): SettingText<CustomIds> {
         return this._setting as SettingText<CustomIds>;
     }
 
@@ -50,7 +45,7 @@ export class SettingUIText<
     /**
      * @returns Return or creates a HTML element that represents this setting in the DOM.
      */
-    public get rootElement(): HTMLElement {
+    public override get rootElement(): HTMLElement {
         if (!this._rootElement) {
             // create root div with "setting" css class
             this._rootElement = document.createElement('div');
@@ -69,11 +64,22 @@ export class SettingUIText<
             wrapperLabel.appendChild(this.textbox);
 
             // setup on change from checkbox
-            this.textbox.addEventListener('input', () => {
+            this.textbox.addEventListener('input', (event) => {
                 if (this.setting.text !== this.textbox.value) {
                     this.setting.text = this.textbox.value;
                     this.setting.updateURLParams();
                 }
+                event.stopPropagation();
+            });
+            // Block keypress/up/down propogation from text field typing going to UE
+            this.textbox.addEventListener('keypress', (event) => {
+                event.stopPropagation();
+            });
+            this.textbox.addEventListener('keyup', (event) => {
+                event.stopPropagation();
+            });
+            this.textbox.addEventListener('keydown', (event) => {
+                event.stopPropagation();
             });
         }
         return this._rootElement;
@@ -81,7 +87,7 @@ export class SettingUIText<
 
     /**
      * Update the setting's stored value.
-     * @param inValue The new value for the setting.
+     * @param inValue - The new value for the setting.
      */
     public set text(inValue: string) {
         this.textbox.value = inValue;
@@ -96,7 +102,7 @@ export class SettingUIText<
 
     /**
      * Set the label text for the setting.
-     * @param label setting label.
+     * @param label - setting label.
      */
     public set label(inLabel: string) {
         this.settingsTextElem.innerText = inLabel;
@@ -107,5 +113,13 @@ export class SettingUIText<
      */
     public get label() {
         return this.settingsTextElem.innerText;
+    }
+
+    public disable() {
+        this.textbox.disabled = true;
+    }
+
+    public enable() {
+        this.textbox.disabled = false;
     }
 }

@@ -1,17 +1,14 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import { Config, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import { Config, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
 
 document.body.onload = function() {
-	// Example of how to set the logger level
-	// Logger.SetLoggerVerbosity(10);
 
 	// Create a config object
 	const config = new Config({
 		initialSettings: {
 			AutoPlayVideo: true,
 			AutoConnect: true,
-			ss: "ws://localhost:80",
 			StartVideoMuted: true,
 			WaitForStreamer: true,
 		}

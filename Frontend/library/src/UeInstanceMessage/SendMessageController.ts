@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 import { DataChannelSender } from '../DataChannel/DataChannelSender';
-import { Logger } from '../Logger/Logger';
+import { Logger } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.6';
 import { StreamMessageController } from './StreamMessageController';
 
 export class SendMessageController {
@@ -31,32 +31,32 @@ export class SendMessageController {
             messageData = [];
         }
 
-        const toStreamerMessages =
-            this.toStreamerMessagesMapProvider.toStreamerMessages;
+        const toStreamerMessages = this.toStreamerMessagesMapProvider.toStreamerMessages;
         const messageFormat = toStreamerMessages.get(messageType);
         if (messageFormat === undefined) {
             Logger.Error(
-                Logger.GetStackTrace(),
                 `Attempted to send a message to the streamer with message type: ${messageType}, but the frontend hasn't been configured to send such a message. Check you've added the message type in your cpp`
             );
             return;
         }
 
-        if(messageFormat.structure && messageData && messageFormat.structure.length !== messageData.length) {
+        if (messageFormat.structure && messageData && messageFormat.structure.length !== messageData.length) {
             Logger.Error(
-                Logger.GetStackTrace(),
-                `Provided message data doesn't match expected layout. Expected [ ${messageFormat.structure.map((element: string) => {
-                    switch (element) {
-                        case 'uint8':
-                        case 'uint16':
-                        case 'int16':
-                        case 'float':
-                        case 'double':
-                            return 'number';
-                        case 'string':
-                            return 'string';
-                    }
-                }).toString() } ] but received [ ${messageData.map((element: number | string) => typeof element).toString()} ]`
+                `Provided message data doesn't match expected layout. Expected [ ${messageFormat.structure
+                    .map((element: string) => {
+                        switch (element) {
+                            case 'uint8':
+                            case 'uint16':
+                            case 'int16':
+                            case 'float':
+                            case 'double':
+                            default:
+                                return 'number';
+                            case 'string':
+                                return 'string';
+                        }
+                    })
+                    .toString()} ] but received [ ${messageData.map((element: number | string) => typeof element).toString()} ]`
             );
             return;
         }
@@ -141,7 +141,6 @@ export class SendMessageController {
 
         if (!this.dataChannelSender.canSend()) {
             Logger.Info(
-                Logger.GetStackTrace(),
                 `Data channel cannot send yet, skipping sending message: ${messageType} - ${new Uint8Array(
                     data.buffer
                 )}`

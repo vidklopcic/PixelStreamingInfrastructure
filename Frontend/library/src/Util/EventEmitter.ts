@@ -1,13 +1,10 @@
-import {
-    FlagsIds,
-    NumericParametersIds,
-    OptionParametersIds,
-    TextParametersIds
-} from '../Config/Config';
+// Copyright Epic Games, Inc. All Rights Reserved.
+import { FlagsIds, NumericParametersIds, OptionParametersIds, TextParametersIds } from '../Config/Config';
 import { LatencyTestResults } from '../DataChannel/LatencyTestResults';
 import { AggregatedStats } from '../PeerConnectionController/AggregatedStats';
-import { InitialSettings } from '../pixelstreamingfrontend';
-import { MessageStreamerList } from '../WebSockets/MessageReceive';
+import { InitialSettings } from '../DataChannel/InitialSettings';
+import { LatencyInfo } from '../PeerConnectionController/LatencyCalculator';
+import { Messages } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.6';
 import { SettingFlag } from '../Config/SettingFlag';
 import { SettingNumber } from '../Config/SettingNumber';
 import { SettingText } from '../Config/SettingText';
@@ -15,14 +12,14 @@ import { SettingOption } from '../Config/SettingOption';
 import {
     DataChannelLatencyTestResponse,
     DataChannelLatencyTestResult
-} from "../DataChannel/DataChannelLatencyTestResults";
+} from '../DataChannel/DataChannelLatencyTestResults';
 
 /**
  * An event that is emitted when AFK disconnect is about to happen.
  * Can be cancelled by calling the callback function provided as part of the event.
  */
 export class AfkWarningActivateEvent extends Event {
-    readonly type: 'afkWarningActivate';
+    override readonly type: 'afkWarningActivate';
     readonly data: {
         /** How many seconds until the session is disconnected */
         countDown: number;
@@ -39,10 +36,10 @@ export class AfkWarningActivateEvent extends Event {
  * An event that is emitted when the AFK disconnect countdown is updated.
  */
 export class AfkWarningUpdateEvent extends Event {
-    readonly type: 'afkWarningUpdate';
+    override readonly type: 'afkWarningUpdate';
     readonly data: {
         /** How many seconds until the session is disconnected */
-        countDown: number
+        countDown: number;
     };
     constructor(data: AfkWarningUpdateEvent['data']) {
         super('afkWarningUpdate');
@@ -54,7 +51,7 @@ export class AfkWarningUpdateEvent extends Event {
  * An event that is emitted when AFK warning is deactivated.
  */
 export class AfkWarningDeactivateEvent extends Event {
-    readonly type: 'afkWarningDeactivate';
+    override readonly type: 'afkWarningDeactivate';
     constructor() {
         super('afkWarningDeactivate');
     }
@@ -64,7 +61,7 @@ export class AfkWarningDeactivateEvent extends Event {
  * An event that is emitted when AFK countdown reaches 0 and the user is disconnected.
  */
 export class AfkTimedOutEvent extends Event {
-    readonly type: 'afkTimedOut';
+    override readonly type: 'afkTimedOut';
     constructor() {
         super('afkTimedOut');
     }
@@ -74,10 +71,10 @@ export class AfkTimedOutEvent extends Event {
  * An event that is emitted when we receive new video quality value.
  */
 export class VideoEncoderAvgQPEvent extends Event {
-    readonly type: 'videoEncoderAvgQP';
+    override readonly type: 'videoEncoderAvgQP';
     readonly data: {
         /** Average video quality value */
-        avgQP: number
+        avgQP: number;
     };
     constructor(data: VideoEncoderAvgQPEvent['data']) {
         super('videoEncoderAvgQP');
@@ -86,12 +83,42 @@ export class VideoEncoderAvgQPEvent extends Event {
 }
 
 /**
- * An event that is emitted after a WebRtc connection has been negotiated. 
+ * An event that is emitted after a WebRtc connection has been negotiated.
  */
 export class WebRtcSdpEvent extends Event {
-    readonly type: 'webRtcSdp';
+    override readonly type: 'webRtcSdp';
     constructor() {
         super('webRtcSdp');
+    }
+}
+
+/**
+ * An event that is emitted after the SDP answer is set.
+ */
+export class WebRtcSdpAnswerEvent extends Event {
+    override readonly type: 'webRtcSdpAnswer';
+    readonly data: {
+        /** The sdp answer */
+        sdp: RTCSessionDescriptionInit;
+    };
+    constructor(data: WebRtcSdpAnswerEvent['data']) {
+        super('webRtcSdpAnswer');
+        this.data = data;
+    }
+}
+
+/**
+ * An event that is emitted after the SDP offer is set.
+ */
+export class WebRtcSdpOfferEvent extends Event {
+    override readonly type: 'webRtcSdpOffer';
+    readonly data: {
+        /** The sdp offer */
+        sdp: RTCSessionDescriptionInit;
+    };
+    constructor(data: WebRtcSdpOfferEvent['data']) {
+        super('webRtcSdpOffer');
+        this.data = data;
     }
 }
 
@@ -99,7 +126,7 @@ export class WebRtcSdpEvent extends Event {
  * An event that is emitted when auto connecting.
  */
 export class WebRtcAutoConnectEvent extends Event {
-    readonly type: 'webRtcAutoConnect';
+    override readonly type: 'webRtcAutoConnect';
     constructor() {
         super('webRtcAutoConnect');
     }
@@ -109,7 +136,7 @@ export class WebRtcAutoConnectEvent extends Event {
  * An event that is emitted when sending a WebRtc offer.
  */
 export class WebRtcConnectingEvent extends Event {
-    readonly type: 'webRtcConnecting';
+    override readonly type: 'webRtcConnecting';
     constructor() {
         super('webRtcConnecting');
     }
@@ -119,7 +146,7 @@ export class WebRtcConnectingEvent extends Event {
  * An event that is emitted when WebRtc connection has been established.
  */
 export class WebRtcConnectedEvent extends Event {
-    readonly type: 'webRtcConnected';
+    override readonly type: 'webRtcConnected';
     constructor() {
         super('webRtcConnected');
     }
@@ -129,7 +156,7 @@ export class WebRtcConnectedEvent extends Event {
  * An event that is emitted if WebRtc connection has failed.
  */
 export class WebRtcFailedEvent extends Event {
-    readonly type: 'webRtcFailed';
+    override readonly type: 'webRtcFailed';
     constructor() {
         super('webRtcFailed');
     }
@@ -139,7 +166,7 @@ export class WebRtcFailedEvent extends Event {
  * An event that is emitted if WebRtc connection is disconnected.
  */
 export class WebRtcDisconnectedEvent extends Event {
-    readonly type: 'webRtcDisconnected';
+    override readonly type: 'webRtcDisconnected';
     readonly data: {
         /** Message describing the disconnect reason */
         eventString: string;
@@ -156,12 +183,12 @@ export class WebRtcDisconnectedEvent extends Event {
  * An event that is emitted when RTCDataChannel is opened.
  */
 export class DataChannelOpenEvent extends Event {
-    readonly type: 'dataChannelOpen';
+    override readonly type: 'dataChannelOpen';
     readonly data: {
         /** Data channel label. One of 'datachannel', 'send-datachannel', 'recv-datachannel' */
         label: string;
         /** RTCDataChannel onOpen event */
-        event: Event
+        event: Event;
     };
     constructor(data: DataChannelOpenEvent['data']) {
         super('dataChannelOpen');
@@ -173,12 +200,12 @@ export class DataChannelOpenEvent extends Event {
  * An event that is emitted when RTCDataChannel is closed.
  */
 export class DataChannelCloseEvent extends Event {
-    readonly type: 'dataChannelClose';
+    override readonly type: 'dataChannelClose';
     readonly data: {
         /** Data channel label. One of 'datachannel', 'send-datachannel', 'recv-datachannel' */
         label: string;
         /** RTCDataChannel onClose event */
-        event: Event
+        event: Event;
     };
     constructor(data: DataChannelCloseEvent['data']) {
         super('dataChannelClose');
@@ -190,12 +217,12 @@ export class DataChannelCloseEvent extends Event {
  * An event that is emitted on RTCDataChannel errors.
  */
 export class DataChannelErrorEvent extends Event {
-    readonly type: 'dataChannelError';
+    override readonly type: 'dataChannelError';
     readonly data: {
         /** Data channel label. One of 'datachannel', 'send-datachannel', 'recv-datachannel' */
         label: string;
         /** RTCDataChannel onError event */
-        event: Event
+        event: Event;
     };
     constructor(data: DataChannelErrorEvent['data']) {
         super('dataChannelError');
@@ -207,7 +234,7 @@ export class DataChannelErrorEvent extends Event {
  * An event that is emitted when the video stream has been initialized.
  */
 export class VideoInitializedEvent extends Event {
-    readonly type: 'videoInitialized';
+    override readonly type: 'videoInitialized';
     constructor() {
         super('videoInitialized');
     }
@@ -217,7 +244,7 @@ export class VideoInitializedEvent extends Event {
  * An event that is emitted when video stream loading starts.
  */
 export class StreamLoadingEvent extends Event {
-    readonly type: 'streamLoading';
+    override readonly type: 'streamLoading';
     constructor() {
         super('streamLoading');
     }
@@ -227,7 +254,7 @@ export class StreamLoadingEvent extends Event {
  * An event that is emitted when video stream loading has finished.
  */
 export class StreamPreConnectEvent extends Event {
-    readonly type: 'streamConnect';
+    override readonly type: 'streamConnect';
     constructor() {
         super('streamConnect');
     }
@@ -237,7 +264,7 @@ export class StreamPreConnectEvent extends Event {
  * An event that is emitted when video stream has stopped.
  */
 export class StreamPreDisconnectEvent extends Event {
-    readonly type: 'streamDisconnect';
+    override readonly type: 'streamDisconnect';
     constructor() {
         super('streamDisconnect');
     }
@@ -247,7 +274,7 @@ export class StreamPreDisconnectEvent extends Event {
  * An event that is emitted when video stream is reconnecting.
  */
 export class StreamReconnectEvent extends Event {
-    readonly type: 'streamReconnect';
+    override readonly type: 'streamReconnect';
     constructor() {
         super('streamReconnect');
     }
@@ -257,10 +284,10 @@ export class StreamReconnectEvent extends Event {
  * An event that is emitted if there are errors loading the video stream.
  */
 export class PlayStreamErrorEvent extends Event {
-    readonly type: 'playStreamError';
+    override readonly type: 'playStreamError';
     readonly data: {
         /** Error message */
-        message: string
+        message: string;
     };
     constructor(data: PlayStreamErrorEvent['data']) {
         super('playStreamError');
@@ -272,7 +299,7 @@ export class PlayStreamErrorEvent extends Event {
  * An event that is emitted before trying to start video playback.
  */
 export class PlayStreamEvent extends Event {
-    readonly type: 'playStream';
+    override readonly type: 'playStream';
     constructor() {
         super('playStream');
     }
@@ -283,10 +310,10 @@ export class PlayStreamEvent extends Event {
  * video auto-play without user interaction is refused by the browser.
  */
 export class PlayStreamRejectedEvent extends Event {
-    readonly type: 'playStreamRejected';
+    override readonly type: 'playStreamRejected';
     readonly data: {
         /** Rejection reason */
-        reason: unknown
+        reason: unknown;
     };
     constructor(data: PlayStreamRejectedEvent['data']) {
         super('playStreamRejected');
@@ -298,7 +325,7 @@ export class PlayStreamRejectedEvent extends Event {
  * An event that is emitted when receiving a full FreezeFrame image from UE.
  */
 export class LoadFreezeFrameEvent extends Event {
-    readonly type: 'loadFreezeFrame';
+    override readonly type: 'loadFreezeFrame';
     readonly data: {
         /** true if should show click-to-play overlay, not the freeze frame contents */
         shouldShowPlayOverlay: boolean;
@@ -317,7 +344,7 @@ export class LoadFreezeFrameEvent extends Event {
  * An event that is emitted when receiving UnfreezeFrame message from UE and video playback is about to be resumed.
  */
 export class HideFreezeFrameEvent extends Event {
-    readonly type: 'hideFreezeFrame';
+    override readonly type: 'hideFreezeFrame';
     constructor() {
         super('hideFreezeFrame');
     }
@@ -327,10 +354,10 @@ export class HideFreezeFrameEvent extends Event {
  * An event that is emitted when receiving WebRTC statistics.
  */
 export class StatsReceivedEvent extends Event {
-    readonly type: 'statsReceived';
+    override readonly type: 'statsReceived';
     readonly data: {
         /** Statistics object */
-        aggregatedStats: AggregatedStats
+        aggregatedStats: AggregatedStats;
     };
     constructor(data: StatsReceivedEvent['data']) {
         super('statsReceived');
@@ -342,10 +369,10 @@ export class StatsReceivedEvent extends Event {
  * An event that is emitted when streamer list changes.
  */
 export class StreamerListMessageEvent extends Event {
-    readonly type: 'streamerListMessage';
+    override readonly type: 'streamerListMessage';
     readonly data: {
         /** Streamer list message containing an array of streamer ids */
-        messageStreamerList: MessageStreamerList;
+        messageStreamerList: Messages.streamerList;
         /** Auto-selected streamer from the list, or null if unable to auto-select and user should be prompted to select */
         autoSelectedStreamerId: string;
         /** Wanted streamer id from various configurations. */
@@ -361,7 +388,7 @@ export class StreamerListMessageEvent extends Event {
  * An event that is emitted when a subscribed to streamer's id changes.
  */
 export class StreamerIDChangedMessageEvent extends Event {
-    readonly type: 'streamerIDChangedMessage';
+    override readonly type: 'streamerIDChangedMessage';
     readonly data: {
         /** The new ID of the streamer. */
         newID: string;
@@ -376,13 +403,44 @@ export class StreamerIDChangedMessageEvent extends Event {
  * An event that is emitted when receiving latency test results.
  */
 export class LatencyTestResultEvent extends Event {
-    readonly type: 'latencyTestResult';
+    override readonly type: 'latencyTestResult';
     readonly data: {
         /** Latency test result object */
-        latencyTimings: LatencyTestResults
+        latencyTimings: LatencyTestResults;
     };
     constructor(data: LatencyTestResultEvent['data']) {
         super('latencyTestResult');
+        this.data = data;
+    }
+}
+
+/**
+ * An event that is emitted everytime latency is calculated using the WebRTC stats API.
+ */
+export class LatencyCalculatedEvent extends Event {
+    override readonly type: 'latencyCalculated';
+    readonly data: {
+        latencyInfo: LatencyInfo;
+    };
+    constructor(data: LatencyCalculatedEvent['data']) {
+        super('latencyCalculated');
+        this.data = data;
+    }
+}
+
+/**
+ * An event that is emitted when we receive the "onScreenKeyboard" command from UE.
+ */
+export class ShowOnScreenKeyboardEvent extends Event {
+    override readonly type: 'showOnScreenKeyboard';
+    readonly data: {
+        showOnScreenKeyboard: boolean;
+        x: number;
+        y: number;
+        contents: string;
+    };
+    constructor(data: ShowOnScreenKeyboardEvent['data']) {
+        super('showOnScreenKeyboard');
         this.data = data;
     }
 }
@@ -392,10 +450,10 @@ export class LatencyTestResultEvent extends Event {
  * This event is handled by DataChannelLatencyTestController
  */
 export class DataChannelLatencyTestResponseEvent extends Event {
-    readonly type: 'dataChannelLatencyTestResponse';
+    override readonly type: 'dataChannelLatencyTestResponse';
     readonly data: {
         /** Latency test result object */
-        response: DataChannelLatencyTestResponse
+        response: DataChannelLatencyTestResponse;
     };
     constructor(data: DataChannelLatencyTestResponseEvent['data']) {
         super('dataChannelLatencyTestResponse');
@@ -407,13 +465,24 @@ export class DataChannelLatencyTestResponseEvent extends Event {
  * An event that is emitted when data channel latency test results are ready.
  */
 export class DataChannelLatencyTestResultEvent extends Event {
-    readonly type: 'dataChannelLatencyTestResult';
+    override readonly type: 'dataChannelLatencyTestResult';
     readonly data: {
         /** Latency test result object */
-        result: DataChannelLatencyTestResult
+        result: DataChannelLatencyTestResult;
     };
     constructor(data: DataChannelLatencyTestResultEvent['data']) {
         super('dataChannelLatencyTestResult');
+        this.data = data;
+    }
+}
+
+export class SubscribeFailedEvent extends Event {
+    override readonly type: 'subscribeFailed';
+    readonly data: {
+        message: string;
+    };
+    constructor(data: SubscribeFailedEvent['data']) {
+        super('subscribeFailed');
         this.data = data;
     }
 }
@@ -422,10 +491,10 @@ export class DataChannelLatencyTestResultEvent extends Event {
  * An event that is emitted when receiving initial settings from UE.
  */
 export class InitialSettingsEvent extends Event {
-    readonly type: 'initialSettings';
+    override readonly type: 'initialSettings';
     readonly data: {
         /** Initial settings from UE */
-        settings: InitialSettings
+        settings: InitialSettings;
     };
     constructor(data: InitialSettingsEvent['data']) {
         super('initialSettings');
@@ -475,7 +544,7 @@ export type SettingsData =
  * An event that is emitted when PixelStreaming settings change.
  */
 export class SettingsChangedEvent extends Event {
-    readonly type: 'settingsChanged';
+    override readonly type: 'settingsChanged';
     readonly data: SettingsData;
     constructor(data: SettingsChangedEvent['data']) {
         super('settingsChanged');
@@ -487,7 +556,7 @@ export class SettingsChangedEvent extends Event {
  * Event emitted when an XR Session starts
  */
 export class XrSessionStartedEvent extends Event {
-    readonly type: 'xrSessionStarted';
+    override readonly type: 'xrSessionStarted';
     constructor() {
         super('xrSessionStarted');
     }
@@ -497,7 +566,7 @@ export class XrSessionStartedEvent extends Event {
  * Event emitted when an XR Session ends
  */
 export class XrSessionEndedEvent extends Event {
-    readonly type: 'xrSessionEnded';
+    override readonly type: 'xrSessionEnded';
     constructor() {
         super('xrSessionEnded');
     }
@@ -514,8 +583,8 @@ export type XrFrameData = {
  * Event emitted when an XR Frame is complete
  */
 export class XrFrameEvent extends Event {
-    readonly type: 'xrFrame';
-    readonly data: XrFrameData
+    override readonly type: 'xrFrame';
+    readonly data: XrFrameData;
     constructor(data: XrFrameEvent['data']) {
         super('xrFrame');
         this.data = data;
@@ -526,10 +595,10 @@ export class XrFrameEvent extends Event {
  * An event that is emitted when receiving a player count from the signalling server
  */
 export class PlayerCountEvent extends Event {
-    readonly type: 'playerCount';
+    override readonly type: 'playerCount';
     readonly data: {
         /** count object */
-        count: number
+        count: number;
     };
     constructor(data: PlayerCountEvent['data']) {
         super('playerCount');
@@ -541,7 +610,7 @@ export class PlayerCountEvent extends Event {
  * An event that is emitted when the webRTC connections is relayed over TCP.
  */
 export class WebRtcTCPRelayDetectedEvent extends Event {
-    readonly type: 'webRtcTCPRelayDetected';
+    override readonly type: 'webRtcTCPRelayDetected';
     constructor() {
         super('webRtcTCPRelayDetected');
     }
@@ -554,6 +623,8 @@ export type PixelStreamingEvent =
     | AfkTimedOutEvent
     | VideoEncoderAvgQPEvent
     | WebRtcSdpEvent
+    | WebRtcSdpOfferEvent
+    | WebRtcSdpAnswerEvent
     | WebRtcAutoConnectEvent
     | WebRtcConnectingEvent
     | WebRtcConnectedEvent
@@ -563,6 +634,7 @@ export type PixelStreamingEvent =
     | DataChannelCloseEvent
     | DataChannelErrorEvent
     | VideoInitializedEvent
+    | ShowOnScreenKeyboardEvent
     | StreamLoadingEvent
     | StreamPreConnectEvent
     | StreamReconnectEvent
@@ -575,9 +647,11 @@ export type PixelStreamingEvent =
     | StatsReceivedEvent
     | StreamerListMessageEvent
     | StreamerIDChangedMessageEvent
+    | LatencyCalculatedEvent
     | LatencyTestResultEvent
     | DataChannelLatencyTestResponseEvent
     | DataChannelLatencyTestResultEvent
+    | SubscribeFailedEvent
     | InitialSettingsEvent
     | SettingsChangedEvent
     | XrSessionStartedEvent
@@ -586,13 +660,13 @@ export type PixelStreamingEvent =
     | PlayerCountEvent
     | WebRtcTCPRelayDetectedEvent;
 
-export class EventEmitter extends EventTarget {
+export class PixelStreamingEventEmitter extends EventTarget {
     /**
      * Dispatch a new event.
      * @param e event
      * @returns
      */
-    public dispatchEvent(e: PixelStreamingEvent): boolean {
+    public override dispatchEvent(e: PixelStreamingEvent): boolean {
         return super.dispatchEvent(e);
     }
 
@@ -601,7 +675,7 @@ export class EventEmitter extends EventTarget {
      * @param type event name
      * @param listener event handler function
      */
-    public addEventListener<
+    public override addEventListener<
         T extends PixelStreamingEvent['type'],
         E extends PixelStreamingEvent & { type: T }
     >(type: T, listener: (e: Event & E) => void) {
@@ -613,7 +687,7 @@ export class EventEmitter extends EventTarget {
      * @param type event name
      * @param listener event handler function
      */
-    public removeEventListener<
+    public override removeEventListener<
         T extends PixelStreamingEvent['type'],
         E extends PixelStreamingEvent & { type: T }
     >(type: T, listener: (e: Event & E) => void) {

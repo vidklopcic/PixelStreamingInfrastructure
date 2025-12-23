@@ -1,7 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import { LatencyTestResults } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
-import { Logger } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import { LatencyTestResults } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
+import { Logger } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
+import { StatsSections } from './UIConfigurationTypes';
 
 /**
  * Latency test UI elements and results handling.
@@ -27,7 +28,7 @@ export class LatencyTest {
             this._rootElement.appendChild(heading);
 
             const headingText = document.createElement('div');
-            headingText.innerHTML = 'Latency Test';
+            headingText.innerHTML = StatsSections.LatencyTest;
             heading.appendChild(headingText);
             heading.appendChild(this.latencyTestButton);
 
@@ -65,41 +66,54 @@ export class LatencyTest {
 
     /**
      * Populate the UI based on the latency test's results.
-     * @param latencyTimings The latency test results.
+     * @param latencyTimings - The latency test results.
      */
     public handleTestResult(latencyTimings: LatencyTestResults) {
-        Logger.Log(Logger.GetStackTrace(), latencyTimings.toString(), 6);
+        Logger.Info(JSON.stringify(latencyTimings));
         let latencyStatsInnerHTML = '';
-        latencyStatsInnerHTML +=
-            '<div>Net latency RTT (ms): ' +
-            latencyTimings.networkLatency +
-            '</div>';
-        latencyStatsInnerHTML +=
-            '<div>UE Encode (ms): ' + latencyTimings.EncodeMs + '</div>';
-        latencyStatsInnerHTML +=
-            '<div>UE Capture (ms): ' +
-            latencyTimings.CaptureToSendMs +
-            '</div>';
-        latencyStatsInnerHTML +=
-            '<div>Browser send latency (ms): ' +
-            latencyTimings.browserSendLatency +
-            '</div>';
-        latencyStatsInnerHTML +=
-            latencyTimings.frameDisplayDeltaTimeMs &&
-            latencyTimings.browserReceiptTimeMs
-                ? '<div>Browser receive latency (ms): ' +
-                  latencyTimings.frameDisplayDeltaTimeMs +
-                  '</div>'
+
+        if (latencyTimings.networkLatency !== undefined && latencyTimings.networkLatency > 0) {
+            latencyStatsInnerHTML += '<div>Net latency RTT (ms): ' + latencyTimings.networkLatency + '</div>';
+        }
+
+        if (latencyTimings.EncodeMs !== undefined && latencyTimings.EncodeMs > 0) {
+            latencyStatsInnerHTML += '<div>UE Encode (ms): ' + latencyTimings.EncodeMs + '</div>';
+        }
+
+        if (latencyTimings.CaptureToSendMs !== undefined && latencyTimings.CaptureToSendMs > 0) {
+            latencyStatsInnerHTML += '<div>UE Capture (ms): ' + latencyTimings.CaptureToSendMs + '</div>';
+        }
+
+        if (latencyTimings.browserSendLatency !== undefined && latencyTimings.browserSendLatency > 0) {
+            latencyStatsInnerHTML +=
+                '<div>Browser send latency (ms): ' + latencyTimings.browserSendLatency + '</div>';
+        }
+
+        if (
+            latencyTimings.frameDisplayDeltaTimeMs !== undefined &&
+            latencyTimings.browserReceiptTimeMs !== undefined
+        ) {
+            latencyStatsInnerHTML +=
+                latencyTimings.frameDisplayDeltaTimeMs && latencyTimings.browserReceiptTimeMs
+                    ? '<div>Browser receive latency (ms): ' +
+                      latencyTimings.frameDisplayDeltaTimeMs +
+                      '</div>'
+                    : '';
+        }
+
+        if (latencyTimings.latencyExcludingDecode !== undefined) {
+            latencyStatsInnerHTML +=
+                '<div>Total latency (excluding browser) (ms): ' +
+                latencyTimings.latencyExcludingDecode +
+                '</div>';
+        }
+
+        if (latencyTimings.endToEndLatency !== undefined) {
+            latencyStatsInnerHTML += latencyTimings.endToEndLatency
+                ? '<div>Total latency (ms): ' + latencyTimings.endToEndLatency + '</div>'
                 : '';
-        latencyStatsInnerHTML +=
-            '<div>Total latency (excluding browser) (ms): ' +
-            latencyTimings.latencyExcludingDecode +
-            '</div>';
-        latencyStatsInnerHTML += latencyTimings.endToEndLatency
-            ? '<div>Total latency (ms): ' +
-              latencyTimings.endToEndLatency +
-              '</div>'
-            : '';
+        }
+
         this.latencyTestResultsElement.innerHTML = latencyStatsInnerHTML;
     }
 }

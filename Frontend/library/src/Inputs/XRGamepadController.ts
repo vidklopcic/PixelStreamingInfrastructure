@@ -1,11 +1,10 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 import { StreamMessageController } from '../UeInstanceMessage/StreamMessageController';
-import { Controller } from './GamepadTypes';
-import { WebXRUtils } from '../Util/WebXRUtils';
+import { Controller, deepCopyGamepad } from './GamepadTypes';
 
 /**
- * The class that handles the functionality of xrgamepads and controllers
+ * The class that handles the functionality of XR gamepads and controllers.
  */
 export class XRGamepadController {
     controllers: Array<Controller>;
@@ -19,11 +18,7 @@ export class XRGamepadController {
         this.controllers = [];
     }
 
-    updateStatus(
-        source: XRInputSource,
-        frame: XRFrame,
-        refSpace: XRReferenceSpace
-    ) {
+    updateStatus(source: XRInputSource, frame: XRFrame, refSpace: XRReferenceSpace) {
         if (source.gamepad) {
             const gamepadPose = frame.getPose(source.gripSpace, refSpace);
             if (!gamepadPose) {
@@ -37,9 +32,7 @@ export class XRGamepadController {
                 system = 2;
             }
             // TODO (william.belcher): Add other profiles (Quest, Microsoft Mixed Reality, etc)
-            this.toStreamerMessagesProvider.toStreamerHandlers.get('XRSystem')([
-                system
-            ]);
+            this.toStreamerMessagesProvider.toStreamerHandlers.get('XRSystem')([system]);
 
             // Default: AnyHand (2)
             let handedness = 2;
@@ -73,14 +66,12 @@ export class XRGamepadController {
                 this.controllers[handedness] = {
                     prevState: undefined,
                     currentState: undefined,
-					id: undefined
+                    id: undefined
                 };
-                this.controllers[handedness].prevState =
-                    WebXRUtils.deepCopyGamepad(source.gamepad);
+                this.controllers[handedness].prevState = deepCopyGamepad(source.gamepad);
             }
 
-            this.controllers[handedness].currentState =
-                WebXRUtils.deepCopyGamepad(source.gamepad);
+            this.controllers[handedness].currentState = deepCopyGamepad(source.gamepad);
 
             const controller = this.controllers[handedness];
             const currState = controller.currentState;
@@ -92,32 +83,50 @@ export class XRGamepadController {
 
                 if (currButton.pressed) {
                     // press
-                    this.toStreamerMessagesProvider.toStreamerHandlers.get(
-                        'XRButtonPressed'
-                    )([handedness, i, prevButton.pressed ? 1 : 0]);
-                } else if (!currButton.pressed && prevButton.pressed) {
-                    this.toStreamerMessagesProvider.toStreamerHandlers.get(
-                        'XRButtonReleased'
-                    )([handedness, i, 0]);
+                    const isRepeat = prevButton.pressed ? 1 : 0;
+                    this.toStreamerMessagesProvider.toStreamerHandlers.get('XRButtonPressed')([
+                        handedness,
+                        i,
+                        isRepeat,
+                        currButton.value
+                    ]);
+                } else if (prevButton.pressed) {
+                    this.toStreamerMessagesProvider.toStreamerHandlers.get('XRButtonReleased')([
+                        handedness,
+                        i,
+                        0
+                    ]);
                 }
 
-                if (currButton.touched && !currButton.pressed) {
-                    // press
-                    this.toStreamerMessagesProvider.toStreamerHandlers.get(
-                        'XRButtonPressed'
-                    )([handedness, 3, prevButton.touched ? 1 : 0]);
-                } else if (!currButton.touched && prevButton.touched) {
-                    this.toStreamerMessagesProvider.toStreamerHandlers.get(
-                        'XRButtonReleased'
-                    )([handedness, 3, 0]);
+                if (currButton.touched) {
+                    // touched
+                    const isRepeat = prevButton.touched ? 1 : 0;
+                    this.toStreamerMessagesProvider.toStreamerHandlers.get('XRButtonTouched')([
+                        handedness,
+                        i,
+                        isRepeat
+                    ]);
+                } else if (prevButton.touched) {
+                    this.toStreamerMessagesProvider.toStreamerHandlers.get('XRButtonTouchReleased')([
+                        handedness,
+                        i,
+                        0
+                    ]);
                 }
             }
 
             // Iterate over gamepad axes
             for (let i = 0; i < currState.axes.length; i++) {
-                this.toStreamerMessagesProvider.toStreamerHandlers.get(
-                    'XRAnalog'
-                )([handedness, i, currState.axes[i]]);
+                const curAxisValue = currState.axes[i];
+                const prevAxisValue = prevState.axes[i];
+                // Only send axis update if there is a change
+                if (curAxisValue != prevAxisValue) {
+                    this.toStreamerMessagesProvider.toStreamerHandlers.get('XRAnalog')([
+                        handedness,
+                        i,
+                        curAxisValue
+                    ]);
+                }
             }
 
             this.controllers[handedness].prevState = currState;

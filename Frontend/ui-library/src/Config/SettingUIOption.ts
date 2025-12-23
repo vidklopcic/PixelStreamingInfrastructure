@@ -1,14 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import type {
-    OptionParametersIds,
-    SettingOption
-} from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import type { OptionParametersIds, SettingOption } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
 import { SettingUIBase } from './SettingUIBase';
 
-export class SettingUIOption<
-    CustomIds extends string = OptionParametersIds
-> extends SettingUIBase {
+export class SettingUIOption<CustomIds extends string = OptionParametersIds> extends SettingUIBase {
     /* A select element that reflects the value of this setting. */
     _selector: HTMLSelectElement; // <select></select>
 
@@ -26,7 +21,7 @@ export class SettingUIOption<
     /**
      * @returns The setting component.
      */
-    public get setting(): SettingOption<CustomIds> {
+    public override get setting(): SettingOption<CustomIds> {
         return this._setting as SettingOption<CustomIds>;
     }
 
@@ -50,7 +45,7 @@ export class SettingUIOption<
 
     /**
      * Set the label text for the setting.
-     * @param label setting label.
+     * @param label - setting label.
      */
     public set label(inLabel: string) {
         this.settingsTextElem.innerText = inLabel;
@@ -66,7 +61,7 @@ export class SettingUIOption<
     /**
      * @returns Return or creates a HTML element that represents this setting in the DOM.
      */
-    public get rootElement(): HTMLElement {
+    public override get rootElement(): HTMLElement {
         if (!this._rootElement) {
             // create root div with "setting" css class
             this._rootElement = document.createElement('div');
@@ -92,6 +87,17 @@ export class SettingUIOption<
                     this.setting.updateURLParams();
                 }
             };
+
+            // Block keypress/up/down propogation from text field typing going to UE
+            this.selector.addEventListener('keypress', (event) => {
+                event.stopPropagation();
+            });
+            this.selector.addEventListener('keyup', (event) => {
+                event.stopPropagation();
+            });
+            this.selector.addEventListener('keydown', (event) => {
+                event.stopPropagation();
+            });
         }
         return this._rootElement;
     }
@@ -116,9 +122,7 @@ export class SettingUIOption<
     public set selected(value: string) {
         // A user may not specify the full possible value so we instead use the closest match.
         // eg ?xxx=H264 would select 'H264 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42001f'
-        const filteredList = this.options.filter(
-            (option: string) => option.indexOf(value) !== -1
-        );
+        const filteredList = this.options.filter((option: string) => option.indexOf(value) !== -1);
         if (filteredList.length) {
             this.selector.value = filteredList[0];
         }

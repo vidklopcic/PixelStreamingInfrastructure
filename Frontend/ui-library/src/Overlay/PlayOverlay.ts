@@ -31,14 +31,10 @@ export class PlayOverlay extends ActionOverlay {
 
     /**
      * Construct a connect overlay with a connection button.
-     * @param parentElem the parent element this overlay will be inserted into.
+     * @param parentElem - the parent element this overlay will be inserted into.
      */
     public constructor(parentElem: HTMLElement) {
-        super(
-            parentElem,
-            PlayOverlay.createRootElement(),
-            PlayOverlay.createContentElement()
-        );
+        super(parentElem, PlayOverlay.createRootElement(), PlayOverlay.createContentElement());
 
         // add the new event listener
         this.rootElement.addEventListener('click', () => {

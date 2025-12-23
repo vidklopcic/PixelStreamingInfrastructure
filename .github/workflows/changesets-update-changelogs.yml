@@ -1,0 +1,38 @@
+name: Update Changelogs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - 'UE*'
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Create Release Pull Request
+        uses: changesets/action@v1.4.10
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          title: '[Bot] NPM Packages Release ${{ github.ref_name }}'
+          commit: 'Updated NPM changelogs'
+

@@ -1,7 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import { Config, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
-import { Application, PixelStreamingApplicationStyle } from '@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.4';
+export * from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
+export * from '@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.6';
+import { Config, PixelStreaming, Logger, LogLevel } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.6';
+import { Application, PixelStreamingApplicationStyle } from '@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.6';
 const PixelStreamingApplicationStyles =
     new PixelStreamingApplicationStyle();
 PixelStreamingApplicationStyles.applyStyleSheet();
@@ -12,21 +14,19 @@ declare global {
 }
 
 document.body.onload = function() {
-	// Example of how to set the logger level
-	// Logger.SetLoggerVerbosity(10);
+    Logger.InitLogging(LogLevel.Warning, true);
 
 	// Create a config object
 	const config = new Config({ useUrlParams: true });
 
-	// Create a Native DOM delegate instance that implements the Delegate interface class
+	// Create the main Pixel Streaming object for interfacing with the web-API of Pixel Streaming
 	const stream = new PixelStreaming(config);
 
 	const application = new Application({
 		stream,
 		onColorModeChanged: (isLightMode) => PixelStreamingApplicationStyles.setColorMode(isLightMode)
 	});
-	// document.getElementById("centrebox").appendChild(application.rootElement);
 	document.body.appendChild(application.rootElement);
-	
+
 	window.pixelStreaming = stream;
 }

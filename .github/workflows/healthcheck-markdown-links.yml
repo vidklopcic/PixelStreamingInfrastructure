@@ -1,0 +1,31 @@
+name: Check health of document links
+
+on: 
+  workflow_dispatch:
+  # schedule:
+  #   - cron: '0 0 * * *'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  linkChecker:
+    if: github.repository == 'EpicGamesExt/PixelStreamingInfrastructure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Link Checker
+        id: lychee
+        uses: lycheeverse/lychee-action@v1.9.0
+        with:
+          args: --github-token ${{ secrets.WORKFLOW_TOKEN }} --exclude 'localhost' --exclude 'github.com/EpicGames/UnrealEngine' --exclude '.png' --exclude '.jpg' --exclude-path 'SFU/mediasoup-sdp-bridge/README.md' './**/*.md'
+
+      - name: Create Issue From File
+        if: env.lychee_exit_code != 0
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: Link Checker Report
+          content-filepath: ./lychee/out.md
+          labels: report, automated issue
