@@ -40,7 +40,7 @@ master (production)
     └── feature/architecture-overhaul (main feature branch)
             │
             ├── feature/architecture-overhaul/update-frontend-ue56
-            │       └── squash merge → "Update lgm_metahuman frontend to UE5.6"
+            │       └── squash merge → "Update lgm_metahuman frontend to UE5.7"
             │
             ├── feature/architecture-overhaul/port-lgm-sessions
             │       └── squash merge → "Port LGM session logic to SignallingServer"
@@ -150,7 +150,7 @@ Ported from: _lgm_backup/cirrus.js.backup
 
 | Order | Task | Branch Name | Status |
 |-------|------|-------------|--------|
-| 1 | Update frontend imports to UE5.6 | `update-frontend-ue56` | Done ✓ |
+| 1 | Update frontend imports to UE5.7 | `update-frontend-ue56` | Done ✓ |
 | 2 | Port LGM session logic | `port-lgm-sessions` | Pending |
 | 3 | Docker infrastructure setup | `docker-infrastructure` | Pending |
 | 4 | Media server implementation | `media-server` | Pending |
@@ -161,21 +161,21 @@ Ported from: _lgm_backup/cirrus.js.backup
 
 ---
 
-## 0. Pixel Streaming 2 Migration (UE5.6)
+## 0. Pixel Streaming 2 Migration (UE5.7)
 
 ### 0.1 Status: MERGED ✓
 
-UE5.6 branch from EpicGamesExt has been merged. Major discovery:
+UE5.7 branch from EpicGamesExt has been merged. Major discovery:
 
 **Epic has already done the TypeScript rewrite!** The new signalling server ("Wilbur") is:
 - Fully TypeScript-based
-- Modular architecture with `@epicgames-ps/lib-pixelstreamingsignalling-ue5.6`
+- Modular architecture with `@epicgames-ps/lib-pixelstreamingsignalling-ue5.7`
 - Express + Commander + OpenAPI for REST API
 - Structured JSON logging
 
 This eliminates our Phase 2 (Signalling Rewrite) - we just need to **extend** the new architecture with LGM session logic.
 
-### 0.2 New Architecture (from UE5.6)
+### 0.2 New Architecture (from UE5.7)
 
 ```
 SignallingWebServer/
@@ -189,7 +189,7 @@ SignallingWebServer/
 │       ├── streamers.ts
 │       └── status.ts
 ├── config.json               # New format config
-└── package.json              # Uses @epicgames-ps/lib-pixelstreamingsignalling-ue5.6
+└── package.json              # Uses @epicgames-ps/lib-pixelstreamingsignalling-ue5.7
 
 Signalling/                   # The actual library
 ├── src/
@@ -234,11 +234,11 @@ let lgmSessions = new Map();     // sessionSecret -> session data
 // - Generic broadcast (chat, etc.)
 ```
 
-### 0.4 Key PS2/UE5.6 Changes
+### 0.4 Key PS2/UE5.7 Changes
 
 #### Settings/Launch Arguments Changes
 
-| Old (UE5.4) | New (PS2/UE5.6) | Notes |
+| Old (UE5.4) | New (PS2/UE5.7) | Notes |
 |-------------|-----------------|-------|
 | `-PixelStreamingURL` | `-PixelStreamingSignallingURL` | Deprecation warning if old used |
 | `-PixelStreamingID` | `-PixelStreamingID` | Now settable via command line |
@@ -249,18 +249,18 @@ let lgmSessions = new Map();     // sessionSecret -> session data
 #### Frontend Library Update
 
 ```json
-// package.json - Now uses UE5.6 libraries
+// package.json - Now uses UE5.7 libraries
 {
   "dependencies": {
-    "@epicgames-ps/lib-pixelstreamingfrontend-ue5.6": "^0.2.5",
-    "@epicgames-ps/lib-pixelstreamingcommon-ue5.6": "^0.1.3"
+    "@epicgames-ps/lib-pixelstreamingfrontend-ue5.7": "^0.2.5",
+    "@epicgames-ps/lib-pixelstreamingcommon-ue5.7": "^0.1.3"
   }
 }
 ```
 
 ### 0.5 Updated Launch Arguments
 
-**New (PS2/UE5.6):**
+**New (PS2/UE5.7):**
 ```bash
 /app/lgm_metahuman_56.sh \
     -Windowed \
@@ -278,13 +278,13 @@ let lgmSessions = new Map();     // sessionSecret -> session data
 ### 0.6 Migration Checklist
 
 **Infrastructure (DONE):**
-- [x] Merge PixelStreamingInfra UE5.6 branch
+- [x] Merge PixelStreamingInfra UE5.7 branch
 - [x] Backup LGM session logic from cirrus.js
 - [x] Update config.json to new format
 
 **Still TODO:**
 - [ ] Port LGM session logic to extend SignallingServer
-- [ ] Update lgm_metahuman frontend to use UE5.6 libraries
+- [ ] Update lgm_metahuman frontend to use UE5.7 libraries
 - [ ] Coordinate UE project upgrade to 5.6
 - [ ] Enable PixelStreaming2 plugin in UE project
 - [ ] Recreate PixelStreaming blueprint nodes as PS2 versions
@@ -1366,13 +1366,13 @@ class LgmWebRTCStore {
 **Status:** Infrastructure merge complete, UE project upgrade pending
 
 **Completed:**
-- [x] Merge PixelStreamingInfra UE5.6 branch
+- [x] Merge PixelStreamingInfra UE5.7 branch
 - [x] Backup LGM session logic from cirrus.js
 - [x] Resolve merge conflicts
 
 **Remaining Tasks:**
 - [ ] Port LGM session logic to extend new SignallingServer (see Phase 2)
-- [ ] Update lgm_metahuman frontend to use UE5.6 libraries
+- [ ] Update lgm_metahuman frontend to use UE5.7 libraries
 - [ ] Coordinate with UE team on project upgrade to 5.6
 - [ ] Enable PixelStreaming2 plugin in UE project
 - [ ] Recreate PixelStreaming blueprint nodes as PS2 versions
@@ -1392,7 +1392,7 @@ class LgmWebRTCStore {
 - [ ] Create pull.sh and build.sh scripts
 - [ ] Setup docker-compose.yml with all services (stubs)
 - [ ] Configure host nginx for HTTPS termination
-- [ ] Containerize UE instances (PS2/UE5.6 builds)
+- [ ] Containerize UE instances (PS2/UE5.7 builds)
 - [ ] Setup internal nginx for static files
 - [ ] Move frontend build to multi-stage Docker
 
@@ -1402,7 +1402,7 @@ class LgmWebRTCStore {
 
 **Goals:** Extend new TypeScript SignallingServer with LGM session logic
 
-**Note:** Epic's UE5.6 already provides TypeScript SignallingServer! We only need to:
+**Note:** Epic's UE5.7 already provides TypeScript SignallingServer! We only need to:
 
 **Tasks:**
 - [ ] Create LGM extension module for SignallingServer
