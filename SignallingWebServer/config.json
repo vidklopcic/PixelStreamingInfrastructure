@@ -9,7 +9,7 @@
 	"http_root": "../Frontend/implementations/lgm_metahuman/dist",
 	"homepage": "index.html",
 	"https": true,
-	"https_port": 443,
+	"https_port": 8443,
 	"ssl_key_path": "certificates/client-key.pem",
 	"ssl_cert_path": "certificates/client-cert.pem",
 	"https_redirect": false,

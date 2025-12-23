@@ -38,7 +38,7 @@ module.exports = merge(common, {
         proxy: [
             {
                 context: ['/ws'],
-                target: 'wss://localhost:443',
+                target: 'wss://localhost:8443',
                 ws: true,
                 secure: false, // Accept self-signed certs
                 changeOrigin: true,
