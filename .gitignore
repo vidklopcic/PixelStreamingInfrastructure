@@ -12,3 +12,5 @@ common/types/*
 .nx/cache
 .nx/workspace-data
 _lgm_backup/
+.DS_Store
+.idea/
