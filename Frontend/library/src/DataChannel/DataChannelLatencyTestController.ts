@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import { Logger } from '../Logger/Logger';
+import { Logger } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.7';
 import {
     DataChannelLatencyTestRecord,
     DataChannelLatencyTestRequest,
@@ -8,7 +8,7 @@ import {
     DataChannelLatencyTestResult,
     DataChannelLatencyTestSeq,
     DataChannelLatencyTestTimestamp
-} from "./DataChannelLatencyTestResults";
+} from './DataChannelLatencyTestResults';
 
 export type DataChannelLatencyTestConfig = {
     // test duration in milliseconds
@@ -19,7 +19,7 @@ export type DataChannelLatencyTestConfig = {
     requestSize: number;
     //response filler size
     responseSize: number;
-}
+};
 
 export type DataChannelLatencyTestSink = (request: DataChannelLatencyTestRequest) => void;
 export type DataChannelLatencyTestResultCallback = (result: DataChannelLatencyTestResult) => void;
@@ -30,7 +30,7 @@ export class DataChannelLatencyTestController {
     callback: DataChannelLatencyTestResultCallback;
     records: Map<DataChannelLatencyTestSeq, DataChannelLatencyTestRecord>;
     seq: DataChannelLatencyTestSeq;
-    interval: NodeJS.Timer;
+    intervalHandle: number = undefined;
 
     constructor(sink: DataChannelLatencyTestSink, callback: DataChannelLatencyTestResultCallback) {
         this.sink = sink;
@@ -45,20 +45,23 @@ export class DataChannelLatencyTestController {
         }
         this.startTime = Date.now();
         this.records.clear();
-        this.interval = setInterval((() => {
-            if (Date.now() - this.startTime >= config.duration) {
-                this.stop();
-            } else {
-                this.sendRequest(config.requestSize, config.responseSize);
-            }
-        }).bind(this), Math.floor(1000/config.rps));
+        this.intervalHandle = window.setInterval(
+            (() => {
+                if (Date.now() - this.startTime >= config.duration) {
+                    this.stop();
+                } else {
+                    this.sendRequest(config.requestSize, config.responseSize);
+                }
+            }).bind(this),
+            Math.floor(1000 / config.rps)
+        );
         return true;
     }
 
     stop() {
-        if (this.interval) {
-            clearInterval(this.interval);
-            this.interval = undefined;
+        if (this.intervalHandle) {
+            window.clearInterval(this.intervalHandle);
+            this.intervalHandle = undefined;
             this.callback(this.produceResult());
         }
     }
@@ -67,31 +70,37 @@ export class DataChannelLatencyTestController {
         const resultRecords = new Map(this.records);
         return {
             records: resultRecords,
-            dataChannelRtt: Math.ceil(Array.from(this.records.values()).reduce((acc, next) => {
-                return acc + (next.playerReceivedTimestamp - next.playerSentTimestamp);
-            }, 0) / this.records.size),
-            playerToStreamerTime: Math.ceil(Array.from(this.records.values()).reduce((acc, next) => {
-                return acc + (next.streamerReceivedTimestamp - next.playerSentTimestamp);
-            }, 0) / this.records.size),
-            streamerToPlayerTime: Math.ceil(Array.from(this.records.values()).reduce((acc, next) => {
-                return acc + (next.playerReceivedTimestamp - next.streamerSentTimestamp);
-            }, 0) / this.records.size),
+            dataChannelRtt: Math.ceil(
+                Array.from(this.records.values()).reduce((acc, next) => {
+                    return acc + (next.playerReceivedTimestamp - next.playerSentTimestamp);
+                }, 0) / this.records.size
+            ),
+            playerToStreamerTime: Math.ceil(
+                Array.from(this.records.values()).reduce((acc, next) => {
+                    return acc + (next.streamerReceivedTimestamp - next.playerSentTimestamp);
+                }, 0) / this.records.size
+            ),
+            streamerToPlayerTime: Math.ceil(
+                Array.from(this.records.values()).reduce((acc, next) => {
+                    return acc + (next.playerReceivedTimestamp - next.streamerSentTimestamp);
+                }, 0) / this.records.size
+            ),
             exportLatencyAsCSV: () => {
-                let csv = "Timestamp;RTT;PlayerToStreamer;StreamerToPlayer;\n";
+                let csv = 'Timestamp;RTT;PlayerToStreamer;StreamerToPlayer;\n';
                 resultRecords.forEach((record) => {
-                    csv += record.playerSentTimestamp + ";";
-                    csv += (record.playerReceivedTimestamp - record.playerSentTimestamp) + ";";
-                    csv += (record.streamerReceivedTimestamp - record.playerSentTimestamp) + ";";
-                    csv += (record.playerReceivedTimestamp - record.streamerSentTimestamp) + ";";
-                    csv += "\n";
-                })
+                    csv += record.playerSentTimestamp + ';';
+                    csv += record.playerReceivedTimestamp - record.playerSentTimestamp + ';';
+                    csv += record.streamerReceivedTimestamp - record.playerSentTimestamp + ';';
+                    csv += record.playerReceivedTimestamp - record.streamerSentTimestamp + ';';
+                    csv += '\n';
+                });
                 return csv;
             }
-        }
+        };
     }
 
     isRunning() {
-        return !!this.interval;
+        return !!this.intervalHandle;
     }
 
     receive(response: DataChannelLatencyTestResponse) {
@@ -99,21 +108,18 @@ export class DataChannelLatencyTestController {
             return;
         }
         if (!response) {
-            Logger.Error(
-                Logger.GetStackTrace(),
-                "Undefined response from server"
-            );
+            Logger.Error('Undefined response from server');
             return;
         }
-        let record = this.records.get(response.Seq);
+        const record = this.records.get(response.Seq);
         if (record) {
             record.update(response);
         }
     }
 
     sendRequest(requestSize: number, responseSize: number) {
-        let request = this.createRequest(requestSize, responseSize);
-        let record = new DataChannelLatencyTestRecord(request);
+        const request = this.createRequest(requestSize, responseSize);
+        const record = new DataChannelLatencyTestRecord(request);
         this.records.set(record.seq, record);
         this.sink(request);
     }
@@ -122,8 +128,7 @@ export class DataChannelLatencyTestController {
         return {
             Seq: this.seq++,
             FillResponseSize: responseSize,
-            Filler: requestSize ? "A".repeat(requestSize) : ""
-        }
+            Filler: requestSize ? 'A'.repeat(requestSize) : ''
+        };
     }
-
 }

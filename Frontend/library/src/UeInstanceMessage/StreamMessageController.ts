@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import { Logger } from '../Logger/Logger';
+import { Logger } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.7';
 
 export class ToStreamerMessage {
     id: number;
@@ -8,14 +8,8 @@ export class ToStreamerMessage {
 }
 
 export class StreamMessageController {
-    toStreamerHandlers: Map<
-        string,
-        (messageData?: Array<number | string> | undefined) => void
-    >;
-    fromStreamerHandlers: Map<
-        string,
-        (messageType: string, messageData?: ArrayBuffer | undefined) => void
-    >;
+    toStreamerHandlers: Map<string, (messageData?: Array<number | string> | undefined) => void>;
+    fromStreamerHandlers: Map<string, (messageType: string, messageData?: ArrayBuffer | undefined) => void>;
     //                        Type      Format
     toStreamerMessages: Map<string, ToStreamerMessage>;
     //                         ID      Type
@@ -85,6 +79,10 @@ export class StreamMessageController {
         });
         this.toStreamerMessages.set('Command', {
             id: 51,
+            structure: ['string']
+        });
+        this.toStreamerMessages.set('TextboxEntry', {
+            id: 52,
             structure: ['string']
         });
         // Keyboard Input Message. Range = 60..69.
@@ -216,10 +214,7 @@ export class StreamMessageController {
                 this.fromStreamerHandlers.set(messageType, messageHandler);
                 break;
             default:
-                Logger.Log(
-                    Logger.GetStackTrace(),
-                    `Unknown message direction ${messageDirection}`
-                );
+                Logger.Info(`Unknown message direction ${messageDirection}`);
         }
     }
 }

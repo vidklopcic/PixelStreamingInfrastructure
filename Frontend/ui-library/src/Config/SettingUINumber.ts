@@ -1,18 +1,13 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import type {
-    NumericParametersIds,
-    SettingNumber
-} from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
-import { Logger } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import type { NumericParametersIds, SettingNumber } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
+import { Logger } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
 import { SettingUIBase } from './SettingUIBase';
 
 /**
  * A number spinner with a text label beside it.
  */
-export class SettingUINumber<
-    CustomIds extends string = NumericParametersIds
-> extends SettingUIBase {
+export class SettingUINumber<CustomIds extends string = NumericParametersIds> extends SettingUIBase {
     _spinner: HTMLInputElement;
 
     /* This element contains a text node that reflects the setting's text label. */
@@ -28,7 +23,7 @@ export class SettingUINumber<
     /**
      * @returns The setting component.
      */
-    public get setting(): SettingNumber<CustomIds> {
+    public override get setting(): SettingNumber<CustomIds> {
         return this._setting as SettingNumber<CustomIds>;
     }
 
@@ -48,11 +43,26 @@ export class SettingUINumber<
         if (!this._spinner) {
             this._spinner = document.createElement('input');
             this._spinner.type = 'number';
-            this._spinner.min = this.setting.min.toString();
-            this._spinner.max = this.setting.max.toString();
+            if (this.setting.min != null) {
+                this._spinner.min = this.setting.min.toString();
+            }
+            if (this.setting.max != null) {
+                this._spinner.max = this.setting.max.toString();
+            }
             this._spinner.value = this.setting.number.toString();
             this._spinner.title = this.setting.description;
             this._spinner.classList.add('form-control');
+
+            // Block keypress/up/down propogation from text field typing going to UE
+            this.spinner.addEventListener('keypress', (event) => {
+                event.stopPropagation();
+            });
+            this.spinner.addEventListener('keyup', (event) => {
+                event.stopPropagation();
+            });
+            this.spinner.addEventListener('keydown', (event) => {
+                event.stopPropagation();
+            });
         }
         return this._spinner;
     }
@@ -60,7 +70,7 @@ export class SettingUINumber<
     /**
      * @returns Return or creates a HTML element that represents this setting in the DOM.
      */
-    public get rootElement(): HTMLElement {
+    public override get rootElement(): HTMLElement {
         if (!this._rootElement) {
             // create root div with "setting" css class
             this._rootElement = document.createElement('div');
@@ -81,7 +91,6 @@ export class SettingUINumber<
 
                 if (Number.isNaN(parsedValue)) {
                     Logger.Warning(
-                        Logger.GetStackTrace(),
                         `Could not parse value change into a valid number - value was ${inputElem.value}, resetting value to ${this.setting.min}`
                     );
                     if (this.setting.number !== this.setting.min) {
@@ -114,7 +123,7 @@ export class SettingUINumber<
 
     /**
      * Set the label text for the setting.
-     * @param label setting label.
+     * @param label - setting label.
      */
     public set label(inLabel: string) {
         this.settingsTextElem.innerText = inLabel;
@@ -125,5 +134,13 @@ export class SettingUINumber<
      */
     public get label() {
         return this.settingsTextElem.innerText;
+    }
+
+    public disable(): void {
+        this.spinner.disabled = true;
+    }
+
+    public enable(): void {
+        this.spinner.disabled = false;
     }
 }

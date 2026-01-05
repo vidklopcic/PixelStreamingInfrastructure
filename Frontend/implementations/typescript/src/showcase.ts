@@ -1,15 +1,12 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import { Config, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
-import { Application, PixelStreamingApplicationStyle } from '@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.4';
+import { Config, PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
+import { Application, PixelStreamingApplicationStyle } from '@epicgames-ps/lib-pixelstreamingfrontend-ui-ue5.7';
 export const PixelStreamingApplicationStyles = new PixelStreamingApplicationStyle();
 PixelStreamingApplicationStyles.applyStyleSheet();
 
 
 document.body.onload = function() {
-	// Example of how to set the logger level
-	// Logger.SetLoggerVerbosity(10);
-
 	// Create a config object
 	const config = new Config({ useUrlParams: true });
 
@@ -25,8 +22,6 @@ document.body.onload = function() {
 
 	// Bind example selection to the onExampleChanged function
 	document.getElementById("exampleSelect").onchange = (event : Event) => { showcase.onExampleChanged(event); };
-
-
 }
 
 class Showcase {
@@ -286,14 +281,14 @@ class Showcase {
 		// stat pixelstreaming
 		const statgpuBtn = document.createElement("button");
 		statgpuBtn.classList.add("btn-flat");
-		statgpuBtn.onclick = () => { this._pixelStreaming.emitConsoleCommand("stat pixelstreaming"); }
+		statgpuBtn.onclick = () => { this._pixelStreaming.emitConsoleCommand("stat pixelstreaming"); this._pixelStreaming.emitConsoleCommand("stat pixelstreaming2"); }
 		statgpuBtn.innerText = "stat pixelstreaming";
 		consoleCmdBtnsContainer.appendChild(statgpuBtn);
 
 		//stat pixelStreamingGraphs
 		const statGraphBtn = document.createElement("button");
 		statGraphBtn.classList.add("btn-flat");
-		statGraphBtn.onclick = () => { this._pixelStreaming.emitConsoleCommand("stat pixelstreaminggraphs"); }
+		statGraphBtn.onclick = () => { this._pixelStreaming.emitConsoleCommand("stat pixelstreaminggraphs"); this._pixelStreaming.emitConsoleCommand("stat pixelstreaming2graphs"); }
 		statGraphBtn.innerText = "stat pixelstreaminggraphs";
 		consoleCmdBtnsContainer.appendChild(statGraphBtn);
 

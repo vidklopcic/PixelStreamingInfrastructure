@@ -12,7 +12,7 @@ import {
 import { LgmChatStore } from './LgmChatStore';
 import { LgmWebRTCStore } from './LgmWebRTCStore';
 import { createContext, useContext } from 'react';
-import { PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import { PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
 import { LGMUeControl } from './LgmUEControl';
 import { toast } from 'react-toastify';
 

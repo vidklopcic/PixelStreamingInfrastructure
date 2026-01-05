@@ -1,14 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import type {
-    FlagsIds,
-    SettingFlag
-} from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.4';
+import type { FlagsIds, SettingFlag } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
 import { SettingUIBase } from './SettingUIBase';
 
-export class SettingUIFlag<
-    CustomIds extends string = FlagsIds
-> extends SettingUIBase {
+export class SettingUIFlag<CustomIds extends string = FlagsIds> extends SettingUIBase {
     /* We toggle this checkbox to reflect the value of our setting's boolean flag. */
     _checkbox: HTMLInputElement; // input type="checkbox"
 
@@ -27,7 +22,7 @@ export class SettingUIFlag<
     /**
      * @returns The setting component.
      */
-    public get setting(): SettingFlag<CustomIds> {
+    public override get setting(): SettingFlag<CustomIds> {
         return this._setting as SettingFlag<CustomIds>;
     }
 
@@ -44,6 +39,17 @@ export class SettingUIFlag<
         if (!this._checkbox) {
             this._checkbox = document.createElement('input');
             this._checkbox.type = 'checkbox';
+
+            // Block keypress/up/down propogation from text field typing going to UE
+            this._checkbox.addEventListener('keypress', (event) => {
+                event.stopPropagation();
+            });
+            this._checkbox.addEventListener('keyup', (event) => {
+                event.stopPropagation();
+            });
+            this._checkbox.addEventListener('keydown', (event) => {
+                event.stopPropagation();
+            });
         }
         return this._checkbox;
     }
@@ -51,7 +57,7 @@ export class SettingUIFlag<
     /**
      * @returns Return or creates a HTML element that represents this setting in the DOM.
      */
-    public get rootElement(): HTMLElement {
+    public override get rootElement(): HTMLElement {
         if (!this._rootElement) {
             // create root div with "setting" css class
             this._rootElement = document.createElement('div');
@@ -88,7 +94,7 @@ export class SettingUIFlag<
 
     /**
      * Update the setting's stored value.
-     * @param inValue The new value for the setting.
+     * @param inValue - The new value for the setting.
      */
     public set flag(inValue: boolean) {
         this.checkbox.checked = inValue;
@@ -103,7 +109,7 @@ export class SettingUIFlag<
 
     /**
      * Set the label text for the setting.
-     * @param label setting label.
+     * @param label - setting label.
      */
     public set label(inLabel: string) {
         this.settingsTextElem.innerText = inLabel;
@@ -114,5 +120,13 @@ export class SettingUIFlag<
      */
     public get label() {
         return this.settingsTextElem.innerText;
+    }
+
+    public disable(): void {
+        this.checkbox.disabled = true;
+    }
+
+    public enable(): void {
+        this.checkbox.disabled = false;
     }
 }

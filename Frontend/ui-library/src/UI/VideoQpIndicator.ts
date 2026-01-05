@@ -1,5 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+import { VideoQPIndicatorConfig } from '../Application/Application';
+
 /**
  * A UI element showing the QP (quantization parameter) of the video stream at the last encoded frame (well, last transmitted QP really).
  * A blockier encoding will have a higher QP and this will make the indicator turn more red.
@@ -7,6 +9,8 @@
  * The QP indicator is represented visually using a WiFi icon.
  */
 export class VideoQpIndicator {
+    config?: VideoQPIndicatorConfig;
+
     videoEncoderAvgQP = -1;
 
     // non html elements
@@ -24,6 +28,10 @@ export class VideoQpIndicator {
     _outer: SVGElement;
     _middle: SVGElement;
     _inner: SVGElement;
+
+    constructor(config?: VideoQPIndicatorConfig) {
+        this.config = config;
+    }
 
     /**
      * Get the root element of the QP indicator.
@@ -64,22 +72,11 @@ export class VideoQpIndicator {
      */
     public get qualityStatus(): SVGElement {
         if (!this._qualityStatus) {
-            this._qualityStatus = document.createElementNS(
-                'http://www.w3.org/2000/svg',
-                'svg'
-            );
-            this._qualityStatus.setAttributeNS(
-                null,
-                'id',
-                'connectionStrength'
-            );
+            this._qualityStatus = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            this._qualityStatus.setAttributeNS(null, 'id', 'connectionStrength');
             this._qualityStatus.setAttributeNS(null, 'x', '0px');
             this._qualityStatus.setAttributeNS(null, 'y', '0px');
-            this._qualityStatus.setAttributeNS(
-                null,
-                'viewBox',
-                '0 0 494.45 494.45'
-            );
+            this._qualityStatus.setAttributeNS(null, 'viewBox', '0 0 494.45 494.45');
 
             // build wifi icon
             this.qualityStatus.appendChild(this.dot);
@@ -95,10 +92,7 @@ export class VideoQpIndicator {
      */
     public get dot(): SVGElement {
         if (!this._dot) {
-            this._dot = document.createElementNS(
-                'http://www.w3.org/2000/svg',
-                'circle'
-            );
+            this._dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             this._dot.setAttributeNS(null, 'id', 'dot');
             this._dot.setAttributeNS(null, 'cx', '247.125');
             this._dot.setAttributeNS(null, 'cy', '398.925');
@@ -112,10 +106,7 @@ export class VideoQpIndicator {
      */
     public get outer(): SVGElement {
         if (!this._outer) {
-            this._outer = document.createElementNS(
-                'http://www.w3.org/2000/svg',
-                'path'
-            );
+            this._outer = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             this._outer.setAttributeNS(null, 'id', 'outer');
             this._outer.setAttributeNS(
                 null,
@@ -131,10 +122,7 @@ export class VideoQpIndicator {
      */
     public get middle(): SVGElement {
         if (!this._middle) {
-            this._middle = document.createElementNS(
-                'http://www.w3.org/2000/svg',
-                'path'
-            );
+            this._middle = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             this._middle.setAttributeNS(null, 'id', 'middle');
             this._middle.setAttributeNS(
                 null,
@@ -150,10 +138,7 @@ export class VideoQpIndicator {
      */
     public get inner(): SVGElement {
         if (!this._inner) {
-            this._inner = document.createElementNS(
-                'http://www.w3.org/2000/svg',
-                'path'
-            );
+            this._inner = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             this._inner.setAttributeNS(null, 'id', 'inner');
             this._inner.setAttributeNS(
                 null,
@@ -173,9 +158,7 @@ export class VideoQpIndicator {
         let opacity = 1;
         const tickID = setInterval(() => {
             opacity -= 0.1;
-            this.qualityText.style.opacity = String(
-                Math.abs((opacity - 0.5) * 2)
-            );
+            this.qualityText.style.opacity = String(Math.abs((opacity - 0.5) * 2));
             if (opacity <= 0.1) {
                 if (--iteration == 0) {
                     clearInterval(tickID);
@@ -217,7 +200,7 @@ export class VideoQpIndicator {
             this.statsText = `<div style="color: ${this.color}">Not connected</div>`;
         } else {
             this.color = 'lime';
-            this.qualityStatus.style.opacity = '1';
+            this.qualityStatus.style.opacity = this.config?.hideWhenGood == true ? '0' : '1';
             this.statsText = `<div style="color: ${this.color}">Clear encoding quality</div>`;
             this.outer.setAttributeNS(null, 'fill', this.color);
             this.middle.setAttributeNS(null, 'fill', this.color);

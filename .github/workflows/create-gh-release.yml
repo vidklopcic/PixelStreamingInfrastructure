@@ -2,66 +2,84 @@ name: Releases
 
 on: 
   push:
-    branches: ['UE5.4']
-    paths: ['RELEASE_VERSION']
+    branches: 
+      - 'UE*'
+    paths: 
+      - 'RELEASE_VERSION'
+
+  workflow_dispatch:
+    inputs:
+      commitsha:
+        description: "Commit SHA for the release (if blank use latest on this branch)"
+
+env:
+  commitsha: "${{ github.event.inputs.commitsha || github.sha }}"
 
 jobs:
-
   build:
+    # only run this on the main repo, not forks
+    if: github.repository == 'EpicGamesExt/PixelStreamingInfrastructure'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./
-
     permissions:
       contents: write
+
     steps:
     - name: "Checkout source code"
       uses: actions/checkout@v3
+      with:
+        ref: "${{ env.commitsha }}"
+
+      # triggers the public library check to make sure all the published items work
+    - uses: convictional/trigger-workflow-and-wait@v1.6.1
+      with:
+        owner: ${{ github.repository_owner }}
+        repo: PixelStreamingInfrastructure
+        ref: ${{ github.ref_name }}
+        github_user: ${{ secrets.WORKFLOW_USER }}
+        github_token: ${{ secrets.WORKFLOW_TOKEN }}
+        workflow_file_name: healthcheck-libs-with-public-deps.yml
+        client_payload: '{ "commitsha": "${{ env.commitsha }}" }'
 
     - name: Read the RELEASE_VERSION file
       id: getversion
       run: echo "version=$(cat RELEASE_VERSION)" >> $GITHUB_OUTPUT
 
+    - name: Get node version
+      id: get_node_version
+      run: echo "node_version=$(cat NODE_VERSION)" >> $GITHUB_OUTPUT
+
     - uses: actions/setup-node@v3
       with:
-        node-version: '16.x'
+        node-version: ${{ steps.get_node_version.outputs.node_version }}
         registry-url: 'https://registry.npmjs.org'
 
-    - name: Install library deps
-      working-directory: ./Frontend/library
-      run: npm ci
+    - name: Install dependencies.
+      run: npm install
 
-    - name: Build frontend lib
+    - name: Build common library
+      working-directory: ./Common
+      run: npm run build
+
+    - name: Build frontend library
       working-directory: ./Frontend/library
       run: npm run build
 
-    - name: Install ui-library deps
-      working-directory: ./Frontend/ui-library
-      run: npm ci
-
-    - name: NPM link frontend lib into ui-library
-      working-directory: ./Frontend/ui-library
-      run: npm link ../library
-
     - name: Build frontend ui-library
       working-directory: ./Frontend/ui-library
-      run: npm run build-all
+      run: npm run build
 
-    - name: Install implementations/typescript deps
+    - name: Build typescript implementation
       working-directory: ./Frontend/implementations/typescript
-      run: npm ci
-
-    - name: NPM link frontend and ui-library into implementations/typescript
-      working-directory: ./Frontend/implementations/typescript
-      run: npm link ../../library ../../ui-library
-
-    - name: Build implementations/typescript
-      working-directory: ./Frontend/implementations/typescript
-      run: npm run build-all
+      run: npm run build
 
     - name: Move all content into output directory for archiving
-      run: items=(*) && mkdir PixelStreamingInfrastructure-${{ github.ref_name }}-${{ steps.getversion.outputs.version }} && mv ${items[*]} PixelStreamingInfrastructure-${{ github.ref_name }}-${{ steps.getversion.outputs.version }}/
+      run: |
+        items=(*)
+        mkdir PixelStreamingInfrastructure-${{ github.ref_name }}-${{ steps.getversion.outputs.version }}
+        mv ${items[*]} PixelStreamingInfrastructure-${{ github.ref_name }}-${{ steps.getversion.outputs.version }}/
 
     - name: Archive Release tar.gz
       uses: thedoctor0/zip-release@0.7.1
@@ -70,7 +88,33 @@ jobs:
         path: 'PixelStreamingInfrastructure-${{ github.ref_name }}-${{ steps.getversion.outputs.version }}'
         type: 'tar'
         filename: '${{ github.ref_name }}-${{ steps.getversion.outputs.version }}.tar.gz'
-        exclusions: '.git .github output Frontend/Docs Frontend/library/dist Frontend/library/types Frontend/library/node_modules Frontend/ui-library/dist Frontend/ui-library/types Frontend/ui-library/node_modules Frontend/implementations/typescript/node_modules'
+        exclusions: >-
+          .git
+          .github
+          output
+          node_modules
+          Common/dist
+          Common/docs
+          Common/node_modules
+          Docs
+          Extras
+          Frontend/Docs
+          Frontend/implementations/typescript/node_modules
+          Frontend/implementations/typescript/dist
+          Frontend/library/dist
+          Frontend/library/node_modules
+          Frontend/library/types
+          Frontend/ui-library/dist
+          Frontend/ui-library/node_modules
+          Frontend/ui-library/types
+          SFU/Docs
+          SFU/node_modules
+          Signalling/dist
+          Signalling/docs
+          Signalling/node_modules
+          SignallingWebServer/dist
+          SignallingWebServer/node_modules
+          Extras/SS_Test
 
     - name: Archive Release .zip
       uses: thedoctor0/zip-release@0.7.1
@@ -79,7 +123,32 @@ jobs:
         path: 'PixelStreamingInfrastructure-${{ github.ref_name }}-${{ steps.getversion.outputs.version }}'
         type: 'zip'
         filename: '${{ github.ref_name }}-${{ steps.getversion.outputs.version }}.zip'
-        exclusions: '*.git* /*node_modules/* .editorconfig /*types/* /*dist/* /*output/* /*Docs/*'
+        exclusions: >-
+          */.git/*
+          */.github/*
+          */node_modules/*
+          /*/node_modules/*
+          */output/*
+          /*/Common/dist/*
+          /*/Common/docs/*
+          /*/Common/node_modules/*
+          /*/Docs/*
+          /*/Extras/*
+          /*/Frontend/Docs/*
+          /*/Frontend/node_modules/*
+          /*/Frontend/library/dist/*
+          /*/Frontend/library/types/*
+          /*/Frontend/ui-library/dist/*
+          /*/Frontend/ui-library/types/*
+          /*/Frontend/ui-library/node_modules/*
+          /*/Frontend/implementations/typescript/node_modules
+          /*/Frontend/implementations/typescript/dist
+          /*/SFU/Docs/*
+          /*/Signalling/dist/*
+          /*/Signalling/docs/*
+          /*/Signalling/node_modules/*
+          /*/SignallingWebServer/dist/*
+          /*/SignallingWebServer/node_modules/*
 
     - name: "Make the release"
       uses: ncipollo/release-action@v1
@@ -87,3 +156,4 @@ jobs:
         tag: "${{ github.ref_name }}-${{ steps.getversion.outputs.version }}"
         artifacts: "${{ github.ref_name }}-${{ steps.getversion.outputs.version }}.zip,${{ github.ref_name }}-${{ steps.getversion.outputs.version }}.tar.gz"
         generateReleaseNotes: true
+        commit: "${{ env.commitsha }}"

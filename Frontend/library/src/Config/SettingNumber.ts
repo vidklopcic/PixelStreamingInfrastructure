@@ -6,26 +6,25 @@ import { SettingBase } from './SettingBase';
 /**
  * A number setting object with a text label. Min and max limit the range of allowed values.
  */
-export class SettingNumber<
-    CustomIds extends string = NumericParametersIds
-> extends SettingBase {
-    _min: number;
-    _max: number;
+export class SettingNumber<CustomIds extends string = NumericParametersIds> extends SettingBase {
+    _min: number | null;
+    _max: number | null;
 
-    id: NumericParametersIds | CustomIds;
-    onChangeEmit: (changedValue: number) => void;
-    useUrlParams: boolean;
+    override id: NumericParametersIds | CustomIds;
+    override onChangeEmit: (changedValue: number) => void;
 
     constructor(
         id: NumericParametersIds | CustomIds,
         label: string,
         description: string,
-        min: number,
-        max: number,
+        min: number | null,
+        max: number | null,
         defaultNumber: number,
         useUrlParams: boolean,
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		defaultOnChangeListener: (changedValue: unknown, setting: SettingBase) => void = () => { /* Do nothing, to be overridden. */ }
+
+        defaultOnChangeListener: (changedValue: unknown, setting: SettingBase) => void = () => {
+            /* Do nothing, to be overridden. */
+        }
     ) {
         super(id, label, description, defaultNumber, defaultOnChangeListener);
 
@@ -33,34 +32,17 @@ export class SettingNumber<
         this._max = max;
 
         // attempt to read the number from the url params
-        const urlParams = new URLSearchParams(window.location.search);
-        if (!useUrlParams || !urlParams.has(this.id)) {
+        if (!useUrlParams || !this.hasURLParam(this.id)) {
             this.number = defaultNumber;
         } else {
-            const parsedValue = Number.parseFloat(urlParams.get(this.id));
-            this.number = Number.isNaN(parsedValue)
-                ? defaultNumber
-                : parsedValue;
+            const parsedValue = Number.parseFloat(this.getURLParam(this.id));
+            this.number = Number.isNaN(parsedValue) ? defaultNumber : parsedValue;
         }
         this.useUrlParams = useUrlParams;
     }
 
-    /**
-     * Persist the setting value in URL.
-     */
-    public updateURLParams(): void {
-        if (this.useUrlParams) {
-            // set url params like ?id=number
-            const urlParams = new URLSearchParams(window.location.search);
-            urlParams.set(this.id, this.number.toString());
-            window.history.replaceState(
-                {},
-                '',
-                urlParams.toString() !== ''
-                    ? `${location.pathname}?${urlParams}`
-                    : `${location.pathname}`
-            );
-        }
+    protected override getValueAsString(): string {
+        return this.number.toString();
     }
 
     /**
@@ -83,7 +65,15 @@ export class SettingNumber<
      * @returns The clamped number.
      */
     public clamp(inNumber: number): number {
-        return Math.max(Math.min(this._max, inNumber), this._min);
+        if (this._min == null && this._max == null) {
+            return inNumber;
+        } else if (this._min == null) {
+            return Math.min(this._max, inNumber);
+        } else if (this._max == null) {
+            return Math.max(this._min, inNumber);
+        } else {
+            return Math.max(Math.min(this._max, inNumber), this._min);
+        }
     }
 
     /**

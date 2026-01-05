@@ -1,48 +1,50 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-import {
-    InboundRTPStats,
-    InboundVideoStats,
-    InboundAudioStats
-} from './InboundRTPStats';
+import { InboundRTPStats, InboundVideoStats, InboundAudioStats } from './InboundRTPStats';
 import { InboundTrackStats } from './InboundTrackStats';
 import { DataChannelStats } from './DataChannelStats';
 import { CandidateStat } from './CandidateStat';
 import { CandidatePairStats } from './CandidatePairStats';
-import { OutBoundRTPStats, OutBoundVideoStats } from './OutBoundRTPStats';
+import { RemoteOutboundRTPStats, OutboundRTPStats } from './OutBoundRTPStats';
 import { SessionStats } from './SessionStats';
 import { StreamStats } from './StreamStats';
 import { CodecStats } from './CodecStats';
-import { Logger } from '../Logger/Logger';
+import { Logger } from '@epicgames-ps/lib-pixelstreamingcommon-ue5.7';
 
 /**
  * The Aggregated Stats that is generated from the RTC Stats Report
  */
 
-type RTCStatsTypePS = RTCStatsType | 'stream' | 'media-playout';
 export class AggregatedStats {
     inboundVideoStats: InboundVideoStats;
     inboundAudioStats: InboundAudioStats;
-    lastVideoStats: InboundVideoStats;
-    lastAudioStats: InboundAudioStats;
     candidatePairs: Array<CandidatePairStats>;
-    DataChannelStats: DataChannelStats;
+    datachannelStats: DataChannelStats;
     localCandidates: Array<CandidateStat>;
     remoteCandidates: Array<CandidateStat>;
-    outBoundVideoStats: OutBoundVideoStats;
+    outboundVideoStats: OutboundRTPStats;
+    outboundAudioStats: OutboundRTPStats;
+    remoteOutboundVideoStats: RemoteOutboundRTPStats;
+    remoteOutboundAudioStats: RemoteOutboundRTPStats;
     sessionStats: SessionStats;
     streamStats: StreamStats;
-    codecs: Map<string, string>;
+    codecs: Map<string, CodecStats>;
     transportStats: RTCTransportStats;
 
     constructor() {
         this.inboundVideoStats = new InboundVideoStats();
         this.inboundAudioStats = new InboundAudioStats();
-        this.DataChannelStats = new DataChannelStats();
-        this.outBoundVideoStats = new OutBoundVideoStats();
+        this.candidatePairs = new Array<CandidatePairStats>();
+        this.datachannelStats = new DataChannelStats();
+        this.localCandidates = new Array<CandidateStat>();
+        this.remoteCandidates = new Array<CandidateStat>();
+        this.outboundVideoStats = new OutboundRTPStats();
+        this.outboundAudioStats = new OutboundRTPStats();
+        this.remoteOutboundAudioStats = new RemoteOutboundRTPStats();
+        this.remoteOutboundVideoStats = new RemoteOutboundRTPStats();
         this.sessionStats = new SessionStats();
         this.streamStats = new StreamStats();
-        this.codecs = new Map<string, string>();
+        this.codecs = new Map<string, CodecStats>();
     }
 
     /**
@@ -55,7 +57,7 @@ export class AggregatedStats {
         this.candidatePairs = new Array<CandidatePairStats>();
 
         rtcStatsReport.forEach((stat) => {
-            const type: RTCStatsTypePS = stat.type;
+            const type: string = stat.type;
 
             switch (type) {
                 case 'candidate-pair':
@@ -70,7 +72,7 @@ export class AggregatedStats {
                     this.handleDataChannel(stat);
                     break;
                 case 'inbound-rtp':
-                    this.handleInBoundRTP(stat);
+                    this.handleInboundRTP(stat);
                     break;
                 case 'local-candidate':
                     this.handleLocalCandidate(stat);
@@ -80,6 +82,7 @@ export class AggregatedStats {
                 case 'media-playout':
                     break;
                 case 'outbound-rtp':
+                    this.handleLocalOutbound(stat);
                     break;
                 case 'peer-connection':
                     break;
@@ -89,7 +92,7 @@ export class AggregatedStats {
                 case 'remote-inbound-rtp':
                     break;
                 case 'remote-outbound-rtp':
-                    this.handleRemoteOutBound(stat);
+                    this.handleRemoteOutbound(stat);
                     break;
                 case 'track':
                     this.handleTrack(stat);
@@ -101,8 +104,8 @@ export class AggregatedStats {
                     this.handleStream(stat);
                     break;
                 default:
-                    Logger.Error(Logger.GetStackTrace(), 'unhandled Stat Type');
-                    Logger.Log(Logger.GetStackTrace(), stat);
+                    Logger.Error('unhandled Stat Type');
+                    Logger.Info(stat);
                     break;
             }
         });
@@ -122,10 +125,8 @@ export class AggregatedStats {
      * @param stat - the stats coming in from ice candidates
      */
     handleCandidatePair(stat: CandidatePairStats) {
-
         // Add the candidate pair to the candidate pair array
-        this.candidatePairs.push(stat)
-
+        this.candidatePairs.push(stat);
     }
 
     /**
@@ -133,17 +134,16 @@ export class AggregatedStats {
      * @param stat - the stats coming in from the data channel
      */
     handleDataChannel(stat: DataChannelStats) {
-        this.DataChannelStats.bytesReceived = stat.bytesReceived;
-        this.DataChannelStats.bytesSent = stat.bytesSent;
-        this.DataChannelStats.dataChannelIdentifier =
-            stat.dataChannelIdentifier;
-        this.DataChannelStats.id = stat.id;
-        this.DataChannelStats.label = stat.label;
-        this.DataChannelStats.messagesReceived = stat.messagesReceived;
-        this.DataChannelStats.messagesSent = stat.messagesSent;
-        this.DataChannelStats.protocol = stat.protocol;
-        this.DataChannelStats.state = stat.state;
-        this.DataChannelStats.timestamp = stat.timestamp;
+        this.datachannelStats.bytesReceived = stat.bytesReceived;
+        this.datachannelStats.bytesSent = stat.bytesSent;
+        this.datachannelStats.dataChannelIdentifier = stat.dataChannelIdentifier;
+        this.datachannelStats.id = stat.id;
+        this.datachannelStats.label = stat.label;
+        this.datachannelStats.messagesReceived = stat.messagesReceived;
+        this.datachannelStats.messagesSent = stat.messagesSent;
+        this.datachannelStats.protocol = stat.protocol;
+        this.datachannelStats.state = stat.state;
+        this.datachannelStats.timestamp = stat.timestamp;
     }
 
     /**
@@ -168,88 +168,120 @@ export class AggregatedStats {
      * @param stat - ice candidate stats
      */
     handleRemoteCandidate(stat: CandidateStat) {
-        const RemoteCandidate = new CandidateStat();
-        RemoteCandidate.label = 'remote-candidate';
-        RemoteCandidate.address = stat.address;
-        RemoteCandidate.port = stat.port;
-        RemoteCandidate.protocol = stat.protocol;
-        RemoteCandidate.id = stat.id;
-        RemoteCandidate.candidateType = stat.candidateType;
-        RemoteCandidate.relayProtocol = stat.relayProtocol;
-        RemoteCandidate.transportId = stat.transportId
-        this.remoteCandidates.push(RemoteCandidate);
+        const remoteCandidate = new CandidateStat();
+        remoteCandidate.label = 'remote-candidate';
+        remoteCandidate.address = stat.address;
+        remoteCandidate.port = stat.port;
+        remoteCandidate.protocol = stat.protocol;
+        remoteCandidate.id = stat.id;
+        remoteCandidate.candidateType = stat.candidateType;
+        remoteCandidate.relayProtocol = stat.relayProtocol;
+        remoteCandidate.transportId = stat.transportId;
+        this.remoteCandidates.push(remoteCandidate);
     }
 
     /**
      * Process the Inbound RTP Audio and Video Data
      * @param stat - inbound rtp stats
      */
-    handleInBoundRTP(stat: InboundRTPStats) {
+    handleInboundRTP(stat: InboundRTPStats) {
         switch (stat.kind) {
             case 'video':
-                // Need to convert to unknown first to remove an error around
-                // InboundVideoStats having the bitrate member which isn't found on
-                // the InboundRTPStats
-                this.inboundVideoStats = stat as unknown as InboundVideoStats;
-
-                if (this.lastVideoStats != undefined) {
+                // Calculate bitrate between stat updates
+                if (
+                    stat.bytesReceived > this.inboundVideoStats.bytesReceived &&
+                    stat.timestamp > this.inboundVideoStats.timestamp
+                ) {
                     this.inboundVideoStats.bitrate =
-                        (8 *
-                            (this.inboundVideoStats.bytesReceived -
-                                this.lastVideoStats.bytesReceived)) /
-                        (this.inboundVideoStats.timestamp -
-                            this.lastVideoStats.timestamp);
-                    this.inboundVideoStats.bitrate = Math.floor(
-                        this.inboundVideoStats.bitrate
-                    );
+                        (8 * (stat.bytesReceived - this.inboundVideoStats.bytesReceived)) /
+                        (stat.timestamp - this.inboundVideoStats.timestamp);
+                    this.inboundVideoStats.bitrate = Math.floor(this.inboundVideoStats.bitrate);
                 }
-                this.lastVideoStats = { ...this.inboundVideoStats };
+
+                // Copy members from stat into `this.inboundVideoStats`
+                for (const key in stat) {
+                    (this.inboundVideoStats as any)[key] = (stat as any)[key];
+                }
                 break;
             case 'audio':
-                // Need to convert to unknown first to remove an error around
-                // InboundAudioStats having the bitrate member which isn't found on
-                // the InboundRTPStats
-                this.inboundAudioStats = stat as unknown as InboundAudioStats;
-
-                if (this.lastAudioStats != undefined) {
+                if (
+                    stat.bytesReceived > this.inboundAudioStats.bytesReceived &&
+                    stat.timestamp > this.inboundAudioStats.timestamp
+                ) {
                     this.inboundAudioStats.bitrate =
-                        (8 *
-                            (this.inboundAudioStats.bytesReceived -
-                                this.lastAudioStats.bytesReceived)) /
-                        (this.inboundAudioStats.timestamp -
-                            this.lastAudioStats.timestamp);
-                    this.inboundAudioStats.bitrate = Math.floor(
-                        this.inboundAudioStats.bitrate
-                    );
+                        (8 * (stat.bytesReceived - this.inboundAudioStats.bytesReceived)) /
+                        (stat.timestamp - this.inboundAudioStats.timestamp);
+                    this.inboundAudioStats.bitrate = Math.floor(this.inboundAudioStats.bitrate);
                 }
-                this.lastAudioStats = { ...this.inboundAudioStats };
+                // Copy members from stat into `this.inboundAudioStats`
+                for (const key in stat) {
+                    (this.inboundAudioStats as any)[key] = (stat as any)[key];
+                }
                 break;
             default:
-                Logger.Log(Logger.GetStackTrace(), 'Kind is not handled');
+                Logger.Error(`Kind should be audio or video, we got ${stat.kind} - that's unsupported.`);
                 break;
         }
     }
 
     /**
-     * Process the outbound RTP Audio and Video Data
-     * @param stat - remote outbound stats
+     * Process the "local" outbound RTP Audio and Video stats.
+     * @param stat - local outbound rtp stats
      */
-    handleRemoteOutBound(stat: OutBoundRTPStats) {
-        switch (stat.kind) {
-            case 'video':
-                this.outBoundVideoStats.bytesSent = stat.bytesSent;
-                this.outBoundVideoStats.id = stat.id;
-                this.outBoundVideoStats.localId = stat.localId;
-                this.outBoundVideoStats.packetsSent = stat.packetsSent;
-                this.outBoundVideoStats.remoteTimestamp = stat.remoteTimestamp;
-                this.outBoundVideoStats.timestamp = stat.timestamp;
-                break;
-            case 'audio':
-                break;
+    handleLocalOutbound(stat: OutboundRTPStats) {
+        const localOutboundStats: OutboundRTPStats =
+            stat.kind === 'audio' ? this.outboundAudioStats : this.outboundVideoStats;
+        localOutboundStats.active = stat.active;
+        localOutboundStats.codecId = stat.codecId;
+        localOutboundStats.bytesSent = stat.bytesSent;
+        localOutboundStats.frameHeight = stat.frameHeight;
+        localOutboundStats.frameWidth = stat.frameWidth;
+        localOutboundStats.framesEncoded = stat.framesEncoded;
+        localOutboundStats.framesPerSecond = stat.framesPerSecond;
+        localOutboundStats.headerBytesSent = stat.headerBytesSent;
+        localOutboundStats.id = stat.id;
+        localOutboundStats.keyFramesEncoded = stat.keyFramesEncoded;
+        localOutboundStats.kind = stat.kind;
+        localOutboundStats.mediaSourceId = stat.mediaSourceId;
+        localOutboundStats.mid = stat.mid;
+        localOutboundStats.nackCount = stat.nackCount;
+        localOutboundStats.packetsSent = stat.packetsSent;
+        localOutboundStats.qpSum = stat.qpSum;
+        localOutboundStats.qualityLimitationDurations = stat.qualityLimitationDurations;
+        localOutboundStats.qualityLimitationReason = stat.qualityLimitationReason;
+        localOutboundStats.remoteId = stat.remoteId;
+        localOutboundStats.retransmittedBytesSent = stat.retransmittedBytesSent;
+        localOutboundStats.rid = stat.rid;
+        localOutboundStats.scalabilityMode = stat.scalabilityMode;
+        localOutboundStats.ssrc = stat.ssrc;
+        localOutboundStats.targetBitrate = stat.targetBitrate;
+        localOutboundStats.timestamp = stat.timestamp;
+        localOutboundStats.totalEncodeTime = stat.totalEncodeTime;
+        localOutboundStats.totalEncodeBytesTarget = stat.totalEncodeBytesTarget;
+        localOutboundStats.totalPacketSendDelay = stat.totalPacketSendDelay;
+        localOutboundStats.transportId = stat.transportId;
+    }
 
-            default:
-                break;
-        }
+    /**
+     * Process the "remote" outbound RTP Audio and Video stats.
+     * @param stat - remote outbound rtp stats
+     */
+    handleRemoteOutbound(stat: RemoteOutboundRTPStats) {
+        const remoteOutboundStats: RemoteOutboundRTPStats =
+            stat.kind === 'audio' ? this.remoteOutboundAudioStats : this.remoteOutboundVideoStats;
+        remoteOutboundStats.bytesSent = stat.bytesSent;
+        remoteOutboundStats.codecId = stat.codecId;
+        remoteOutboundStats.id = stat.id;
+        remoteOutboundStats.kind = stat.kind;
+        remoteOutboundStats.localId = stat.localId;
+        remoteOutboundStats.packetsSent = stat.packetsSent;
+        remoteOutboundStats.remoteTimestamp = stat.remoteTimestamp;
+        remoteOutboundStats.reportsSent = stat.reportsSent;
+        remoteOutboundStats.roundTripTimeMeasurements = stat.roundTripTimeMeasurements;
+        remoteOutboundStats.ssrc = stat.ssrc;
+        remoteOutboundStats.timestamp = stat.timestamp;
+        remoteOutboundStats.totalRoundTripTime = stat.totalRoundTripTime;
+        remoteOutboundStats.transportId = stat.transportId;
     }
 
     /**
@@ -258,10 +290,7 @@ export class AggregatedStats {
      */
     handleTrack(stat: InboundTrackStats) {
         // we only want to extract stats from the video track
-        if (
-            stat.type === 'track' &&
-            (stat.trackIdentifier === 'video_label' || stat.kind === 'video')
-        ) {
+        if (stat.type === 'track' && (stat.trackIdentifier === 'video_label' || stat.kind === 'video')) {
             this.inboundVideoStats.framesDropped = stat.framesDropped;
             this.inboundVideoStats.framesReceived = stat.framesReceived;
             this.inboundVideoStats.frameHeight = stat.frameHeight;
@@ -269,19 +298,13 @@ export class AggregatedStats {
         }
     }
 
-    handleTransport(stat: RTCTransportStats){
+    handleTransport(stat: RTCTransportStats) {
         this.transportStats = stat;
     }
 
-
     handleCodec(stat: CodecStats) {
         const codecId = stat.id;
-        const codecType = `${stat.mimeType
-            .replace('video/', '')
-            .replace('audio/', '')}${
-            stat.sdpFmtpLine ? ` ${stat.sdpFmtpLine}` : ''
-        }`;
-        this.codecs.set(codecId, codecType);
+        this.codecs.set(codecId, stat);
     }
 
     handleSessionStatistics(
@@ -290,17 +313,10 @@ export class AggregatedStats {
         videoEncoderAvgQP: number
     ) {
         const deltaTime = Date.now() - videoStartTime;
-        this.sessionStats.runTime = new Date(deltaTime)
-            .toISOString()
-            .substr(11, 8)
-            .toString();
+        this.sessionStats.runTime = new Date(deltaTime).toISOString().substr(11, 8).toString();
 
         const controlsStreamInput =
-            inputController === null
-                ? 'Not sent yet'
-                : inputController
-                ? 'true'
-                : 'false';
+            inputController === null ? 'Not sent yet' : inputController ? 'true' : 'false';
         this.sessionStats.controlsStreamInput = controlsStreamInput;
 
         this.sessionStats.videoEncoderAvgQP = videoEncoderAvgQP;
@@ -319,14 +335,31 @@ export class AggregatedStats {
      * @returns The candidate pair that is currently receiving data
      */
     public getActiveCandidatePair(): CandidatePairStats | null {
-        
-        // Check if the RTCTransport stat is not undefined
-        if (this.transportStats){
-            // Return the candidate pair that matches the transport candidate pair id
-            return this.candidatePairs.find((candidatePair) => candidatePair.id === this.transportStats.selectedCandidatePairId, null);
+        if (this.candidatePairs === undefined) {
+            return null;
         }
-        
-        // Fall back to the selected candidate pair
-        return this.candidatePairs.find((candidatePair) => candidatePair.selected, null);
-    }  
+
+        // Check if the RTCTransport stat is not undefined
+        if (this.transportStats) {
+            // Return the candidate pair that matches the transport candidate pair id
+            const selectedPair: CandidatePairStats | undefined = this.candidatePairs.find(
+                (candidatePair) => candidatePair.id === this.transportStats.selectedCandidatePairId
+            );
+            if (selectedPair === undefined) {
+                return null;
+            } else {
+                return selectedPair;
+            }
+        }
+
+        // Fall back to the `.selected` member of the candidate pair
+        const selectedPair: CandidatePairStats | undefined = this.candidatePairs.find(
+            (candidatePair) => candidatePair.selected
+        );
+        if (selectedPair === undefined) {
+            return null;
+        } else {
+            return selectedPair;
+        }
+    }
 }
