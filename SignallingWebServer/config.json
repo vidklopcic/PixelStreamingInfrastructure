@@ -23,6 +23,6 @@
 	"lgm": true,
 	"streamer_ports": [8888, 8890, 8891, 8892],
 	"live_link_ip": "localhost",
-	"live_link_port": "11111",
+	"live_link_ports": ["11111", "11112", "11113", "11114"],
 	"session_timeout": "30000"
 }

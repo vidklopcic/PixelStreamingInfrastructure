@@ -10,8 +10,8 @@ export interface LgmConfig {
     streamerPorts: number[];
     /** LiveLink IP address for UE communication */
     liveLinkIp: string;
-    /** LiveLink port for UE communication */
-    liveLinkPort: string;
+    /** LiveLink ports for UE communication (one per streamer, mapped to streamerPorts) */
+    liveLinkPorts: string[];
     /** Session inactivity timeout in milliseconds */
     sessionTimeoutMs: number;
 }

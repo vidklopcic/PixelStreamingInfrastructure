@@ -16,7 +16,7 @@ export class LgmSessionManager {
     constructor(config: LgmConfig) {
         this.config = config;
         this.startCleanupTimer();
-        Logger.info(`LGM: SessionManager initialized with ${config.streamerPorts.length} streamer ports`);
+        Logger.info(`LGM: SessionManager initialized with ${config.streamerPorts.length} streamer ports, ${config.liveLinkPorts.length} LiveLink ports`);
     }
 
     /**
@@ -125,16 +125,19 @@ export class LgmSessionManager {
             return null;
         }
 
+        // Get LiveLink port for this streamer index (fallback to first port if not enough ports configured)
+        const liveLinkPort = this.config.liveLinkPorts[streamerIndex] || this.config.liveLinkPorts[0];
+
         const session = new LgmSession(
             data.sessionSecret,
             streamerIndex,
             this.config.liveLinkIp,
-            this.config.liveLinkPort,
+            liveLinkPort,
             data.contextText
         );
 
         this.sessions.set(data.sessionSecret, session);
-        Logger.info(`LGM: Created session ${data.sessionSecret} with streamerIndex ${streamerIndex}`);
+        Logger.info(`LGM: Created session ${data.sessionSecret} with streamerIndex ${streamerIndex}, liveLinkPort ${liveLinkPort}`);
 
         return session;
     }

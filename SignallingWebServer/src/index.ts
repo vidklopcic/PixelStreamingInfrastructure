@@ -193,10 +193,13 @@ program
         'LiveLink IP address for UE communication.',
         config_file.live_link_ip || process.env.LIVE_LINK_IP || 'localhost'
     )
-    .option(
-        '--live_link_port <port>',
-        'LiveLink port for UE communication.',
-        config_file.live_link_port || process.env.LIVE_LINK_PORT || '11111'
+    .addOption(
+        new Option(
+            '--live_link_ports <ports>',
+            'Comma-separated list of LiveLink ports for UE communication (one per streamer). If fewer ports than streamers, first port is used as fallback.'
+        )
+            .argParser((val: string) => val.split(',').map(String))
+            .default(config_file.live_link_ports || (config_file.live_link_port ? [config_file.live_link_port] : ['11111']))
     )
     .option(
         '--session_timeout <ms>',
@@ -301,11 +304,11 @@ if (options.lgm) {
     const lgmConfig: LgmConfig = {
         streamerPorts: options.streamer_ports,
         liveLinkIp: options.live_link_ip,
-        liveLinkPort: options.live_link_port,
+        liveLinkPorts: options.live_link_ports,
         sessionTimeoutMs: parseInt(options.session_timeout, 10)
     };
     const lgmExtension = createLgmExtension(signallingServer, lgmConfig);
-    Logger.info('LGM extension enabled');
+    Logger.info(`LGM extension enabled with LiveLink ports: ${options.live_link_ports.join(', ')}`);
 
     // Handle graceful shutdown - use once to prevent multiple calls
     let isShuttingDown = false;
