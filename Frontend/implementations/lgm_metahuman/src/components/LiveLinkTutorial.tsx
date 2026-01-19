@@ -107,18 +107,17 @@ export const LiveLinkTutorial = ({ onClose }: { onClose: () => any }) => {
                     </Box>
                 </Box>
 
-                {store.session.liveLinkPort !== '11111' &&
-                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
-                        <CircledNumber number={number++} />
-                        <Box>
-                            <Typography variant="body1" sx={{ color: 'white' }}>
-                                Under Port field, enter <b>{store.session?.liveLinkPort ?? '[waiting for port info]'}</b>
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#aaa' }}>
-                                This is the port number to stream your facial expressions to.
-                            </Typography>
-                        </Box>
-                    </Box>}
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                    <CircledNumber number={number++} />
+                    <Box>
+                        <Typography variant="body1" sx={{ color: 'white' }}>
+                            Under Port field, enter <b>{store.session?.liveLinkPort ?? '[waiting for port info]'}</b>
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#aaa' }}>
+                            This is the port number to stream your facial expressions to.
+                        </Typography>
+                    </Box>
+                </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
                     <CircledNumber number={number++} />
