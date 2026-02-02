@@ -3,6 +3,7 @@
 import WebSocket from 'ws';
 import { LgmSession } from './LgmSession';
 import { LgmConfig, LgmSessionData, LgmMessage, LgmCreateSessionData, LgmJoinSessionData, LgmMessageType } from './LgmTypes';
+import { LgmMediaClient } from './LgmMediaClient';
 import { Logger } from '@epicgames-ps/lib-pixelstreamingsignalling-ue5.7';
 
 /**
@@ -12,11 +13,33 @@ export class LgmSessionManager {
     private sessions: Map<string, LgmSession> = new Map();
     private config: LgmConfig;
     private cleanupInterval?: NodeJS.Timeout;
+    private mediaClient?: LgmMediaClient;
+
+    // Cache rtpCapabilities per session for sending to clients on join
+    private sessionRtpCapabilities: Map<string, any> = new Map();
 
     constructor(config: LgmConfig) {
         this.config = config;
+        if (config.mediaServerUrl) {
+            this.mediaClient = new LgmMediaClient(config.mediaServerUrl);
+            Logger.info(`LGM: Media-server integration enabled at ${config.mediaServerUrl}`);
+        }
         this.startCleanupTimer();
         Logger.info(`LGM: SessionManager initialized with ${config.streamerPorts.length} streamer ports, ${config.liveLinkPorts.length} LiveLink ports`);
+    }
+
+    /**
+     * Get the media client for direct use by LgmExtension
+     */
+    getMediaClient(): LgmMediaClient | undefined {
+        return this.mediaClient;
+    }
+
+    /**
+     * Get cached RTP capabilities for a session
+     */
+    getSessionRtpCapabilities(sessionSecret: string): any | undefined {
+        return this.sessionRtpCapabilities.get(sessionSecret);
     }
 
     /**
@@ -139,6 +162,18 @@ export class LgmSessionManager {
         this.sessions.set(data.sessionSecret, session);
         Logger.info(`LGM: Created session ${data.sessionSecret} with streamerIndex ${streamerIndex}, liveLinkPort ${liveLinkPort}`);
 
+        // Create media session on media-server (async, non-blocking)
+        if (this.mediaClient) {
+            this.mediaClient.createSession(data.sessionSecret)
+                .then((result) => {
+                    this.sessionRtpCapabilities.set(data.sessionSecret, result.rtpCapabilities);
+                    Logger.info(`LGM: Media session created for ${data.sessionSecret}`);
+                })
+                .catch((err) => {
+                    Logger.error(`LGM: Failed to create media session for ${data.sessionSecret}: ${err}`);
+                });
+        }
+
         return session;
     }
 
@@ -167,6 +202,15 @@ export class LgmSessionManager {
 
         session.close();
         this.sessions.delete(sessionSecret);
+        this.sessionRtpCapabilities.delete(sessionSecret);
+
+        // Delete media session on media-server (async, non-blocking)
+        if (this.mediaClient) {
+            this.mediaClient.deleteSession(sessionSecret).catch((err) => {
+                Logger.warn(`LGM: Failed to delete media session ${sessionSecret}: ${err}`);
+            });
+        }
+
         Logger.info(`LGM: Closed session ${sessionSecret}`);
         return true;
     }
@@ -223,6 +267,30 @@ export class LgmSessionManager {
                         data: session.getData()
                     });
 
+                    // Send media capabilities if available
+                    const rtpCapabilities = this.sessionRtpCapabilities.get(session.sessionSecret);
+                    if (rtpCapabilities) {
+                        this.sendTo(ws, session.sessionSecret, {
+                            type: LgmMessageType.MediaCapabilities,
+                            namespace: 'lgm',
+                            data: { rtpCapabilities }
+                        });
+                    } else if (this.mediaClient) {
+                        // Capabilities not cached yet, fetch and send
+                        this.mediaClient.createSession(session.sessionSecret)
+                            .then((result) => {
+                                this.sessionRtpCapabilities.set(session!.sessionSecret, result.rtpCapabilities);
+                                this.sendTo(ws, session!.sessionSecret, {
+                                    type: LgmMessageType.MediaCapabilities,
+                                    namespace: 'lgm',
+                                    data: { rtpCapabilities: result.rtpCapabilities }
+                                });
+                            })
+                            .catch((err) => {
+                                Logger.error(`LGM: Failed to get media capabilities: ${err}`);
+                            });
+                    }
+
                     // Request chat history from other clients
                     session.broadcast(userId, {
                         type: 'request-chat-history',
@@ -266,6 +334,108 @@ export class LgmSessionManager {
                     session.updateActivity();
                     session.broadcast(userId, msg);
                 }
+                return true;
+            }
+
+            // Mediasoup signalling messages - proxy to media-server
+            case LgmMessageType.CreateTransport: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const { role } = msg.data as any;
+                this.mediaClient.createTransport(session.sessionSecret, role, userId)
+                    .then((result) => {
+                        this.sendTo(ws, session.sessionSecret, {
+                            type: LgmMessageType.TransportCreated,
+                            namespace: 'lgm',
+                            data: result
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: createTransport failed: ${err}`);
+                        this.sendError(ws, 'media-error', 'Failed to create transport');
+                    });
+                return true;
+            }
+
+            case LgmMessageType.ConnectTransport: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const { transportId, dtlsParameters } = msg.data as any;
+                this.mediaClient.connectTransport(session.sessionSecret, transportId, dtlsParameters)
+                    .catch((err) => {
+                        Logger.error(`LGM: connectTransport failed: ${err}`);
+                        this.sendError(ws, 'media-error', 'Failed to connect transport');
+                    });
+                return true;
+            }
+
+            case LgmMessageType.Produce: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const { transportId, kind, rtpParameters, role } = msg.data as any;
+                this.mediaClient.produce(session.sessionSecret, transportId, kind, rtpParameters, role, userId)
+                    .then((result) => {
+                        this.sendTo(ws, session.sessionSecret, {
+                            type: LgmMessageType.ProduceResponse,
+                            namespace: 'lgm',
+                            data: result
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: produce failed: ${err}`);
+                        this.sendError(ws, 'media-error', 'Failed to produce');
+                    });
+                return true;
+            }
+
+            case LgmMessageType.Consume: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const consumeData = msg.data as any;
+                this.mediaClient.consume(
+                    session.sessionSecret,
+                    consumeData.transportId,
+                    consumeData.rtpCapabilities,
+                    consumeData.role,
+                    userId
+                )
+                    .then((result) => {
+                        this.sendTo(ws, session.sessionSecret, {
+                            type: LgmMessageType.Consume,
+                            namespace: 'lgm',
+                            data: result
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: consume failed: ${err}`);
+                        this.sendError(ws, 'media-error', 'Failed to consume');
+                    });
+                return true;
+            }
+
+            case LgmMessageType.ConsumerResume: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const { consumerId } = msg.data as any;
+                this.mediaClient.resumeConsumer(session.sessionSecret, consumerId)
+                    .catch((err) => {
+                        Logger.error(`LGM: resumeConsumer failed: ${err}`);
+                    });
                 return true;
             }
 

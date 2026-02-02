@@ -11,6 +11,7 @@ import {
 } from '../client/LgmData';
 import { LgmChatStore } from './LgmChatStore';
 import { LgmWebRTCStore } from './LgmWebRTCStore';
+import { LgmVoiceChangerStore } from './LgmVoiceChangerStore';
 import { createContext, useContext } from 'react';
 import { PixelStreaming } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
 import { LGMUeControl } from './LgmUEControl';
@@ -35,11 +36,13 @@ export class LgmStore {
     peers = new ObservableMap<string, LgmPeer>();
     chat: LgmChatStore;
     webrtc: LgmWebRTCStore;
+    voiceChanger: LgmVoiceChangerStore;
 
     // Pixel streaming
     private pingInterval?: any;
     errorCode?: string = undefined;
     sessionEnded = false;
+    recording = false;
 
     get hasSession() {
         return this.session !== undefined;
@@ -85,6 +88,7 @@ export class LgmStore {
 
         this.chat = new LgmChatStore(this);
         this.webrtc = new LgmWebRTCStore(this);
+        this.voiceChanger = new LgmVoiceChangerStore(this);
         this.ueControl = new LGMUeControl(this);
 
         makeAutoObservable(this);
@@ -153,7 +157,6 @@ export class LgmStore {
                     peer.update(user);
                 } else {
                     this.peers.set(user.id, new LgmPeer(user));
-                    this.webrtc.createOffer(user.role, user.id);
                 }
                 break;
             case 'session':
@@ -164,6 +167,9 @@ export class LgmStore {
                 this.dispose();
                 this.sessionEnded = true;
                 window.location.hash = '';
+                break;
+            case 'recording-status':
+                this.recording = message.data?.recording ?? false;
                 break;
             case 'error':
                 this.errorCode = message.code;
@@ -176,6 +182,7 @@ export class LgmStore {
         this.client.dispose();
         this.chat.dispose();
         this.webrtc.dispose();
+        this.voiceChanger.dispose();
         this.ueControl.dispose();
         if (this.pingInterval) {
             clearInterval(this.pingInterval);
@@ -216,6 +223,16 @@ export class LgmStore {
 
     endSession() {
         this.client.send({ type: 'close-session' });
+    }
+
+    startRecording() {
+        this.client.send({ type: 'start-recording' });
+        this.recording = true;
+    }
+
+    stopRecording() {
+        this.client.send({ type: 'stop-recording' });
+        this.recording = false;
     }
 }
 

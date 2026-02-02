@@ -14,6 +14,8 @@ export interface LgmConfig {
     liveLinkPorts: string[];
     /** Session inactivity timeout in milliseconds */
     sessionTimeoutMs: number;
+    /** URL of the media-server (mediasoup SFU) for audio routing */
+    mediaServerUrl?: string;
 }
 
 /**
@@ -99,5 +101,28 @@ export enum LgmMessageType {
     Ping = 'ping',
     Error = 'error',
     RequestChatHistory = 'request-chat-history',
-    SetSessionId = 'setSessionId'
+    SetSessionId = 'setSessionId',
+
+    // Mediasoup signalling
+    MediaCapabilities = 'media-capabilities',
+    CreateTransport = 'create-transport',
+    TransportCreated = 'transport-created',
+    ConnectTransport = 'connect-transport',
+    Produce = 'produce',
+    ProduceResponse = 'produce-response',
+    Consume = 'consume',
+    ConsumerResume = 'consumer-resume',
+    NewConsumer = 'new-consumer',
+
+    // Voice changer
+    VcModels = 'vc-models',
+    VcSetModel = 'vc-set-model',
+    VcSetPitch = 'vc-set-pitch',
+    VcSetEnabled = 'vc-set-enabled',
+    VcState = 'vc-state',
+
+    // Recording
+    StartRecording = 'start-recording',
+    StopRecording = 'stop-recording',
+    RecordingStatus = 'recording-status',
 }

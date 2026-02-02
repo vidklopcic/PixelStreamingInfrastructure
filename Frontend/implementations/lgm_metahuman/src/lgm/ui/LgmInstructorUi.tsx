@@ -7,7 +7,8 @@ import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmUeControls } from './components/LgmUeControls';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
-import { ExitToApp, FullscreenExit, Mic, MicOff, PlayArrow, Stop, TransitEnterexit } from '@mui/icons-material';
+import { VoiceChangerControls } from './components/VoiceChangerControls';
+import { ExitToApp, FiberManualRecord, FullscreenExit, Mic, MicOff, PlayArrow, Stop, StopCircle, TransitEnterexit } from '@mui/icons-material';
 import { Fab } from '@mui/material';
 
 export const LgmInstructorUi = observer(() => {
@@ -61,6 +62,24 @@ export const LgmInstructorUi = observer(() => {
                 style={{
                     position: 'absolute',
                     bottom: 16,
+                    right: 80
+                }}
+                color={store.recording ? 'error' : 'default'}
+                disabled={!store.sessionActive}
+                onClick={() => {
+                    if (store.recording) {
+                        store.stopRecording();
+                    } else {
+                        store.startRecording();
+                    }
+                }}>
+                {!store.recording && <FiberManualRecord />}
+                {store.recording && <StopCircle />}
+            </Fab>
+            <Fab
+                style={{
+                    position: 'absolute',
+                    bottom: 16,
                     right: 16
                 }}
                 onClick={() => {
@@ -71,7 +90,10 @@ export const LgmInstructorUi = observer(() => {
             </Fab>
         </div>
         <div style={SideUiContainerStyle} className={'mobile-column desktop-row'}>
-            <LgmUeControls />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <LgmUeControls />
+                <VoiceChangerControls />
+            </div>
             <LgmChat />
         </div>
     </div>;

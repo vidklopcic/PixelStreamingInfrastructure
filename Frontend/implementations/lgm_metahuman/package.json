@@ -30,6 +30,7 @@
     "@jitsi/react-sdk": "^1.4.0",
     "@mui/icons-material": "^5.15.19",
     "@mui/material": "^5.15.19",
+    "mediasoup-client": "^3.7.17",
     "mobx": "^6.12.3",
     "mobx-react-lite": "^4.0.7",
     "proto_socket_typescript": "^1.0.29",

@@ -5,3 +5,4 @@ export * from './LgmTypes';
 export * from './LgmSession';
 export * from './LgmSessionManager';
 export * from './LgmExtension';
+export * from './LgmMediaClient';

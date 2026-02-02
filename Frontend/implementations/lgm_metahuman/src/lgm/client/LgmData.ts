@@ -46,3 +46,40 @@ export enum LgmRole {
     supervisor = 'supervisor',
 }
 
+// Mediasoup signalling message types
+export interface MediaCapabilitiesData {
+    rtpCapabilities: any;
+}
+
+export interface TransportCreatedData {
+    id: string;
+    iceParameters: any;
+    iceCandidates: any[];
+    dtlsParameters: any;
+}
+
+export interface ProduceResponseData {
+    id: string;
+    kind: string;
+}
+
+export interface ConsumeResponseData {
+    consumers: Array<{
+        id: string;
+        producerId: string;
+        kind: string;
+        rtpParameters: any;
+    }>;
+}
+
+// Voice changer message types
+export interface VcModelsData {
+    models: Array<{ name: string; pthFile: string; indexFile: string }>;
+}
+
+export interface VcStateData {
+    model: string | null;
+    pitch: number;
+    enabled: boolean;
+}
+
