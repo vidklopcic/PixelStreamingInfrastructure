@@ -4,8 +4,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     Config,
     AllSettings,
-    PixelStreaming
+    PixelStreaming,
+    Logger,
+    LogLevel,
 } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
+
+// Suppress verbose PixelStreaming Info/Debug logs
+Logger.InitLogging(LogLevel.Warning, false);
 import { LgmStyles } from '../lgm/ui/LgmStyles';
 
 export interface PixelStreamingWrapperProps {

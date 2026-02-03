@@ -354,8 +354,27 @@ export class LgmSessionManager {
                         });
                     })
                     .catch((err) => {
-                        Logger.error(`LGM: createTransport failed: ${err}`);
-                        this.sendError(ws, 'media-error', 'Failed to create transport');
+                        // If media session doesn't exist (e.g. media-server restarted), recreate and retry
+                        if (String(err).includes('404')) {
+                            Logger.warn(`LGM: Media session not found for ${session.sessionSecret}, recreating...`);
+                            this.sessionRtpCapabilities.delete(session.sessionSecret);
+                            this.mediaClient!.createSession(session.sessionSecret)
+                                .then(() => this.mediaClient!.createTransport(session.sessionSecret, role, userId))
+                                .then((result) => {
+                                    this.sendTo(ws, session.sessionSecret, {
+                                        type: LgmMessageType.TransportCreated,
+                                        namespace: 'lgm',
+                                        data: result
+                                    });
+                                })
+                                .catch((retryErr) => {
+                                    Logger.error(`LGM: createTransport retry failed: ${retryErr}`);
+                                    this.sendError(ws, 'media-error', 'Failed to create transport');
+                                });
+                        } else {
+                            Logger.error(`LGM: createTransport failed: ${err}`);
+                            this.sendError(ws, 'media-error', 'Failed to create transport');
+                        }
                     });
                 return true;
             }
@@ -384,11 +403,26 @@ export class LgmSessionManager {
                 const { transportId, kind, rtpParameters, role } = msg.data as any;
                 this.mediaClient.produce(session.sessionSecret, transportId, kind, rtpParameters, role, userId)
                     .then((result) => {
+                        // Send produce response to the producing client
                         this.sendTo(ws, session.sessionSecret, {
                             type: LgmMessageType.ProduceResponse,
                             namespace: 'lgm',
-                            data: result
+                            data: { id: result.id, kind: result.kind }
                         });
+
+                        // Send new-consumer messages to other clients for auto-created consumers
+                        if (result.newConsumers && result.newConsumers.length > 0) {
+                            for (const nc of result.newConsumers) {
+                                const client = session.getClient(nc.userId);
+                                if (client && client.ws.readyState === 1) {
+                                    this.sendTo(client.ws, session.sessionSecret, {
+                                        type: LgmMessageType.NewConsumer,
+                                        namespace: 'lgm',
+                                        data: nc.consumer
+                                    });
+                                }
+                            }
+                        }
                     })
                     .catch((err) => {
                         Logger.error(`LGM: produce failed: ${err}`);
@@ -435,6 +469,100 @@ export class LgmSessionManager {
                 this.mediaClient.resumeConsumer(session.sessionSecret, consumerId)
                     .catch((err) => {
                         Logger.error(`LGM: resumeConsumer failed: ${err}`);
+                    });
+                return true;
+            }
+
+            // Voice changer messages
+            case LgmMessageType.VcGetModels: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                this.mediaClient.getVcModels(session.sessionSecret)
+                    .then((result) => {
+                        this.sendTo(ws, session.sessionSecret, {
+                            type: LgmMessageType.VcModels,
+                            namespace: 'lgm',
+                            data: result
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: getVcModels failed: ${err}`);
+                        this.sendError(ws, 'vc-error', 'Failed to get voice changer models');
+                    });
+                return true;
+            }
+
+            case LgmMessageType.VcSetModel: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const { model_name } = msg.data as any;
+                this.mediaClient.setVcModel(session.sessionSecret, model_name)
+                    .then((result) => {
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.VcState,
+                            namespace: 'lgm',
+                            data: result
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: setVcModel failed: ${err}`);
+                        this.sendError(ws, 'vc-error', 'Failed to set voice changer model');
+                    });
+                return true;
+            }
+
+            case LgmMessageType.VcSetPitch: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const { semitones } = msg.data as any;
+                this.mediaClient.setVcPitch(session.sessionSecret, semitones)
+                    .then(() => {
+                        return this.mediaClient!.getVcState(session.sessionSecret);
+                    })
+                    .then((state) => {
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.VcState,
+                            namespace: 'lgm',
+                            data: state
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: setVcPitch failed: ${err}`);
+                        this.sendError(ws, 'vc-error', 'Failed to set voice changer pitch');
+                    });
+                return true;
+            }
+
+            case LgmMessageType.VcSetEnabled: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const { enabled } = msg.data as any;
+                this.mediaClient.setVcEnabled(session.sessionSecret, enabled)
+                    .then(() => {
+                        return this.mediaClient!.getVcState(session.sessionSecret);
+                    })
+                    .then((state) => {
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.VcState,
+                            namespace: 'lgm',
+                            data: state
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: setVcEnabled failed: ${err}`);
+                        this.sendError(ws, 'vc-error', 'Failed to set voice changer enabled state');
                     });
                 return true;
             }

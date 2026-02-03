@@ -115,6 +115,7 @@ export enum LgmMessageType {
     NewConsumer = 'new-consumer',
 
     // Voice changer
+    VcGetModels = 'vc-get-models',
     VcModels = 'vc-models',
     VcSetModel = 'vc-set-model',
     VcSetPitch = 'vc-set-pitch',

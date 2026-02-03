@@ -35,21 +35,29 @@ export class LgmVoiceChangerStore {
     }
 
     private handleModels(message: LgmApiMessage) {
-        const data = message.data as VcModelsData;
-        this.models = data.models;
+        const data = message.data as any;
+        // Normalize: handle both { models: [...] } and raw array
+        if (Array.isArray(data?.models)) {
+            this.models = data.models;
+        } else if (Array.isArray(data)) {
+            this.models = data;
+        } else {
+            this.models = [];
+        }
     }
 
     private handleState(message: LgmApiMessage) {
         const data = message.data as VcStateData;
-        this.selectedModel = data.model;
-        this.pitch = data.pitch;
-        this.enabled = data.enabled;
+        if (!data) return;
+        this.selectedModel = data.model ?? null;
+        this.pitch = data.pitch ?? 0;
+        this.enabled = data.enabled ?? false;
         this.loading = false;
     }
 
     requestModels() {
         this.base.client.send({
-            type: 'vc-models',
+            type: 'vc-get-models',
             data: {}
         });
     }

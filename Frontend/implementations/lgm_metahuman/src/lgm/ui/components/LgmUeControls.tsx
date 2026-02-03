@@ -6,6 +6,7 @@ import { LgmEmotionWheel } from './controls/LgmEmotionWheel';
 import { Refresh } from '@mui/icons-material';
 import { LgmDialog } from './dialogs/LgmDialog';
 import { LiveLinkTutorial } from '../../../components/LiveLinkTutorial';
+import { VoiceChangerControls } from './VoiceChangerControls';
 
 const characterNames: [number, string, string, string][] = [
     [0, 'A', 'M', '15'],
@@ -25,6 +26,7 @@ const characterNames: [number, string, string, string][] = [
 export const LgmUeControls = observer(() => {
     const store = useContext(LgmStoreContext);
     const [showHowToConnectDialog, setShowHowToConnectDialog] = useState(false);
+    const [showVoiceChangerDialog, setShowVoiceChangerDialog] = useState(false);
     return <div style={RootStyle}>
         <div style={HeaderStyle}>
             Controls
@@ -33,12 +35,22 @@ export const LgmUeControls = observer(() => {
                 <Refresh />
             </IconButton>
         </div>
-        <Button
-            variant={'outlined'}
-            onClick={() => setShowHowToConnectDialog(true)}
-            style={{
-                textTransform: 'none'
-            }}>How to connect iPhone LiveLink app?</Button>
+        <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+                variant={'outlined'}
+                onClick={() => setShowHowToConnectDialog(true)}
+                style={{
+                    textTransform: 'none',
+                    flex: 1
+                }}>LiveLink</Button>
+            <Button
+                variant={'outlined'}
+                onClick={() => setShowVoiceChangerDialog(true)}
+                style={{
+                    textTransform: 'none',
+                    flex: 1
+                }}>Voice Changer</Button>
+        </div>
         <LgmEmotionWheel
             size={300}
             style={{ margin: '8px auto' }}
@@ -134,6 +146,14 @@ export const LgmUeControls = observer(() => {
                 }}
                 onClose={() => setShowHowToConnectDialog(false)} title={'Connect iPhone LiveLink'}>
                 <LiveLinkTutorial onClose={() => setShowHowToConnectDialog(false)} />
+            </LgmDialog>
+        </Dialog>
+        <Dialog open={showVoiceChangerDialog} onClose={() => setShowVoiceChangerDialog(false)}>
+            <LgmDialog
+                onClose={() => setShowVoiceChangerDialog(false)} title={'Voice Changer'}>
+                <div style={{ padding: 16 }}>
+                    <VoiceChangerControls />
+                </div>
             </LgmDialog>
         </Dialog>
     </div>;

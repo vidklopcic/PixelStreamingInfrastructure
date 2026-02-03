@@ -164,7 +164,7 @@ export class LgmWebRTCStore {
             dtlsParameters: data.dtlsParameters,
         });
 
-        this.sendTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+        this.sendTransport.on('connect', ({ dtlsParameters }: any, callback: any, errback: any) => {
             this.base.client.send({
                 type: 'connect-transport',
                 data: { transportId: data.id, dtlsParameters }
@@ -173,7 +173,7 @@ export class LgmWebRTCStore {
             callback();
         });
 
-        this.sendTransport.on('produce', (parameters, callback, errback) => {
+        this.sendTransport.on('produce', (parameters: any, callback: any, errback: any) => {
             // Listen for produce-response to get producer ID
             const handler = (msg: LgmApiMessage) => {
                 if (msg.type === 'produce-response') {
@@ -234,8 +234,7 @@ export class LgmWebRTCStore {
             }
         }
 
-        // Request consumers after producing
-        this.requestConsumers();
+        // Consumers are requested from setupRecvTransport, no need to request again here
     }
 
     private async setupRecvTransport(data: TransportCreatedData): Promise<void> {
@@ -246,7 +245,7 @@ export class LgmWebRTCStore {
             dtlsParameters: data.dtlsParameters,
         });
 
-        this.recvTransport.on('connect', ({ dtlsParameters }, callback, errback) => {
+        this.recvTransport.on('connect', ({ dtlsParameters }: any, callback: any, errback: any) => {
             this.base.client.send({
                 type: 'connect-transport',
                 data: { transportId: data.id, dtlsParameters }
@@ -263,6 +262,7 @@ export class LgmWebRTCStore {
      * The server returns consumers according to audio routing rules.
      */
     private requestConsumers(): void {
+        console.log(`[WebRTC] requestConsumers: recvTransport=${!!this.recvTransport}, loaded=${this.device.loaded}, role=${this.base.user.role}`);
         if (!this.recvTransport || !this.device.loaded) return;
 
         this.base.client.send({
@@ -273,6 +273,7 @@ export class LgmWebRTCStore {
                 role: this.base.user.role,
             }
         });
+        console.log(`[WebRTC] requestConsumers: sent consume request on transport ${this.recvTransport.id}`);
     }
 
     /**
@@ -280,6 +281,7 @@ export class LgmWebRTCStore {
      */
     private async handleConsume(message: LgmApiMessage) {
         const { consumers } = message.data as ConsumeResponseData;
+        console.log(`[WebRTC] handleConsume: ${consumers?.length ?? 0} consumers, recvTransport=${!!this.recvTransport}`);
         if (!consumers || !this.recvTransport) return;
 
         for (const consumerData of consumers) {
@@ -292,6 +294,7 @@ export class LgmWebRTCStore {
      */
     private async handleNewConsumer(message: LgmApiMessage) {
         const consumerData = message.data as any;
+        console.log(`[WebRTC] handleNewConsumer: id=${consumerData?.id}, kind=${consumerData?.kind}, producerId=${consumerData?.producerId}, recvTransport=${!!this.recvTransport}`);
         if (!this.recvTransport) return;
         await this.createLocalConsumer(consumerData);
     }
@@ -305,6 +308,7 @@ export class LgmWebRTCStore {
         if (!this.recvTransport) return;
 
         try {
+            console.log(`[WebRTC] createLocalConsumer: creating consumer id=${consumerData.id}, kind=${consumerData.kind}`);
             const consumer = await this.recvTransport.consume({
                 id: consumerData.id,
                 producerId: consumerData.producerId,
@@ -313,36 +317,41 @@ export class LgmWebRTCStore {
             });
 
             const stream = new MediaStream([consumer.track]);
+            console.log(`[WebRTC] createLocalConsumer: consumer created, track=${consumer.track.id}, enabled=${consumer.track.enabled}, readyState=${consumer.track.readyState}`);
 
             this.consumerEntries.set(consumer.id, { consumer, stream });
+            console.log(`[WebRTC] consumerEntries size: ${this.consumerEntries.size}, peerAudioStreams: ${this.peerAudioStreams.length}`);
 
             // Resume the consumer on the server
             this.base.client.send({
                 type: 'consumer-resume',
                 data: { consumerId: consumer.id }
             });
+            console.log(`[WebRTC] createLocalConsumer: sent consumer-resume for ${consumer.id}`);
 
             consumer.on('trackended', () => {
+                console.log(`[WebRTC] track ended for consumer ${consumer.id}`);
                 this.consumerEntries.delete(consumer.id);
             });
 
             consumer.on('transportclose', () => {
+                console.log(`[WebRTC] transport closed for consumer ${consumer.id}`);
                 this.consumerEntries.delete(consumer.id);
             });
         } catch (err) {
-            console.error('Failed to consume:', err);
+            console.error('[WebRTC] Failed to consume:', err);
         }
     }
 
     dispose() {
-        for (const [, producer] of this.producers) {
+        this.producers.forEach((producer) => {
             producer.close();
-        }
+        });
         this.producers.clear();
 
-        for (const [, entry] of this.consumerEntries) {
+        this.consumerEntries.forEach((entry) => {
             entry.consumer.close();
-        }
+        });
         this.consumerEntries.clear();
 
         this.sendTransport?.close();

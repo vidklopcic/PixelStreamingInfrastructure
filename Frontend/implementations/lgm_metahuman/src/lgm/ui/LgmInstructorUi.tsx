@@ -1,20 +1,22 @@
 import { observer } from 'mobx-react-lite';
 import { LgmUnreal } from './components/LgmUnreal';
 import { LgmVideoStream } from './components/chat/LgmVideoStream';
+import { LgmAudioStream } from './components/chat/LgmAudioStream';
 import { LgmStoreContext } from '../stores/LgmStore';
 import React, { CSSProperties, useContext } from 'react';
 import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmUeControls } from './components/LgmUeControls';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
-import { VoiceChangerControls } from './components/VoiceChangerControls';
 import { ExitToApp, FiberManualRecord, FullscreenExit, Mic, MicOff, PlayArrow, Stop, StopCircle, TransitEnterexit } from '@mui/icons-material';
 import { Fab } from '@mui/material';
 
 export const LgmInstructorUi = observer(() => {
     const store = useContext(LgmStoreContext);
     const peerStreams = store.webrtc.peerStreams;
+    const peerAudioStreams = store.webrtc.peerAudioStreams;
     return <div style={RootStyle}>
+        {!!peerAudioStreams?.length && peerAudioStreams.map((s, i) => <LgmAudioStream key={i} stream={s} />)}
         <div style={StreamsStyle}>
             <div style={LgmUnrealContainerStyle}>
                 <LgmUnreal
@@ -90,9 +92,8 @@ export const LgmInstructorUi = observer(() => {
             </Fab>
         </div>
         <div style={SideUiContainerStyle} className={'mobile-column desktop-row'}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flexGrow: 1, flexBasis: 0, minWidth: 0 }}>
                 <LgmUeControls />
-                <VoiceChangerControls />
             </div>
             <LgmChat />
         </div>

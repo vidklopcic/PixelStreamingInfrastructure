@@ -107,6 +107,28 @@ export class LgmMediaClient {
         );
     }
 
+    // --- Voice Changer ---
+
+    async getVcModels(sessionId: string): Promise<any> {
+        return this.request('GET', `/sessions/${encodeURIComponent(sessionId)}/vc/models`);
+    }
+
+    async setVcModel(sessionId: string, model: string): Promise<any> {
+        return this.request('POST', `/sessions/${encodeURIComponent(sessionId)}/vc/model`, { model });
+    }
+
+    async setVcPitch(sessionId: string, semitones: number): Promise<any> {
+        return this.request('POST', `/sessions/${encodeURIComponent(sessionId)}/vc/pitch`, { semitones });
+    }
+
+    async setVcEnabled(sessionId: string, enabled: boolean): Promise<any> {
+        return this.request('POST', `/sessions/${encodeURIComponent(sessionId)}/vc/enabled`, { enabled });
+    }
+
+    async getVcState(sessionId: string): Promise<any> {
+        return this.request('GET', `/sessions/${encodeURIComponent(sessionId)}/vc/state`);
+    }
+
     /**
      * Health check
      */
