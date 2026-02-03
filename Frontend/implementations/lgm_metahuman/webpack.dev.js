@@ -52,6 +52,13 @@ module.exports = merge(common, {
                 warnings: false,
             },
             progress: true,
+            webSocketURL: 'wss://localhost:3000/hmr',
+        },
+        webSocketServer: {
+            type: 'ws',
+            options: {
+                path: '/hmr',
+            },
         },
     },
 });
