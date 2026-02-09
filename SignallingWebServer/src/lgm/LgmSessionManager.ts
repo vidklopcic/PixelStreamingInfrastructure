@@ -65,13 +65,16 @@ export class LgmSessionManager {
      */
     private cleanupInactiveSessions(): void {
         const now = Date.now();
+        const toClose: string[] = [];
         this.sessions.forEach((session, sessionSecret) => {
             if (now - session.lastMessageTs > this.config.sessionTimeoutMs) {
-                Logger.info(`LGM: Closing inactive session ${sessionSecret}`);
-                session.close();
-                this.sessions.delete(sessionSecret);
+                toClose.push(sessionSecret);
             }
         });
+        for (const sessionSecret of toClose) {
+            Logger.info(`LGM: Closing inactive session ${sessionSecret}`);
+            this.closeSession(sessionSecret);
+        }
     }
 
     /**
