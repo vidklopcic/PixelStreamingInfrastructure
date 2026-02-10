@@ -119,6 +119,7 @@ export enum LgmMessageType {
     // Voice changer
     VcGetModels = 'vc-get-models',
     VcModels = 'vc-models',
+    VcGetState = 'vc-get-state',
     VcSetModel = 'vc-set-model',
     VcSetPitch = 'vc-set-pitch',
     VcSetEnabled = 'vc-set-enabled',

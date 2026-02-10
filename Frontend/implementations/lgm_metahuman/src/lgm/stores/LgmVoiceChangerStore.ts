@@ -14,13 +14,13 @@ export class LgmVoiceChangerStore {
     models: VoiceModel[] = [];
     selectedModel: string | null = null;
     pitch = 0;
-    enabled = true;
+    enabled = false;
     loading = false;
 
     constructor(base: LgmStore) {
         this.base = base;
-        this.base.client.messages.subscribe((message) => this.onMessage(message));
         makeAutoObservable(this);
+        this.base.client.messages.subscribe((message) => this.onMessage(message));
     }
 
     private onMessage(message: LgmApiMessage) {
@@ -36,7 +36,6 @@ export class LgmVoiceChangerStore {
 
     private handleModels(message: LgmApiMessage) {
         const data = message.data as any;
-        // Normalize: handle both { models: [...] } and raw array
         if (Array.isArray(data?.models)) {
             this.models = data.models;
         } else if (Array.isArray(data)) {
@@ -58,6 +57,13 @@ export class LgmVoiceChangerStore {
     requestModels() {
         this.base.client.send({
             type: 'vc-get-models',
+            data: {}
+        });
+    }
+
+    requestState() {
+        this.base.client.send({
+            type: 'vc-get-state',
             data: {}
         });
     }

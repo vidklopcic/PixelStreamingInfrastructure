@@ -503,6 +503,27 @@ export class LgmSessionManager {
                 return true;
             }
 
+            case LgmMessageType.VcGetState: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                this.mediaClient.getVcState(session.sessionSecret)
+                    .then((state) => {
+                        this.sendTo(ws, session.sessionSecret, {
+                            type: LgmMessageType.VcState,
+                            namespace: 'lgm',
+                            data: state
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: getVcState failed: ${err}`);
+                        this.sendError(ws, 'vc-error', 'Failed to get voice changer state');
+                    });
+                return true;
+            }
+
             case LgmMessageType.VcSetModel: {
                 if (!this.mediaClient) return true;
                 const session = this.getSessionByClient(ws);
