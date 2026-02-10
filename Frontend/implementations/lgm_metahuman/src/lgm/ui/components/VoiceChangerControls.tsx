@@ -10,6 +10,7 @@ import {
     Typography,
     CircularProgress,
 } from '@mui/material';
+import { toast } from 'react-toastify';
 
 export const VoiceChangerControls = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -46,7 +47,13 @@ export const VoiceChangerControls = observer(() => {
                 </Button>
                 <Button
                     size="small"
-                    onClick={() => vc.setEnabled(true)}
+                    onClick={() => {
+                        if (!hasModel) {
+                            toast.error('Select a model first');
+                            return;
+                        }
+                        vc.setEnabled(true);
+                    }}
                     sx={{
                         flex: 1,
                         textTransform: 'none',
@@ -90,9 +97,6 @@ export const VoiceChangerControls = observer(() => {
                             '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.5)' },
                         }}
                     >
-                        <MenuItem value="" disabled>
-                            <em style={{ color: '#666' }}>None</em>
-                        </MenuItem>
                         {vc.models.map((model) => (
                             <MenuItem key={model.name} value={model.name}>
                                 {model.name}
@@ -144,12 +148,6 @@ export const VoiceChangerControls = observer(() => {
                 </Box>
             </Box>
 
-            {/* Status hints */}
-            {vc.enabled && !hasModel && vc.models.length > 0 && (
-                <Typography variant="caption" sx={{ color: '#887744', textAlign: 'center', fontSize: 11 }}>
-                    Select a model to activate
-                </Typography>
-            )}
             {vc.models.length === 0 && (
                 <Typography variant="caption" sx={{ color: '#666', textAlign: 'center', fontSize: 11 }}>
                     No models available
