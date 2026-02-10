@@ -64,7 +64,7 @@ export const VoiceChangerControls = observer(() => {
                         size="small"
                         fullWidth
                         displayEmpty
-                        disabled={!vc.enabled || vc.loading}
+                        disabled={vc.loading}
                         sx={{
                             backgroundColor: 'rgba(255,255,255,0.07)',
                             borderRadius: '6px',
