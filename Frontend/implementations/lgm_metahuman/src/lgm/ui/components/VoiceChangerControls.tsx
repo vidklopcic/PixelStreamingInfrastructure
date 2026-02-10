@@ -3,6 +3,8 @@ import { observer } from 'mobx-react-lite';
 import { LgmStoreContext } from '../../stores/LgmStore';
 import {
     Box,
+    Button,
+    ButtonGroup,
     MenuItem,
     Select,
     Slider,
@@ -23,38 +25,43 @@ export const VoiceChangerControls = observer(() => {
 
     return (
         <Box sx={{ p: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {/* Enable toggle */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="body2" sx={{ color: '#bbb', fontSize: 13 }}>Active</Typography>
-                <Box
-                    onClick={() => vc.setEnabled(!vc.enabled)}
+            {/* Enable toggle - segmented button */}
+            <ButtonGroup fullWidth size="small" sx={{ '& .MuiButton-root': { textTransform: 'none', fontSize: 13, py: '4px' } }}>
+                <Button
+                    variant={!vc.enabled ? 'contained' : 'outlined'}
+                    onClick={() => vc.setEnabled(false)}
                     sx={{
-                        width: 36,
-                        height: 20,
-                        borderRadius: '10px',
-                        backgroundColor: vc.enabled ? '#5b7cdb' : 'rgba(255,255,255,0.15)',
-                        cursor: 'pointer',
-                        position: 'relative',
-                        transition: 'background-color 0.15s',
-                        '&:hover': { backgroundColor: vc.enabled ? '#6b8ceb' : 'rgba(255,255,255,0.25)' },
+                        backgroundColor: !vc.enabled ? '#5b7cdb' : 'transparent',
+                        borderColor: 'rgba(255,255,255,0.2)',
+                        color: !vc.enabled ? '#fff' : 'rgba(255,255,255,0.5)',
+                        '&:hover': {
+                            backgroundColor: !vc.enabled ? '#4a6bca' : 'rgba(255,255,255,0.05)',
+                            borderColor: 'rgba(255,255,255,0.3)',
+                        },
                     }}
                 >
-                    <Box sx={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: '50%',
-                        backgroundColor: '#fff',
-                        position: 'absolute',
-                        top: 3,
-                        left: vc.enabled ? 19 : 3,
-                        transition: 'left 0.15s',
-                    }} />
-                </Box>
-            </Box>
+                    Disabled
+                </Button>
+                <Button
+                    variant={vc.enabled ? 'contained' : 'outlined'}
+                    onClick={() => vc.setEnabled(true)}
+                    sx={{
+                        backgroundColor: vc.enabled ? '#5b7cdb' : 'transparent',
+                        borderColor: 'rgba(255,255,255,0.2)',
+                        color: vc.enabled ? '#fff' : 'rgba(255,255,255,0.5)',
+                        '&:hover': {
+                            backgroundColor: vc.enabled ? '#4a6bca' : 'rgba(255,255,255,0.05)',
+                            borderColor: 'rgba(255,255,255,0.3)',
+                        },
+                    }}
+                >
+                    Enabled
+                </Button>
+            </ButtonGroup>
 
             {/* Model selector */}
             <Box>
-                <Typography variant="caption" sx={{ color: '#777', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', mb: '4px', display: 'block' }}>
+                <Typography variant="caption" sx={{ color: '#ddd', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', mb: '4px', display: 'block' }}>
                     Model
                 </Typography>
                 <Box sx={{ position: 'relative' }}>
@@ -69,10 +76,12 @@ export const VoiceChangerControls = observer(() => {
                             backgroundColor: 'rgba(255,255,255,0.07)',
                             borderRadius: '6px',
                             fontSize: 13,
+                            color: '#fff',
                             '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
                             '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
                             '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5b7cdb' },
                             '& .MuiSelect-select': { py: '6px' },
+                            '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.5)' },
                         }}
                     >
                         <MenuItem value="" disabled>
@@ -96,36 +105,37 @@ export const VoiceChangerControls = observer(() => {
             {/* Pitch slider */}
             <Box sx={{ opacity: (!vc.enabled || !hasModel) ? 0.35 : 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '2px' }}>
-                    <Typography variant="caption" sx={{ color: '#777', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <Typography variant="caption" sx={{ color: '#ddd', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         Pitch
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#aaa', fontFamily: 'monospace', fontSize: 11 }}>
+                    <Typography variant="caption" sx={{ color: '#ccc', fontFamily: 'monospace', fontSize: 12 }}>
                         {vc.pitch > 0 ? '+' : ''}{vc.pitch} st
                     </Typography>
                 </Box>
-                <Slider
-                    value={vc.pitch}
-                    onChange={(_, value) => vc.setPitch(value as number)}
-                    onChangeCommitted={(_, value) => vc.setPitch(value as number)}
-                    min={-24}
-                    max={24}
-                    step={1}
-                    marks={[
-                        { value: -24, label: '-24' },
-                        { value: 0, label: '0' },
-                        { value: 24, label: '+24' },
-                    ]}
-                    disabled={!vc.enabled || !hasModel}
-                    size="small"
-                    sx={{
-                        color: '#5b7cdb',
-                        px: '4px',
-                        '& .MuiSlider-markLabel': { fontSize: 9, color: '#555' },
-                        '& .MuiSlider-thumb': { width: 12, height: 12 },
-                        '& .MuiSlider-rail': { opacity: 0.2 },
-                        '& .MuiSlider-mark': { backgroundColor: 'rgba(255,255,255,0.2)' },
-                    }}
-                />
+                <Box sx={{ px: '8px' }}>
+                    <Slider
+                        value={vc.pitch}
+                        onChange={(_, value) => vc.setPitch(value as number)}
+                        onChangeCommitted={(_, value) => vc.setPitch(value as number)}
+                        min={-24}
+                        max={24}
+                        step={1}
+                        marks={[
+                            { value: -24, label: '-24' },
+                            { value: 0, label: '0' },
+                            { value: 24, label: '+24' },
+                        ]}
+                        disabled={!vc.enabled || !hasModel}
+                        size="small"
+                        sx={{
+                            color: '#5b7cdb',
+                            '& .MuiSlider-markLabel': { fontSize: 11, color: '#888' },
+                            '& .MuiSlider-thumb': { width: 14, height: 14 },
+                            '& .MuiSlider-rail': { opacity: 0.2 },
+                            '& .MuiSlider-mark': { backgroundColor: 'rgba(255,255,255,0.2)' },
+                        }}
+                    />
+                </Box>
             </Box>
 
             {/* Status hints */}
