@@ -24,18 +24,18 @@ export const VoiceChangerControls = observer(() => {
     const hasModel = vc.selectedModel !== null;
 
     return (
-        <Box sx={{ p: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <Box sx={{ p: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', boxSizing: 'border-box' }}>
             {/* Enable toggle - segmented button */}
-            <ButtonGroup fullWidth size="small" sx={{ '& .MuiButton-root': { textTransform: 'none', fontSize: 13, py: '4px' } }}>
+            <ButtonGroup fullWidth size="small" sx={{ '& .MuiButton-root': { textTransform: 'none', fontSize: 13, py: '4px', minWidth: 0 } }}>
                 <Button
                     variant={!vc.enabled ? 'contained' : 'outlined'}
                     onClick={() => vc.setEnabled(false)}
                     sx={{
-                        backgroundColor: !vc.enabled ? '#5b7cdb' : 'transparent',
+                        backgroundColor: !vc.enabled ? '#fff' : 'transparent',
                         borderColor: 'rgba(255,255,255,0.2)',
-                        color: !vc.enabled ? '#fff' : 'rgba(255,255,255,0.5)',
+                        color: !vc.enabled ? '#1c1c1c' : 'rgba(255,255,255,0.5)',
                         '&:hover': {
-                            backgroundColor: !vc.enabled ? '#4a6bca' : 'rgba(255,255,255,0.05)',
+                            backgroundColor: !vc.enabled ? '#e0e0e0' : 'rgba(255,255,255,0.05)',
                             borderColor: 'rgba(255,255,255,0.3)',
                         },
                     }}
@@ -46,11 +46,11 @@ export const VoiceChangerControls = observer(() => {
                     variant={vc.enabled ? 'contained' : 'outlined'}
                     onClick={() => vc.setEnabled(true)}
                     sx={{
-                        backgroundColor: vc.enabled ? '#5b7cdb' : 'transparent',
+                        backgroundColor: vc.enabled ? '#fff' : 'transparent',
                         borderColor: 'rgba(255,255,255,0.2)',
-                        color: vc.enabled ? '#fff' : 'rgba(255,255,255,0.5)',
+                        color: vc.enabled ? '#1c1c1c' : 'rgba(255,255,255,0.5)',
                         '&:hover': {
-                            backgroundColor: vc.enabled ? '#4a6bca' : 'rgba(255,255,255,0.05)',
+                            backgroundColor: vc.enabled ? '#e0e0e0' : 'rgba(255,255,255,0.05)',
                             borderColor: 'rgba(255,255,255,0.3)',
                         },
                     }}
