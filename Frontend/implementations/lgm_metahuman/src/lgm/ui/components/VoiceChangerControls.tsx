@@ -10,7 +10,6 @@ import {
     Typography,
     CircularProgress,
 } from '@mui/material';
-import { toast } from 'react-toastify';
 
 export const VoiceChangerControls = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -47,13 +46,7 @@ export const VoiceChangerControls = observer(() => {
                 </Button>
                 <Button
                     size="small"
-                    onClick={() => {
-                        if (!hasModel) {
-                            toast.error('Select a model first');
-                            return;
-                        }
-                        vc.setEnabled(true);
-                    }}
+                    onClick={() => vc.setEnabled(true)}
                     sx={{
                         flex: 1,
                         textTransform: 'none',
