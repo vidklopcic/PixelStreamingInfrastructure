@@ -4,7 +4,6 @@ import { LgmStoreContext } from '../../stores/LgmStore';
 import {
     Box,
     Button,
-    ButtonGroup,
     MenuItem,
     Select,
     Slider,
@@ -26,38 +25,45 @@ export const VoiceChangerControls = observer(() => {
     return (
         <Box sx={{ p: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', boxSizing: 'border-box' }}>
             {/* Enable toggle - segmented button */}
-            <ButtonGroup fullWidth size="small" sx={{ '& .MuiButton-root': { textTransform: 'none', fontSize: 13, py: '4px', minWidth: 0 } }}>
+            <Box sx={{ display: 'flex', gap: 0, border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', overflow: 'hidden' }}>
                 <Button
-                    variant={!vc.enabled ? 'contained' : 'outlined'}
+                    size="small"
                     onClick={() => vc.setEnabled(false)}
                     sx={{
+                        flex: 1,
+                        textTransform: 'none',
+                        fontSize: 13,
+                        py: '4px',
+                        borderRadius: 0,
                         backgroundColor: !vc.enabled ? '#fff' : 'transparent',
-                        borderColor: 'rgba(255,255,255,0.2)',
                         color: !vc.enabled ? '#1c1c1c' : 'rgba(255,255,255,0.5)',
                         '&:hover': {
                             backgroundColor: !vc.enabled ? '#e0e0e0' : 'rgba(255,255,255,0.05)',
-                            borderColor: 'rgba(255,255,255,0.3)',
                         },
                     }}
                 >
                     Disabled
                 </Button>
                 <Button
-                    variant={vc.enabled ? 'contained' : 'outlined'}
+                    size="small"
                     onClick={() => vc.setEnabled(true)}
                     sx={{
+                        flex: 1,
+                        textTransform: 'none',
+                        fontSize: 13,
+                        py: '4px',
+                        borderRadius: 0,
+                        borderLeft: '1px solid rgba(255,255,255,0.2)',
                         backgroundColor: vc.enabled ? '#fff' : 'transparent',
-                        borderColor: 'rgba(255,255,255,0.2)',
                         color: vc.enabled ? '#1c1c1c' : 'rgba(255,255,255,0.5)',
                         '&:hover': {
                             backgroundColor: vc.enabled ? '#e0e0e0' : 'rgba(255,255,255,0.05)',
-                            borderColor: 'rgba(255,255,255,0.3)',
                         },
                     }}
                 >
                     Enabled
                 </Button>
-            </ButtonGroup>
+            </Box>
 
             {/* Model selector */}
             <Box>
