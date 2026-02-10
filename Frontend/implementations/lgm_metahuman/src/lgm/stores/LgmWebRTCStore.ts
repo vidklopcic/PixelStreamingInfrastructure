@@ -341,10 +341,10 @@ export class LgmWebRTCStore {
                 this.consumerEntries.delete(consumer.id);
             });
 
-            consumer.on('producerclose', () => {
+            // mediasoup emits 'producerclose' when remote producer is closed
+            (consumer as any).on('producerclose', () => {
                 console.log(`[WebRTC] producer closed for consumer ${consumer.id} (kind=${consumer.kind})`);
                 consumer.close();
-                consumer.track.stop();
                 this.consumerEntries.delete(consumer.id);
             });
         } catch (err) {
