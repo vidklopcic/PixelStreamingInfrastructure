@@ -331,11 +331,20 @@ export class LgmWebRTCStore {
 
             consumer.on('trackended', () => {
                 console.log(`[WebRTC] track ended for consumer ${consumer.id}`);
+                consumer.track.stop();
                 this.consumerEntries.delete(consumer.id);
             });
 
             consumer.on('transportclose', () => {
                 console.log(`[WebRTC] transport closed for consumer ${consumer.id}`);
+                consumer.track.stop();
+                this.consumerEntries.delete(consumer.id);
+            });
+
+            consumer.on('producerclose', () => {
+                console.log(`[WebRTC] producer closed for consumer ${consumer.id} (kind=${consumer.kind})`);
+                consumer.close();
+                consumer.track.stop();
                 this.consumerEntries.delete(consumer.id);
             });
         } catch (err) {

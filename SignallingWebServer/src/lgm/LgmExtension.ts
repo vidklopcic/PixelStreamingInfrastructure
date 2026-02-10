@@ -241,10 +241,19 @@ export class LgmExtension {
 
         // Handle player disconnect
         transport.on('close', () => {
-            this.playerSessionBindings.delete(playerId);
-            if (ws) {
+            const userId = this.wsToUserId.get(ws);
+            if (userId) {
+                // Remove client from session so getClient() won't return stale WebSocket
+                const binding = this.playerSessionBindings.get(playerId);
+                if (binding?.sessionSecret) {
+                    const session = this.sessionManager.getSession(binding.sessionSecret);
+                    if (session) {
+                        session.removeClient(userId);
+                    }
+                }
                 this.wsToUserId.delete(ws);
             }
+            this.playerSessionBindings.delete(playerId);
         });
     }
 
