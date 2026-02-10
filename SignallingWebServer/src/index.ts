@@ -211,6 +211,11 @@ program
         'URL of the media-server (mediasoup SFU) for audio routing.',
         config_file.media_server_url || process.env.MEDIA_SERVER_URL || ''
     )
+    .option(
+        '--recorder_url <url>',
+        'URL of the recorder service for session recording.',
+        config_file.recorder_url || process.env.RECORDER_URL || ''
+    )
     .helpOption('-h, --help', 'Display this help text.')
     .allowUnknownOption() // ignore unknown options which will allow versions to be swapped out into existing scripts with maybe older/newer options
     .parse();
@@ -312,6 +317,7 @@ if (options.lgm) {
         liveLinkPorts: options.live_link_ports,
         sessionTimeoutMs: parseInt(options.session_timeout, 10),
         mediaServerUrl: options.media_server_url || undefined,
+        recorderUrl: options.recorder_url || undefined,
     };
     const lgmExtension = createLgmExtension(signallingServer, lgmConfig);
     Logger.info(`LGM extension enabled with LiveLink ports: ${options.live_link_ports.join(', ')}`);

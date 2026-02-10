@@ -14,6 +14,7 @@ export class LgmSessionManager {
     private config: LgmConfig;
     private cleanupInterval?: NodeJS.Timeout;
     private mediaClient?: LgmMediaClient;
+    private recorderUrl?: string;
 
     // Cache rtpCapabilities per session for sending to clients on join
     private sessionRtpCapabilities: Map<string, any> = new Map();
@@ -23,6 +24,10 @@ export class LgmSessionManager {
         if (config.mediaServerUrl) {
             this.mediaClient = new LgmMediaClient(config.mediaServerUrl);
             Logger.info(`LGM: Media-server integration enabled at ${config.mediaServerUrl}`);
+        }
+        if (config.recorderUrl) {
+            this.recorderUrl = config.recorderUrl.replace(/\/$/, '');
+            Logger.info(`LGM: Recorder integration enabled at ${this.recorderUrl}`);
         }
         this.startCleanupTimer();
         Logger.info(`LGM: SessionManager initialized with ${config.streamerPorts.length} streamer ports, ${config.liveLinkPorts.length} LiveLink ports`);
@@ -566,6 +571,71 @@ export class LgmSessionManager {
                     .catch((err) => {
                         Logger.error(`LGM: setVcEnabled failed: ${err}`);
                         this.sendError(ws, 'vc-error', 'Failed to set voice changer enabled state');
+                    });
+                return true;
+            }
+
+            // Recording messages - proxy to recorder service
+            case LgmMessageType.StartRecording: {
+                if (!this.recorderUrl) {
+                    this.sendError(ws, 'recorder-error', 'Recorder not configured');
+                    return true;
+                }
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                fetch(`${this.recorderUrl}/sessions/${encodeURIComponent(session.sessionSecret)}/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                })
+                    .then(async (res) => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+                        return res.json();
+                    })
+                    .then((result) => {
+                        Logger.info(`LGM: Recording started for session ${session.sessionSecret}`);
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.RecordingStatus,
+                            namespace: 'lgm',
+                            data: { recording: true, ...result }
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: startRecording failed: ${err}`);
+                        this.sendError(ws, 'recorder-error', 'Failed to start recording');
+                    });
+                return true;
+            }
+
+            case LgmMessageType.StopRecording: {
+                if (!this.recorderUrl) {
+                    this.sendError(ws, 'recorder-error', 'Recorder not configured');
+                    return true;
+                }
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                fetch(`${this.recorderUrl}/sessions/${encodeURIComponent(session.sessionSecret)}/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                })
+                    .then(async (res) => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+                        return res.json();
+                    })
+                    .then(() => {
+                        Logger.info(`LGM: Recording stopped for session ${session.sessionSecret}`);
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.RecordingStatus,
+                            namespace: 'lgm',
+                            data: { recording: false }
+                        });
+                    })
+                    .catch((err) => {
+                        Logger.error(`LGM: stopRecording failed: ${err}`);
+                        this.sendError(ws, 'recorder-error', 'Failed to stop recording');
                     });
                 return true;
             }

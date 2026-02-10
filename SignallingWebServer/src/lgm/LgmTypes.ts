@@ -16,6 +16,8 @@ export interface LgmConfig {
     sessionTimeoutMs: number;
     /** URL of the media-server (mediasoup SFU) for audio routing */
     mediaServerUrl?: string;
+    /** URL of the recorder service */
+    recorderUrl?: string;
 }
 
 /**
