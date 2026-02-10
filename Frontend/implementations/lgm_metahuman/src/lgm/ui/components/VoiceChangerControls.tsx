@@ -1,4 +1,4 @@
-import React, { CSSProperties, useContext, useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { LgmStoreContext } from '../../stores/LgmStore';
 import {
@@ -6,7 +6,6 @@ import {
     MenuItem,
     Select,
     Slider,
-    Switch,
     Typography,
     CircularProgress,
 } from '@mui/material';
@@ -23,27 +22,41 @@ export const VoiceChangerControls = observer(() => {
     const hasModel = vc.selectedModel !== null;
 
     return (
-        <Box sx={ContainerStyle}>
-            {/* Enable toggle row */}
-            <Box sx={RowStyle}>
-                <Typography variant="body2" sx={{ color: '#ccc' }}>Active</Typography>
-                <Switch
-                    checked={vc.enabled}
-                    onChange={(e) => vc.setEnabled(e.target.checked)}
-                    size="small"
+        <Box sx={{ p: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Enable toggle */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="body2" sx={{ color: '#bbb', fontSize: 13 }}>Active</Typography>
+                <Box
+                    onClick={() => vc.setEnabled(!vc.enabled)}
                     sx={{
-                        '& .MuiSwitch-switchBase.Mui-checked': { color: '#7c9aff' },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#7c9aff' },
+                        width: 36,
+                        height: 20,
+                        borderRadius: '10px',
+                        backgroundColor: vc.enabled ? '#5b7cdb' : 'rgba(255,255,255,0.15)',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        transition: 'background-color 0.15s',
+                        '&:hover': { backgroundColor: vc.enabled ? '#6b8ceb' : 'rgba(255,255,255,0.25)' },
                     }}
-                />
+                >
+                    <Box sx={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: '50%',
+                        backgroundColor: '#fff',
+                        position: 'absolute',
+                        top: 3,
+                        left: vc.enabled ? 19 : 3,
+                        transition: 'left 0.15s',
+                    }} />
+                </Box>
             </Box>
 
-            {/* Divider */}
-            <Box sx={DividerStyle} />
-
             {/* Model selector */}
-            <Box sx={SectionStyle}>
-                <Typography variant="caption" sx={LabelStyle}>Model</Typography>
+            <Box>
+                <Typography variant="caption" sx={{ color: '#777', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', mb: '4px', display: 'block' }}>
+                    Model
+                </Typography>
                 <Box sx={{ position: 'relative' }}>
                     <Select
                         value={vc.selectedModel || ''}
@@ -52,10 +65,18 @@ export const VoiceChangerControls = observer(() => {
                         fullWidth
                         displayEmpty
                         disabled={!vc.enabled || vc.loading}
-                        sx={SelectStyle}
+                        sx={{
+                            backgroundColor: 'rgba(255,255,255,0.07)',
+                            borderRadius: '6px',
+                            fontSize: 13,
+                            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
+                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5b7cdb' },
+                            '& .MuiSelect-select': { py: '6px' },
+                        }}
                     >
                         <MenuItem value="" disabled>
-                            <em>None</em>
+                            <em style={{ color: '#666' }}>None</em>
                         </MenuItem>
                         {vc.models.map((model) => (
                             <MenuItem key={model.name} value={model.name}>
@@ -65,24 +86,20 @@ export const VoiceChangerControls = observer(() => {
                     </Select>
                     {vc.loading && (
                         <CircularProgress
-                            size={18}
-                            sx={{
-                                position: 'absolute',
-                                right: 36,
-                                top: '50%',
-                                marginTop: '-9px',
-                                color: '#7c9aff',
-                            }}
+                            size={16}
+                            sx={{ position: 'absolute', right: 34, top: '50%', mt: '-8px', color: '#5b7cdb' }}
                         />
                     )}
                 </Box>
             </Box>
 
             {/* Pitch slider */}
-            <Box sx={{ ...SectionStyle, opacity: (!vc.enabled || !hasModel) ? 0.4 : 1 }}>
-                <Box sx={RowStyle}>
-                    <Typography variant="caption" sx={LabelStyle}>Pitch</Typography>
-                    <Typography variant="caption" sx={{ color: '#999', fontFamily: 'monospace', fontSize: 12 }}>
+            <Box sx={{ opacity: (!vc.enabled || !hasModel) ? 0.35 : 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '2px' }}>
+                    <Typography variant="caption" sx={{ color: '#777', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Pitch
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#aaa', fontFamily: 'monospace', fontSize: 11 }}>
                         {vc.pitch > 0 ? '+' : ''}{vc.pitch} st
                     </Typography>
                 </Box>
@@ -95,89 +112,33 @@ export const VoiceChangerControls = observer(() => {
                     step={1}
                     marks={[
                         { value: -24, label: '-24' },
-                        { value: -12, label: '-12' },
                         { value: 0, label: '0' },
-                        { value: 12, label: '+12' },
                         { value: 24, label: '+24' },
                     ]}
                     disabled={!vc.enabled || !hasModel}
                     size="small"
-                    sx={SliderStyle}
+                    sx={{
+                        color: '#5b7cdb',
+                        px: '4px',
+                        '& .MuiSlider-markLabel': { fontSize: 9, color: '#555' },
+                        '& .MuiSlider-thumb': { width: 12, height: 12 },
+                        '& .MuiSlider-rail': { opacity: 0.2 },
+                        '& .MuiSlider-mark': { backgroundColor: 'rgba(255,255,255,0.2)' },
+                    }}
                 />
             </Box>
 
-            {/* Status */}
+            {/* Status hints */}
             {vc.enabled && !hasModel && vc.models.length > 0 && (
-                <Typography variant="caption" sx={{ color: '#aa8844', textAlign: 'center', mt: 0.5 }}>
-                    Select a model to activate voice changer
+                <Typography variant="caption" sx={{ color: '#887744', textAlign: 'center', fontSize: 11 }}>
+                    Select a model to activate
                 </Typography>
             )}
             {vc.models.length === 0 && (
-                <Typography variant="caption" sx={{ color: '#888', textAlign: 'center', mt: 0.5 }}>
+                <Typography variant="caption" sx={{ color: '#666', textAlign: 'center', fontSize: 11 }}>
                     No models available
                 </Typography>
             )}
         </Box>
     );
 });
-
-const ContainerStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-    minWidth: 280,
-};
-
-const RowStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-};
-
-const SectionStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-};
-
-const DividerStyle: CSSProperties = {
-    height: 1,
-    background: 'rgba(255,255,255,0.08)',
-};
-
-const LabelStyle = {
-    color: '#999',
-    fontSize: 11,
-    fontWeight: 600,
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-};
-
-const SelectStyle = {
-    '& .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'rgba(255,255,255,0.15)',
-    },
-    '&:hover .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'rgba(255,255,255,0.3)',
-    },
-    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-        borderColor: '#7c9aff',
-    },
-    fontSize: 13,
-};
-
-const SliderStyle = {
-    color: '#7c9aff',
-    mt: 1,
-    '& .MuiSlider-markLabel': {
-        fontSize: 10,
-        color: '#666',
-    },
-    '& .MuiSlider-thumb': {
-        width: 14,
-        height: 14,
-    },
-    '& .MuiSlider-rail': {
-        opacity: 0.2,
-    },
-};

@@ -151,9 +151,7 @@ export const LgmUeControls = observer(() => {
         <Dialog open={showVoiceChangerDialog} onClose={() => setShowVoiceChangerDialog(false)}>
             <LgmDialog
                 onClose={() => setShowVoiceChangerDialog(false)} title={'Voice Changer'}>
-                <div style={{ padding: 16 }}>
-                    <VoiceChangerControls />
-                </div>
+                <VoiceChangerControls />
             </LgmDialog>
         </Dialog>
     </div>;
