@@ -129,6 +129,16 @@ export class LgmMediaClient {
         return this.request('GET', `/sessions/${encodeURIComponent(sessionId)}/vc/state`);
     }
 
+    // --- Recording ---
+
+    async startRecording(sessionId: string): Promise<any> {
+        return this.request('POST', `/sessions/${encodeURIComponent(sessionId)}/recording/start`);
+    }
+
+    async stopRecording(sessionId: string): Promise<any> {
+        return this.request('POST', `/sessions/${encodeURIComponent(sessionId)}/recording/stop`);
+    }
+
     /**
      * Health check
      */

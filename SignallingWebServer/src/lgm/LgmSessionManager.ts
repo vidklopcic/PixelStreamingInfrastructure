@@ -596,24 +596,17 @@ export class LgmSessionManager {
                 return true;
             }
 
-            // Recording messages - proxy to recorder service
+            // Recording messages - route through media server (which creates PlainTransports to send RTP to recorder)
             case LgmMessageType.StartRecording: {
-                if (!this.recorderUrl) {
-                    this.sendError(ws, 'recorder-error', 'Recorder not configured');
+                if (!this.mediaClient) {
+                    this.sendError(ws, 'recorder-error', 'Media server not configured');
                     return true;
                 }
                 const session = this.getSessionByClient(ws);
                 if (!session) return true;
                 session.updateActivity();
 
-                fetch(`${this.recorderUrl}/sessions/${encodeURIComponent(session.sessionSecret)}/start`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                })
-                    .then(async (res) => {
-                        if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-                        return res.json();
-                    })
+                this.mediaClient.startRecording(session.sessionSecret)
                     .then((result) => {
                         Logger.info(`LGM: Recording started for session ${session.sessionSecret}`);
                         session.broadcast(undefined, {
@@ -630,22 +623,15 @@ export class LgmSessionManager {
             }
 
             case LgmMessageType.StopRecording: {
-                if (!this.recorderUrl) {
-                    this.sendError(ws, 'recorder-error', 'Recorder not configured');
+                if (!this.mediaClient) {
+                    this.sendError(ws, 'recorder-error', 'Media server not configured');
                     return true;
                 }
                 const session = this.getSessionByClient(ws);
                 if (!session) return true;
                 session.updateActivity();
 
-                fetch(`${this.recorderUrl}/sessions/${encodeURIComponent(session.sessionSecret)}/stop`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                })
-                    .then(async (res) => {
-                        if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-                        return res.json();
-                    })
+                this.mediaClient.stopRecording(session.sessionSecret)
                     .then(() => {
                         Logger.info(`LGM: Recording stopped for session ${session.sessionSecret}`);
                         session.broadcast(undefined, {
