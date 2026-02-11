@@ -18,18 +18,21 @@ export const LgmInstructorUi = observer(() => {
     return <div style={RootStyle}>
         {!!peerAudioStreams?.length && peerAudioStreams.map((s, i) => <LgmAudioStream key={i} stream={s} />)}
         <div style={StreamsStyle}>
-            <div style={LgmUnrealContainerStyle}>
-                <LgmUnreal
-                    interactive={true}
-                    cover radius />
-            </div>
-            {!!peerStreams?.length && <div style={VideoGridStyle}>
-                {peerStreams.map((s) => <LgmVideoStream
+            <div style={{
+                ...VideoGridStyle,
+                gridTemplateColumns: (1 + (peerStreams?.length || 0)) >= 3 ? '1fr 1fr' : '1fr'
+            }}>
+                <div style={VideoTileStyle}>
+                    <LgmUnreal
+                        interactive={true}
+                        cover radius />
+                </div>
+                {!!peerStreams?.length && peerStreams.map((s) => <LgmVideoStream
                     key={s.id}
                     stream={s}
-                    style={VideoStyle}
+                    style={VideoTileStyle}
                 />)}
-            </div>}
+            </div>
             <div style={{
                 position: 'absolute',
                 left: 0,
@@ -125,28 +128,22 @@ const StreamsStyle: CSSProperties = {
     position: 'relative',
     flexGrow: 1,
     flexBasis: 0,
-    maxWidth: '82vh',
     display: 'flex',
     flexDirection: 'column',
     gap: 16,
     justifyContent: 'center'
 };
 
-const LgmUnrealContainerStyle: CSSProperties = {
-    aspectRatio: '16 / 9'
-};
-
 const VideoGridStyle: CSSProperties = {
-    display: 'flex',
-    flexWrap: 'wrap',
+    display: 'grid',
     gap: 8,
-    justifyContent: 'center'
 };
 
-const VideoStyle: CSSProperties = {
+const VideoTileStyle: CSSProperties = {
     aspectRatio: '16 / 9',
     objectFit: 'cover',
     boxShadow: LgmStyles.shadow,
-    flex: '0 0 calc(50% - 4px)',
-    maxWidth: 'calc(50% - 4px)'
+    borderRadius: 16,
+    overflow: 'hidden',
+    minWidth: 0
 };
