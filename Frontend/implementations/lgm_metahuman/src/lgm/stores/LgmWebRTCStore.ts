@@ -58,7 +58,7 @@ export class LgmWebRTCStore {
 
         // Dead stream detection: remove consumers with ended/closed tracks
         this.healthCheckInterval = setInterval(() => {
-            for (const [id, entry] of this.consumerEntries) {
+            this.consumerEntries.forEach((entry, id) => {
                 if (entry.consumer.closed || entry.consumer.track.readyState === 'ended') {
                     console.log(`[WebRTC] Health check: removing dead consumer ${id} (closed=${entry.consumer.closed}, trackState=${entry.consumer.track.readyState})`);
                     if (!entry.consumer.closed) {
@@ -66,7 +66,7 @@ export class LgmWebRTCStore {
                     }
                     this.consumerEntries.delete(id);
                 }
-            }
+            });
         }, 2000);
     }
 
