@@ -25,7 +25,6 @@ export class LgmWebRTCStore {
     localStream?: MediaStream = undefined;
     accessRejected = false;
     muted = false;
-    private healthCheckInterval?: ReturnType<typeof setInterval>;
 
     // Pending transport creation callbacks
     private pendingSendTransportResolve?: (data: TransportCreatedData) => void;
@@ -55,24 +54,10 @@ export class LgmWebRTCStore {
             if (!this.localStream) return;
             this.localStream.getAudioTracks().forEach((track) => track.enabled = !this.muted);
         });
-
-        // Dead stream detection: remove consumers with ended/closed tracks
-        this.healthCheckInterval = setInterval(() => {
-            this.consumerEntries.forEach((entry, id) => {
-                if (entry.consumer.closed || entry.consumer.track.readyState === 'ended') {
-                    console.log(`[WebRTC] Health check: removing dead consumer ${id} (closed=${entry.consumer.closed}, trackState=${entry.consumer.track.readyState})`);
-                    if (!entry.consumer.closed) {
-                        entry.consumer.close();
-                    }
-                    this.consumerEntries.delete(id);
-                }
-            });
-        }, 2000);
     }
 
     get peerStreams(): MediaStream[] {
         return Array.from(this.consumerEntries.values())
-            .filter((entry) => !entry.consumer.closed && entry.consumer.track.readyState !== 'ended')
             .map((entry) => entry.stream)
             .filter((stream) => stream.getVideoTracks().length > 0);
     }
@@ -99,6 +84,9 @@ export class LgmWebRTCStore {
                 break;
             case 'new-consumer':
                 await this.handleNewConsumer(message);
+                break;
+            case 'producers-closed':
+                this.handleProducersClosed(message);
                 break;
         }
     }
@@ -314,6 +302,26 @@ export class LgmWebRTCStore {
         await this.createLocalConsumer(consumerData);
     }
 
+    /**
+     * Handle producers-closed - server notifies that producers were removed (e.g. client disconnected).
+     * Close local consumers that were consuming from those producers.
+     */
+    private handleProducersClosed(message: LgmApiMessage) {
+        const { producerIds } = message.data as { producerIds: string[] };
+        if (!producerIds?.length) return;
+
+        const producerIdSet = new Set(producerIds);
+        console.log(`[WebRTC] handleProducersClosed: ${producerIds.length} producers closed`);
+
+        this.consumerEntries.forEach((entry, id) => {
+            if (producerIdSet.has(entry.consumer.producerId)) {
+                console.log(`[WebRTC] Closing consumer ${id} (producerId=${entry.consumer.producerId})`);
+                entry.consumer.close();
+                this.consumerEntries.delete(id);
+            }
+        });
+    }
+
     private async createLocalConsumer(consumerData: {
         id: string;
         producerId: string;
@@ -368,11 +376,6 @@ export class LgmWebRTCStore {
     }
 
     dispose() {
-        if (this.healthCheckInterval) {
-            clearInterval(this.healthCheckInterval);
-            this.healthCheckInterval = undefined;
-        }
-
         this.producers.forEach((producer) => {
             producer.close();
         });

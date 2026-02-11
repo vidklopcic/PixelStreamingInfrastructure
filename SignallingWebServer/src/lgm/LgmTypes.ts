@@ -115,6 +115,7 @@ export enum LgmMessageType {
     Consume = 'consume',
     ConsumerResume = 'consumer-resume',
     NewConsumer = 'new-consumer',
+    ProducersClosed = 'producers-closed',
 
     // Voice changer
     VcGetModels = 'vc-get-models',

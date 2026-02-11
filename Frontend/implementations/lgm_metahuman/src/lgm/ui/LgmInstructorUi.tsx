@@ -23,11 +23,13 @@ export const LgmInstructorUi = observer(() => {
                     interactive={true}
                     cover radius />
             </div>
-            {!!peerStreams?.length && peerStreams.map((s, i) => <LgmVideoStream
-                key={s.id}
-                stream={s}
-                style={VideoStyle}
-            />)}
+            {!!peerStreams?.length && <div style={VideoGridStyle}>
+                {peerStreams.map((s) => <LgmVideoStream
+                    key={s.id}
+                    stream={s}
+                    style={VideoStyle}
+                />)}
+            </div>}
             <div style={{
                 position: 'absolute',
                 left: 0,
@@ -134,8 +136,17 @@ const LgmUnrealContainerStyle: CSSProperties = {
     aspectRatio: '16 / 9'
 };
 
+const VideoGridStyle: CSSProperties = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center'
+};
+
 const VideoStyle: CSSProperties = {
     aspectRatio: '16 / 9',
     objectFit: 'cover',
-    boxShadow: LgmStyles.shadow
+    boxShadow: LgmStyles.shadow,
+    flex: '0 0 calc(50% - 4px)',
+    maxWidth: 'calc(50% - 4px)'
 };

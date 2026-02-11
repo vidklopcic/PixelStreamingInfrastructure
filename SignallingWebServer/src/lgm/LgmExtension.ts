@@ -10,7 +10,7 @@ import {
     IServerConfig
 } from '@epicgames-ps/lib-pixelstreamingsignalling-ue5.7';
 import { LgmSessionManager } from './LgmSessionManager';
-import { LgmConfig, LgmMessage, LgmPlayerInfo } from './LgmTypes';
+import { LgmConfig, LgmMessage, LgmMessageType, LgmPlayerInfo } from './LgmTypes';
 import { LgmSession } from './LgmSession';
 
 /**
@@ -254,6 +254,16 @@ export class LgmExtension {
                     const mediaClient = this.sessionManager.getMediaClient();
                     if (mediaClient) {
                         mediaClient.cleanupClient(binding.sessionSecret, userId)
+                            .then((result) => {
+                                // Notify remaining clients to close consumers for these producers
+                                if (result?.producerIds?.length && session) {
+                                    session.broadcast(undefined, {
+                                        type: LgmMessageType.ProducersClosed,
+                                        namespace: 'lgm',
+                                        data: { producerIds: result.producerIds }
+                                    });
+                                }
+                            })
                             .catch((err) => {
                                 Logger.warn(`LGM: Failed to cleanup media for ${userId}: ${err}`);
                             });

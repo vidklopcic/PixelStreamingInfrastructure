@@ -55,13 +55,15 @@ export class LgmMediaClient {
     }
 
     /**
-     * Clean up a client's transports/producers/consumers in a session
+     * Clean up a client's transports/producers/consumers in a session.
+     * Returns the producer IDs that were closed.
      */
-    async cleanupClient(sessionId: string, userId: string): Promise<void> {
+    async cleanupClient(sessionId: string, userId: string): Promise<{ producerIds: string[] } | undefined> {
         try {
-            await this.request('DELETE', `/sessions/${encodeURIComponent(sessionId)}/client/${encodeURIComponent(userId)}`);
+            return await this.request('DELETE', `/sessions/${encodeURIComponent(sessionId)}/client/${encodeURIComponent(userId)}`);
         } catch (err) {
             Logger.warn(`LGM MediaClient: Failed to cleanup client ${userId} in session ${sessionId}: ${err}`);
+            return undefined;
         }
     }
 
