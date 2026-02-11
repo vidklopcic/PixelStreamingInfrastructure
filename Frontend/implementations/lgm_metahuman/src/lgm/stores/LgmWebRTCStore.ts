@@ -25,6 +25,7 @@ export class LgmWebRTCStore {
     localStream?: MediaStream = undefined;
     accessRejected = false;
     muted = false;
+    private healthCheckInterval?: ReturnType<typeof setInterval>;
 
     // Pending transport creation callbacks
     private pendingSendTransportResolve?: (data: TransportCreatedData) => void;
@@ -54,10 +55,24 @@ export class LgmWebRTCStore {
             if (!this.localStream) return;
             this.localStream.getAudioTracks().forEach((track) => track.enabled = !this.muted);
         });
+
+        // Dead stream detection: remove consumers with ended/closed tracks
+        this.healthCheckInterval = setInterval(() => {
+            for (const [id, entry] of this.consumerEntries) {
+                if (entry.consumer.closed || entry.consumer.track.readyState === 'ended') {
+                    console.log(`[WebRTC] Health check: removing dead consumer ${id} (closed=${entry.consumer.closed}, trackState=${entry.consumer.track.readyState})`);
+                    if (!entry.consumer.closed) {
+                        entry.consumer.close();
+                    }
+                    this.consumerEntries.delete(id);
+                }
+            }
+        }, 2000);
     }
 
     get peerStreams(): MediaStream[] {
         return Array.from(this.consumerEntries.values())
+            .filter((entry) => !entry.consumer.closed && entry.consumer.track.readyState !== 'ended')
             .map((entry) => entry.stream)
             .filter((stream) => stream.getVideoTracks().length > 0);
     }
@@ -353,6 +368,11 @@ export class LgmWebRTCStore {
     }
 
     dispose() {
+        if (this.healthCheckInterval) {
+            clearInterval(this.healthCheckInterval);
+            this.healthCheckInterval = undefined;
+        }
+
         this.producers.forEach((producer) => {
             producer.close();
         });

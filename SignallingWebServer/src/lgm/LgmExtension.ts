@@ -250,6 +250,14 @@ export class LgmExtension {
                     if (session) {
                         session.removeClient(userId);
                     }
+                    // Immediately clean up media resources on media-server
+                    const mediaClient = this.sessionManager.getMediaClient();
+                    if (mediaClient) {
+                        mediaClient.cleanupClient(binding.sessionSecret, userId)
+                            .catch((err) => {
+                                Logger.warn(`LGM: Failed to cleanup media for ${userId}: ${err}`);
+                            });
+                    }
                 }
                 this.wsToUserId.delete(ws);
             }

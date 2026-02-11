@@ -55,6 +55,17 @@ export class LgmMediaClient {
     }
 
     /**
+     * Clean up a client's transports/producers/consumers in a session
+     */
+    async cleanupClient(sessionId: string, userId: string): Promise<void> {
+        try {
+            await this.request('DELETE', `/sessions/${encodeURIComponent(sessionId)}/client/${encodeURIComponent(userId)}`);
+        } catch (err) {
+            Logger.warn(`LGM MediaClient: Failed to cleanup client ${userId} in session ${sessionId}: ${err}`);
+        }
+    }
+
+    /**
      * Create a WebRTC transport for a client
      */
     async createTransport(sessionId: string, role: string, userId: string): Promise<any> {

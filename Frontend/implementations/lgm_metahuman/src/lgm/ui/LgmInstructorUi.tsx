@@ -23,10 +23,11 @@ export const LgmInstructorUi = observer(() => {
                     interactive={true}
                     cover radius />
             </div>
-            {!!peerStreams?.length && <LgmVideoStream
-                stream={peerStreams[0]}
+            {!!peerStreams?.length && peerStreams.map((s, i) => <LgmVideoStream
+                key={s.id}
+                stream={s}
                 style={VideoStyle}
-            />}
+            />)}
             <div style={{
                 position: 'absolute',
                 left: 0,
