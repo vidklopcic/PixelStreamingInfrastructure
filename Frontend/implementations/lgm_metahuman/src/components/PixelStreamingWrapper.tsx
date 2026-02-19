@@ -9,8 +9,8 @@ import {
     LogLevel,
 } from '@epicgames-ps/lib-pixelstreamingfrontend-ue5.7';
 
-// Suppress verbose PixelStreaming Info/Debug logs
-Logger.InitLogging(LogLevel.Warning, false);
+// TODO: revert to LogLevel.Warning after debugging mobile hotspot issue
+Logger.InitLogging(LogLevel.Info, true);
 import { LgmStyles } from '../lgm/ui/LgmStyles';
 
 export interface PixelStreamingWrapperProps {
