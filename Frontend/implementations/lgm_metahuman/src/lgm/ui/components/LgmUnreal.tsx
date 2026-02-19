@@ -31,8 +31,8 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             StartVideoMuted: true,
             HoveringMouse: false,
             WaitForStreamer: true,
-            WebRTCMaxBitrate: 5000,
-            WebRTCMinBitrate: 500,
+            WebRTCMaxBitrate: 8000,
+            WebRTCMinBitrate: 1000,
         }}
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;

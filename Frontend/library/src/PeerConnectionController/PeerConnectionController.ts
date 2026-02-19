@@ -42,8 +42,6 @@ export class PeerConnectionController {
             Logger.Info('Forcing TURN usage by setting ICE Transport Policy in peer connection config.');
         }
 
-        Logger.Info(`RTCPeerConnection config: ${JSON.stringify(options)}`);
-
         // build a new peer connection with the options
         this.peerConnection = new RTCPeerConnection(options);
         this.peerConnection.onsignalingstatechange = (ev: Event) => this.handleSignalStateChange(ev);
@@ -243,7 +241,7 @@ export class PeerConnectionController {
     mungeSDP(sdp: string, useMic: boolean) {
         let mungedSDP = sdp.replace(
             /(a=fmtp:\d+ .*level-asymmetry-allowed=.*)\r\n/gm,
-            '$1;x-google-start-bitrate=2000;x-google-max-bitrate=5000\r\n'
+            '$1;x-google-start-bitrate=3000;x-google-max-bitrate=8000\r\n'
         );
 
         // set max bitrate to highest bitrate Opus supports

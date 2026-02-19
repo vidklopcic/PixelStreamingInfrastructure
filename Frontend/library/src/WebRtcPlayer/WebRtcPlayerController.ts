@@ -1217,8 +1217,6 @@ export class WebRtcPlayerController {
     handleOnConfigMessage(messageConfig: Messages.config) {
         this.resizePlayerStyle();
 
-        Logger.Info(`peerConnectionOptions received: ${JSON.stringify(messageConfig.peerConnectionOptions)}`);
-
         // Tell the WebRtcController to start a session with the peer options sent from the signaling server
         this.startSession(messageConfig.peerConnectionOptions);
     }
