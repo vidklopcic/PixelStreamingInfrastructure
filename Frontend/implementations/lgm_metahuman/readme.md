@@ -76,3 +76,60 @@ User interface:
 To set up the project locally, follow these steps:
 
 TODO
+
+## Running the Infrastructure on Windows
+
+The UE dev runs the Unreal streamer on the **same Windows box** as this
+infrastructure, so everything is `localhost` — no firewall rules, public IP, or
+STUN/TURN needed.
+
+Everything is pre-wired in `SignallingWebServer/config.json`: the signalling web
+server ("Wilbur") both serves the built UI and handles the WebSocket signalling.
+UE connects on `8888`; testers open the UI at `https://localhost:8443`.
+
+### 1. One-time setup
+
+Install **Node 22.14.0** (matches the repo `NODE_VERSION`), then from the repo root:
+
+```bat
+npm install
+npm run build:all:cjs
+```
+
+Then build this UI (outputs into `dist`, which `http_root` points at):
+
+```bat
+cd Frontend\implementations\lgm_metahuman
+npm install
+npm run build
+```
+
+### 2. Run the server (serves UI + signalling)
+
+```bat
+cd SignallingWebServer
+npm start
+```
+
+Open the UI at **`https://localhost:8443`** (accept the self-signed cert warning).
+
+### 3. Point UE at it
+
+Launch the UE Pixel Streaming plugin with:
+
+```
+-PixelStreamingURL=ws://localhost:8888
+```
+
+For multiple UE instances (e.g. instructor + student avatars) use `8890` / `8891` / `8892`.
+
+### UI dev / hot-reload (optional)
+
+When iterating on the UI itself, run Wilbur (step 2) **and** the webpack dev server:
+
+```bat
+cd Frontend\implementations\lgm_metahuman
+npm run serve
+```
+
+This serves the UI with HMR on `https://localhost:3000` and proxies signalling to Wilbur.
