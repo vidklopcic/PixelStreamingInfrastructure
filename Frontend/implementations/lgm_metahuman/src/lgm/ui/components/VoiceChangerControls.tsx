@@ -6,7 +6,6 @@ import {
     Button,
     CircularProgress,
     Slider,
-    Switch,
     Typography,
 } from '@mui/material';
 
@@ -59,34 +58,58 @@ export const VoiceChangerControls = observer(() => {
 
     return (
         <Box sx={{ p: '8px 20px 20px', width: '100%', boxSizing: 'border-box' }}>
-            {/* On/off + live status */}
-            <Box sx={{ display: 'flex', alignItems: 'center', minHeight: 42 }}>
-                <Switch
-                    checked={vc.enabled}
-                    onChange={(_, checked) => vc.setEnabled(checked)}
-                    disabled={!hasModels}
-                    sx={{
-                        ml: '-10px',
-                        '& .MuiSwitch-switchBase.Mui-checked': { color: OK },
-                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: OK },
-                    }}
-                />
-                <Typography variant="subtitle1" sx={{ flex: 1 }}>
-                    Voice changing
+            {/* On/off — one obvious full-width action */}
+            <Button
+                fullWidth
+                disableElevation
+                disabled={!hasModels}
+                onClick={() => vc.setEnabled(!vc.enabled)}
+                sx={{
+                    mt: '10px',
+                    py: '10px',
+                    borderRadius: '8px',
+                    textTransform: 'none',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    border: '1px solid',
+                    ...(vc.enabled
+                        ? {
+                            backgroundColor: 'rgba(123,198,126,0.12)',
+                            color: OK,
+                            borderColor: 'rgba(123,198,126,0.5)',
+                            '&:hover': { backgroundColor: 'rgba(123,198,126,0.22)' },
+                        }
+                        : {
+                            backgroundColor: '#fff',
+                            color: '#1c1c1c',
+                            borderColor: '#fff',
+                            '&:hover': { backgroundColor: '#e8e8e8' },
+                        }),
+                    '&.Mui-disabled': {
+                        backgroundColor: 'rgba(255,255,255,0.06)',
+                        color: 'rgba(255,255,255,0.3)',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                    },
+                }}
+            >
+                {vc.enabled ? 'Turn off voice changing' : 'Turn on voice changing'}
+            </Button>
+
+            {/* Live status: what students hear right now */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', mt: '10px', mb: '14px', minHeight: 18 }}>
+                <VoiceChangerStatus withLabel={false} />
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
+                    {!hasModels
+                        ? 'No voice models available.'
+                        : vc.loading
+                            ? 'Loading voice model — students still hear the original voice.'
+                            : vc.failed
+                                ? 'Voice model failed to load — pick another voice or try again.'
+                                : vc.enabled
+                                    ? 'Active — students hear the selected voice.'
+                                    : 'Off — students hear the original voice.'}
                 </Typography>
-                <VoiceChangerStatus />
             </Box>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, display: 'block', minHeight: 16, mb: '12px' }}>
-                {!hasModels
-                    ? 'No voice models available.'
-                    : vc.loading
-                        ? 'Students hear the original voice until the model is ready.'
-                        : vc.failed
-                            ? 'The voice model failed to load. Pick another voice or try again.'
-                            : vc.enabled
-                                ? 'Students hear the selected voice.'
-                                : 'Students hear the original voice.'}
-            </Typography>
 
             {/* Voice selection — quiet chips, white = selected (same as dialog toggles) */}
             <Typography variant="subtitle1">Voice</Typography>
