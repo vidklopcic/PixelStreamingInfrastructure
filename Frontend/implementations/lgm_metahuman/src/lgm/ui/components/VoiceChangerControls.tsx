@@ -11,6 +11,66 @@ import {
     CircularProgress,
 } from '@mui/material';
 
+const ACCENT = '#5b7cdb';
+const OK = '#7bc67e';
+const ERR = '#e57373';
+
+const sectionLabel = {
+    color: '#ddd',
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+} as const;
+
+/** One-line status under the model select — the panel's single live element. */
+const StatusRow = observer(() => {
+    const store = useContext(LgmStoreContext);
+    const vc = store.voiceChanger;
+
+    let dot: React.ReactNode = null;
+    let text = '';
+    let color = 'rgba(255,255,255,0.4)';
+    let subtext = '';
+
+    if (vc.loading) {
+        dot = <CircularProgress size={10} thickness={6} sx={{ color: ACCENT }} />;
+        text = 'Loading voice model…';
+        color = ACCENT;
+        subtext = 'Students hear the original voice until it is ready.';
+    } else if (vc.failed) {
+        dot = <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: ERR }} />;
+        text = 'Voice model failed to load';
+        color = ERR;
+        subtext = 'Try again or pick another model.';
+    } else if (vc.enabled && vc.status === 'ready') {
+        dot = <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: OK }} />;
+        text = 'Voice changing active';
+        color = OK;
+    } else if (!vc.enabled) {
+        dot = <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.25)' }} />;
+        text = 'Voice changing off — students hear the original voice';
+    }
+
+    if (!text) return null;
+
+    return (
+        <Box sx={{ mt: '8px', minHeight: 30 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {dot}
+                <Typography variant="caption" sx={{ color, fontSize: 12, lineHeight: 1.3 }}>
+                    {text}
+                </Typography>
+            </Box>
+            {subtext && (
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, display: 'block', mt: '2px', ml: '16px' }}>
+                    {subtext}
+                </Typography>
+            )}
+        </Box>
+    );
+});
+
 export const VoiceChangerControls = observer(() => {
     const store = useContext(LgmStoreContext);
     const vc = store.voiceChanger;
@@ -20,105 +80,87 @@ export const VoiceChangerControls = observer(() => {
         vc.requestState();
     }, []);
 
-    const hasModel = vc.selectedModel !== null;
+    const segment = (active: boolean) => ({
+        flex: 1,
+        textTransform: 'none',
+        fontSize: 13,
+        py: '5px',
+        borderRadius: 0,
+        backgroundColor: active ? '#fff' : 'transparent',
+        color: active ? '#1c1c1c' : 'rgba(255,255,255,0.5)',
+        '&:hover': {
+            backgroundColor: active ? '#e0e0e0' : 'rgba(255,255,255,0.05)',
+        },
+    });
 
     return (
-        <Box sx={{ p: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', boxSizing: 'border-box' }}>
-            {/* Enable toggle - segmented button */}
-            <Box sx={{ display: 'flex', gap: 0, border: '1px solid rgba(255,255,255,0.2)', borderRadius: '4px', overflow: 'hidden' }}>
-                <Button
-                    size="small"
-                    onClick={() => vc.setEnabled(false)}
-                    sx={{
-                        flex: 1,
-                        textTransform: 'none',
-                        fontSize: 13,
-                        py: '4px',
-                        borderRadius: 0,
-                        backgroundColor: !vc.enabled ? '#fff' : 'transparent',
-                        color: !vc.enabled ? '#1c1c1c' : 'rgba(255,255,255,0.5)',
-                        '&:hover': {
-                            backgroundColor: !vc.enabled ? '#e0e0e0' : 'rgba(255,255,255,0.05)',
-                        },
-                    }}
-                >
+        <Box
+            sx={{
+                p: '12px 16px 20px',
+                width: 340,
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '18px',
+            }}
+        >
+            {/* Enable toggle */}
+            <Box sx={{ display: 'flex', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', overflow: 'hidden' }}>
+                <Button size="small" onClick={() => vc.setEnabled(false)} sx={segment(!vc.enabled)}>
                     Disabled
                 </Button>
                 <Button
                     size="small"
                     onClick={() => vc.setEnabled(true)}
-                    sx={{
-                        flex: 1,
-                        textTransform: 'none',
-                        fontSize: 13,
-                        py: '4px',
-                        borderRadius: 0,
-                        borderLeft: '1px solid rgba(255,255,255,0.2)',
-                        backgroundColor: vc.enabled ? '#fff' : 'transparent',
-                        color: vc.enabled ? '#1c1c1c' : 'rgba(255,255,255,0.5)',
-                        '&:hover': {
-                            backgroundColor: vc.enabled ? '#e0e0e0' : 'rgba(255,255,255,0.05)',
-                        },
-                    }}
+                    sx={{ ...segment(vc.enabled), borderLeft: '1px solid rgba(255,255,255,0.2)' }}
                 >
                     Enabled
                 </Button>
             </Box>
 
-            {/* Model selector */}
+            {/* Model */}
             <Box>
-                <Typography variant="caption" sx={{ color: '#ddd', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', mb: '4px', display: 'block' }}>
+                <Typography variant="caption" sx={{ ...sectionLabel, mb: '6px', display: 'block' }}>
                     Model
                 </Typography>
-                <Box sx={{ position: 'relative' }}>
-                    <Select
-                        value={vc.selectedModel || ''}
-                        onChange={(e) => vc.setModel(e.target.value as string)}
-                        size="small"
-                        fullWidth
-                        displayEmpty
-                        disabled={vc.loading}
-                        sx={{
-                            backgroundColor: 'rgba(255,255,255,0.07)',
-                            borderRadius: '6px',
-                            fontSize: 13,
-                            color: '#fff',
-                            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
-                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5b7cdb' },
-                            '& .MuiSelect-select': { py: '6px' },
-                            '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.5)' },
-                        }}
-                    >
-                        {vc.models.map((model) => (
-                            <MenuItem key={model.name} value={model.name}>
-                                {model.name}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                    {vc.loading && (
-                        <CircularProgress
-                            size={16}
-                            sx={{ position: 'absolute', right: 34, top: '50%', mt: '-8px', color: '#5b7cdb' }}
-                        />
+                <Select
+                    value={vc.selectedModel || ''}
+                    onChange={(e) => vc.setModel(e.target.value as string)}
+                    size="small"
+                    fullWidth
+                    displayEmpty
+                    disabled={vc.loading}
+                    sx={{
+                        backgroundColor: 'rgba(255,255,255,0.07)',
+                        borderRadius: '6px',
+                        fontSize: 13,
+                        color: '#fff',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.12)' },
+                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.3)' },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: ACCENT },
+                        '& .MuiSelect-select': { py: '7px' },
+                        '& .MuiSelect-icon': { color: 'rgba(255,255,255,0.5)' },
+                    }}
+                >
+                    {vc.models.length === 0 && (
+                        <MenuItem value="" disabled>
+                            No voice models available
+                        </MenuItem>
                     )}
-                </Box>
-                {vc.loading && (
-                    <Typography variant="caption" sx={{ color: '#5b7cdb', fontSize: 11, mt: '4px', display: 'block' }}>
-                        Loading voice model… original voice is heard until it is ready
-                    </Typography>
-                )}
-                {vc.failed && !vc.loading && (
-                    <Typography variant="caption" sx={{ color: '#e57373', fontSize: 11, mt: '4px', display: 'block' }}>
-                        Voice model failed to load — voice changing is inactive
-                    </Typography>
-                )}
+                    {vc.models.map((model) => (
+                        <MenuItem key={model.name} value={model.name}>
+                            {model.name}
+                        </MenuItem>
+                    ))}
+                </Select>
+                <StatusRow />
             </Box>
 
-            {/* Pitch slider */}
-            <Box sx={{ opacity: (!vc.enabled || !hasModel) ? 0.35 : 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: '2px' }}>
-                    <Typography variant="caption" sx={{ color: '#ddd', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            {/* Pitch — always adjustable so it can be pre-set before enabling */}
+            <Box>
+                <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: '2px' }}>
+                    <Typography variant="caption" sx={sectionLabel}>
                         Pitch
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#ccc', fontFamily: 'monospace', fontSize: 12 }}>
@@ -138,10 +180,9 @@ export const VoiceChangerControls = observer(() => {
                             { value: 0, label: '0' },
                             { value: 24, label: '+24' },
                         ]}
-                        disabled={!vc.enabled || !hasModel}
                         size="small"
                         sx={{
-                            color: '#5b7cdb',
+                            color: ACCENT,
                             '& .MuiSlider-markLabel': { fontSize: 11, color: '#888' },
                             '& .MuiSlider-thumb': { width: 14, height: 14 },
                             '& .MuiSlider-rail': { opacity: 0.2 },
@@ -149,13 +190,12 @@ export const VoiceChangerControls = observer(() => {
                         }}
                     />
                 </Box>
+                {!vc.enabled && vc.pitch !== 0 && (
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, display: 'block' }}>
+                        Applied when voice changing is enabled.
+                    </Typography>
+                )}
             </Box>
-
-            {vc.models.length === 0 && (
-                <Typography variant="caption" sx={{ color: '#666', textAlign: 'center', fontSize: 11 }}>
-                    No models available
-                </Typography>
-            )}
         </Box>
     );
 });
