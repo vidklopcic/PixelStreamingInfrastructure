@@ -58,7 +58,7 @@ export const VoiceChangerControls = observer(() => {
     const hasModels = vc.models.length > 0;
 
     return (
-        <Box sx={{ p: '4px 16px 20px', width: 340, maxWidth: '100%', boxSizing: 'border-box' }}>
+        <Box sx={{ p: '8px 20px 20px', width: '100%', boxSizing: 'border-box' }}>
             {/* On/off + live status */}
             <Box sx={{ display: 'flex', alignItems: 'center', minHeight: 42 }}>
                 <Switch
@@ -66,6 +66,7 @@ export const VoiceChangerControls = observer(() => {
                     onChange={(_, checked) => vc.setEnabled(checked)}
                     disabled={!hasModels}
                     sx={{
+                        ml: '-10px',
                         '& .MuiSwitch-switchBase.Mui-checked': { color: OK },
                         '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: OK },
                     }}
@@ -75,7 +76,7 @@ export const VoiceChangerControls = observer(() => {
                 </Typography>
                 <VoiceChangerStatus />
             </Box>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, display: 'block', minHeight: 16, mb: '8px' }}>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, display: 'block', minHeight: 16, mb: '12px' }}>
                 {!hasModels
                     ? 'No voice models available.'
                     : vc.loading
@@ -87,23 +88,40 @@ export const VoiceChangerControls = observer(() => {
                                 : 'Students hear the original voice.'}
             </Typography>
 
-            {/* Voice selection — same button-grid pattern as Character/Camera */}
+            {/* Voice selection — quiet chips, white = selected (same as dialog toggles) */}
             <Typography variant="subtitle1">Voice</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', mt: '4px', mb: '16px' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', mt: '6px', mb: '18px' }}>
                 {vc.models.map((model) => {
                     const selected = vc.selectedModel === model.name;
                     return (
                         <Button
                             key={model.name}
-                            variant="contained"
-                            color={selected ? 'secondary' : undefined}
+                            disableElevation
                             disabled={vc.loading && !selected}
                             onClick={() => vc.setModel(model.name)}
-                            sx={{ textTransform: 'none', px: '12px' }}
-                            startIcon={selected && vc.loading
-                                ? <CircularProgress size={12} sx={{ color: 'inherit' }} />
-                                : undefined}
+                            sx={{
+                                textTransform: 'none',
+                                fontSize: 13,
+                                py: '7px',
+                                minWidth: 0,
+                                borderRadius: '8px',
+                                backgroundColor: selected ? '#fff' : 'rgba(255,255,255,0.07)',
+                                color: selected ? '#1c1c1c' : '#ddd',
+                                border: '1px solid',
+                                borderColor: selected ? '#fff' : 'rgba(255,255,255,0.15)',
+                                '&:hover': {
+                                    backgroundColor: selected ? '#e8e8e8' : 'rgba(255,255,255,0.14)',
+                                },
+                                '&.Mui-disabled': {
+                                    color: 'rgba(255,255,255,0.3)',
+                                    backgroundColor: 'rgba(255,255,255,0.04)',
+                                    borderColor: 'rgba(255,255,255,0.08)',
+                                },
+                            }}
                         >
+                            {selected && vc.loading && (
+                                <CircularProgress size={13} sx={{ color: '#1c1c1c', mr: '6px' }} />
+                            )}
                             {model.name}
                         </Button>
                     );
