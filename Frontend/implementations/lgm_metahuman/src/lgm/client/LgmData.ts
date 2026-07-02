@@ -81,5 +81,7 @@ export interface VcStateData {
     model: string | null;
     pitch: number;
     enabled: boolean;
+    /** Voice model load status reported by the voice changer service. */
+    status?: 'idle' | 'loading' | 'ready' | 'failed';
 }
 

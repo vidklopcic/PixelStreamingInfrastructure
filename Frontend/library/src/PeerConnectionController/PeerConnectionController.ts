@@ -241,7 +241,7 @@ export class PeerConnectionController {
     mungeSDP(sdp: string, useMic: boolean) {
         let mungedSDP = sdp.replace(
             /(a=fmtp:\d+ .*level-asymmetry-allowed=.*)\r\n/gm,
-            '$1;x-google-start-bitrate=10000;x-google-max-bitrate=100000\r\n'
+            '$1;x-google-start-bitrate=3000;x-google-max-bitrate=8000\r\n'
         );
 
         // set max bitrate to highest bitrate Opus supports
