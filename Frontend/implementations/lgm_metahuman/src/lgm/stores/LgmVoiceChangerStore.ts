@@ -16,6 +16,7 @@ export class LgmVoiceChangerStore {
     pitch = 0;
     enabled = false;
     loading = false;
+    failed = false;
 
     constructor(base: LgmStore) {
         this.base = base;
@@ -51,7 +52,9 @@ export class LgmVoiceChangerStore {
         this.selectedModel = data.model ?? null;
         this.pitch = data.pitch ?? 0;
         this.enabled = data.enabled ?? false;
-        this.loading = false;
+        // Older servers don't report status; treat a state reply as load-complete then.
+        this.loading = data.status === 'loading';
+        this.failed = data.status === 'failed';
     }
 
     requestModels() {
@@ -70,6 +73,7 @@ export class LgmVoiceChangerStore {
 
     setModel(modelName: string) {
         this.loading = true;
+        this.failed = false;
         this.selectedModel = modelName;
         this.base.client.send({
             type: 'vc-set-model',
@@ -87,6 +91,10 @@ export class LgmVoiceChangerStore {
 
     setEnabled(enabled: boolean) {
         this.enabled = enabled;
+        if (enabled && this.selectedModel) {
+            this.loading = true;
+        }
+        this.failed = false;
         this.base.client.send({
             type: 'vc-set-enabled',
             data: { enabled }

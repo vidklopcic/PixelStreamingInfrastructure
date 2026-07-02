@@ -19,6 +19,9 @@ export class LgmSessionManager {
     // Cache rtpCapabilities per session for sending to clients on join
     private sessionRtpCapabilities: Map<string, any> = new Map();
 
+    // Active voice-changer status pollers (sessionSecret -> timer)
+    private vcStatusPollers: Map<string, NodeJS.Timeout> = new Map();
+
     constructor(config: LgmConfig) {
         this.config = config;
         if (config.mediaServerUrl) {
@@ -538,6 +541,9 @@ export class LgmSessionManager {
                             namespace: 'lgm',
                             data: result
                         });
+                        // Model loading is async in the voice changer — keep
+                        // clients updated until it reports ready/failed.
+                        this.pollVcStateWhileLoading(session);
                     })
                     .catch((err) => {
                         Logger.error(`LGM: setVcModel failed: ${err}`);
@@ -588,6 +594,9 @@ export class LgmSessionManager {
                             namespace: 'lgm',
                             data: state
                         });
+                        if (enabled) {
+                            this.pollVcStateWhileLoading(session);
+                        }
                     })
                     .catch((err) => {
                         Logger.error(`LGM: setVcEnabled failed: ${err}`);
@@ -673,6 +682,43 @@ export class LgmSessionManager {
             }
         }
         return undefined;
+    }
+
+    /**
+     * Poll the media server's VC state while a voice model is loading and
+     * broadcast updates so clients can show a live loading indicator. Stops
+     * when the status leaves 'loading' (ready/failed) or after ~90s.
+     */
+    private pollVcStateWhileLoading(session: LgmSession): void {
+        const key = session.sessionSecret;
+        if (this.vcStatusPollers.has(key)) return; // already polling
+
+        let attempts = 0;
+        let lastStatus: string | undefined;
+        const tick = () => {
+            attempts++;
+            this.mediaClient!.getVcState(key)
+                .then((state: any) => {
+                    if (state?.status !== lastStatus) {
+                        lastStatus = state?.status;
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.VcState,
+                            namespace: 'lgm',
+                            data: state
+                        });
+                    }
+                    if (state?.status === 'loading' && attempts < 90) {
+                        this.vcStatusPollers.set(key, setTimeout(tick, 1000));
+                        return;
+                    }
+                    this.vcStatusPollers.delete(key);
+                })
+                .catch((err) => {
+                    Logger.error(`LGM: VC status poll failed: ${err}`);
+                    this.vcStatusPollers.delete(key);
+                });
+        };
+        this.vcStatusPollers.set(key, setTimeout(tick, 500));
     }
 
     /**

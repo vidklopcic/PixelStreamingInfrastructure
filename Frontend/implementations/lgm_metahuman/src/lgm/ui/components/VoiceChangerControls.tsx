@@ -103,6 +103,16 @@ export const VoiceChangerControls = observer(() => {
                         />
                     )}
                 </Box>
+                {vc.loading && (
+                    <Typography variant="caption" sx={{ color: '#5b7cdb', fontSize: 11, mt: '4px', display: 'block' }}>
+                        Loading voice model… original voice is heard until it is ready
+                    </Typography>
+                )}
+                {vc.failed && !vc.loading && (
+                    <Typography variant="caption" sx={{ color: '#e57373', fontSize: 11, mt: '4px', display: 'block' }}>
+                        Voice model failed to load — voice changing is inactive
+                    </Typography>
+                )}
             </Box>
 
             {/* Pitch slider */}
