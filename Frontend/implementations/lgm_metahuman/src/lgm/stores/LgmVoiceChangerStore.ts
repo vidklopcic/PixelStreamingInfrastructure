@@ -53,9 +53,30 @@ export class LgmVoiceChangerStore {
         }
     }
 
+    private stateReceived = false;
+
+    /**
+     * Fetch models + state once the session is joined, retrying until the
+     * first reply arrives (the websocket→session binding on the signalling
+     * server settles with the first session messages). Without this the
+     * status indicator stays blank after a reload until the dialog is opened.
+     */
+    bootstrap() {
+        let attempts = 0;
+        const tick = () => {
+            if (this.stateReceived || attempts >= 5) return;
+            attempts++;
+            this.requestModels();
+            this.requestState();
+            setTimeout(tick, 2000);
+        };
+        tick();
+    }
+
     private handleState(message: LgmApiMessage) {
         const data = message.data as VcStateData;
         if (!data) return;
+        this.stateReceived = true;
         this.selectedModel = data.model ?? null;
         this.pitch = data.pitch ?? 0;
         this.enabled = data.enabled ?? false;

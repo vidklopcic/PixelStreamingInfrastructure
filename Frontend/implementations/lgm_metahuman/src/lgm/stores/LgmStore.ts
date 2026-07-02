@@ -121,6 +121,7 @@ export class LgmStore {
             return;
         }
         this.joined = true;
+        this.voiceChanger.bootstrap();
         // Send a ping message every second
         this.pingInterval = setInterval(() => {
             // remove peers that have been inactive for more than 3 seconds
