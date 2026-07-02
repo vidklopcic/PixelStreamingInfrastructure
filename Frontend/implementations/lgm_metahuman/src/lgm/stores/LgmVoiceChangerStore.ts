@@ -97,8 +97,18 @@ export class LgmVoiceChangerStore {
     }
 
     setEnabled(enabled: boolean) {
+        if (enabled && !this.selectedModel) {
+            // Enabling without a model is a silent no-op server-side; pick the
+            // first model so the toggle always does something predictable.
+            if (this.models.length === 0) return;
+            this.selectedModel = this.models[0].name;
+            this.base.client.send({
+                type: 'vc-set-model',
+                data: { model_name: this.selectedModel }
+            });
+        }
         this.enabled = enabled;
-        this.status = enabled && this.selectedModel ? 'loading' : 'idle';
+        this.status = enabled ? 'loading' : 'idle';
         this.base.client.send({
             type: 'vc-set-enabled',
             data: { enabled }

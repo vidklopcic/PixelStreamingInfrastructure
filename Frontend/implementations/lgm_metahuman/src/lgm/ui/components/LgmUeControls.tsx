@@ -6,7 +6,7 @@ import { LgmEmotionWheel } from './controls/LgmEmotionWheel';
 import { Refresh } from '@mui/icons-material';
 import { LgmDialog } from './dialogs/LgmDialog';
 import { LiveLinkTutorial } from '../../../components/LiveLinkTutorial';
-import { VoiceChangerControls } from './VoiceChangerControls';
+import { VoiceChangerControls, VoiceChangerStatus } from './VoiceChangerControls';
 
 const characterNames: [number, string, string, string][] = [
     [0, 'A', 'M', '15'],
@@ -48,8 +48,9 @@ export const LgmUeControls = observer(() => {
                 onClick={() => setShowVoiceChangerDialog(true)}
                 style={{
                     textTransform: 'none',
-                    flex: 1
-                }}>Voice Changer</Button>
+                    flex: 1,
+                    gap: 8
+                }}>Voice Changer<VoiceChangerStatus withLabel={false} /></Button>
         </div>
         <LgmEmotionWheel
             size={300}
