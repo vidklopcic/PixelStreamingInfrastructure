@@ -29,7 +29,7 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             AutoConnect: true,
             ss: LgmConfig.SIGNALLING_SERVER,
             StartVideoMuted: true,
-            HoveringMouse: false,
+            HoveringMouse: true,
             WaitForStreamer: true,
             WebRTCMaxBitrate: 8000,
             WebRTCMinBitrate: 1000,
