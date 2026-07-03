@@ -31,7 +31,7 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             StartVideoMuted: true,
             HoveringMouse: true,
             WaitForStreamer: true,
-            WebRTCMaxBitrate: 8000,
+            WebRTCMaxBitrate: 6000,
             WebRTCMinBitrate: 1000,
         }}
         onStreamingCreated={(streaming) => {

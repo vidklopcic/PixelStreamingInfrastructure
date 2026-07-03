@@ -58,6 +58,42 @@ export const PixelStreamingWrapper = ({
                 onConneced?.(false);
             });
 
+            // Compact WebRTC stats line every 5s for diagnosing stream glitches
+            // (read via browser console; counters are deltas per 5s window).
+            const statsLog = { prev: undefined as any, lastMs: 0 };
+            streaming.addEventListener('statsReceived', (e: any) => {
+                try {
+                    const s = e.data?.aggregatedStats;
+                    const v = s?.inboundVideoStats;
+                    if (!v) return;
+                    const now = Date.now();
+                    if (now - statsLog.lastMs < 5000) return;
+                    const prev = statsLog.prev;
+                    statsLog.lastMs = now;
+                    statsLog.prev = {
+                        framesDropped: v.framesDropped ?? 0,
+                        packetsLost: v.packetsLost ?? 0,
+                        freezeCount: v.freezeCount ?? 0,
+                        nackCount: v.nackCount ?? 0,
+                        pliCount: v.pliCount ?? 0,
+                    };
+                    const rtt = s.getActiveCandidatePair?.()?.currentRoundTripTime;
+                    console.info('[metka-stats]', JSON.stringify({
+                        fps: v.framesPerSecond,
+                        kbps: v.bitrate !== undefined ? Math.round(v.bitrate / 1000) : undefined,
+                        res: v.frameWidth ? `${v.frameWidth}x${v.frameHeight}` : undefined,
+                        jitterMs: v.jitter !== undefined ? Math.round(v.jitter * 1000) : undefined,
+                        rttMs: rtt !== undefined ? Math.round(rtt * 1000) : undefined,
+                        dropped: (v.framesDropped ?? 0) - (prev?.framesDropped ?? 0),
+                        lost: (v.packetsLost ?? 0) - (prev?.packetsLost ?? 0),
+                        freezes: (v.freezeCount ?? 0) - (prev?.freezeCount ?? 0),
+                        nack: (v.nackCount ?? 0) - (prev?.nackCount ?? 0),
+                        pli: (v.pliCount ?? 0) - (prev?.pliCount ?? 0),
+                    }));
+                } catch {
+                }
+            });
+
             // Save the library instance into component state so that it can be accessed later:
             setPixelStreaming(streaming);
             onStreamingCreated(streaming);
