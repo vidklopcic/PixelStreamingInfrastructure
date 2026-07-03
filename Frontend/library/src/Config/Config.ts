@@ -63,6 +63,7 @@ export class NumericParameters {
     static WebRTCMinBitrate = 'WebRTCMinBitrate' as const;
     static WebRTCMaxBitrate = 'WebRTCMaxBitrate' as const;
     static MaxReconnectAttempts = 'MaxReconnectAttempts' as const;
+    static StreamStallTimeoutSecs = 'StreamStallTimeoutSecs' as const;
     static StreamerAutoJoinInterval = 'StreamerAutoJoinInterval' as const;
     static KeepaliveDelay = 'KeepaliveDelay' as const;
 }
@@ -652,6 +653,22 @@ export class Config {
                 Object.prototype.hasOwnProperty.call(settings, NumericParameters.MaxReconnectAttempts)
                     ? settings[NumericParameters.MaxReconnectAttempts]
                     : 3 /*value*/,
+                useUrlParams
+            )
+        );
+
+        this.numericParameters.set(
+            NumericParameters.StreamStallTimeoutSecs,
+            new SettingNumber(
+                NumericParameters.StreamStallTimeoutSecs,
+                'Stream Stall Timeout',
+                'Seconds without a newly decoded video frame before the stream is considered stalled and a reconnect is attempted. 0 disables stall detection.',
+                0 /*min*/,
+                60 /*max*/,
+                settings &&
+                Object.prototype.hasOwnProperty.call(settings, NumericParameters.StreamStallTimeoutSecs)
+                    ? settings[NumericParameters.StreamStallTimeoutSecs]
+                    : 5 /*value*/,
                 useUrlParams
             )
         );

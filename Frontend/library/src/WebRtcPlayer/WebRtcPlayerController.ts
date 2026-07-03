@@ -104,6 +104,9 @@ export class WebRtcPlayerController {
     forceReconnect: boolean;
     reconnectAttempt: number;
     isReconnecting: boolean;
+    iceDisconnectRecoveryHandle: number | undefined;
+    stallLastFramesDecoded: number | undefined;
+    stallLastAdvanceTimeMs: number;
     disconnectMessage: string;
     subscribedStream: string;
     signallingUrlBuilder: () => string;
@@ -247,6 +250,9 @@ export class WebRtcPlayerController {
 
             this.afkController.stopAfkWarningTimer();
 
+            this.clearIceDisconnectRecoveryTimer();
+            this.resetStreamStallDetection();
+
             // stop sending stats on interval if we have closed our connection
             if (this.statsTimerHandle && this.statsTimerHandle !== undefined) {
                 window.clearInterval(this.statsTimerHandle);
@@ -293,6 +299,9 @@ export class WebRtcPlayerController {
         this.forceReconnect = false;
         this.reconnectAttempt = 0;
         this.isReconnecting = false;
+        this.iceDisconnectRecoveryHandle = undefined;
+        this.stallLastFramesDecoded = undefined;
+        this.stallLastAdvanceTimeMs = 0;
 
         this.config._addOnOptionSettingChangedListener(OptionParameters.StreamerId, (streamerid) => {
             if (streamerid === undefined || streamerid === '') {
@@ -1154,17 +1163,32 @@ export class WebRtcPlayerController {
             this.pixelStreaming._onWebRtcFailed();
         let webRtcConnectedSent = false;
         this.peerConnectionController.onIceConnectionStateChange = () => {
+            const iceState = this.peerConnectionController.peerConnection.iceConnectionState;
             // Browsers emit "connected" when getting first connection and "completed" when finishing
             // candidate checking. However, sometimes browsers can skip "connected" and only emit "completed".
             // Therefore need to check both cases and emit onWebRtcConnected only once on the first hit.
-            if (
-                !webRtcConnectedSent &&
-                ['connected', 'completed'].includes(
-                    this.peerConnectionController.peerConnection.iceConnectionState
-                )
-            ) {
+            if (!webRtcConnectedSent && ['connected', 'completed'].includes(iceState)) {
                 this.pixelStreaming._onWebRtcConnected();
                 webRtcConnectedSent = true;
+            }
+
+            if (iceState === 'connected' || iceState === 'completed') {
+                this.clearIceDisconnectRecoveryTimer();
+                this.resetStreamStallDetection();
+            } else if (iceState === 'disconnected') {
+                // "disconnected" is often transient (e.g. a brief network blip) and the browser
+                // can recover on its own - only force a reconnect if it persists.
+                if (this.iceDisconnectRecoveryHandle === undefined) {
+                    this.iceDisconnectRecoveryHandle = window.setTimeout(() => {
+                        this.iceDisconnectRecoveryHandle = undefined;
+                        this.attemptStreamRecovery('Connection to the stream was lost.');
+                    }, 4000);
+                }
+            } else if (iceState === 'failed') {
+                // WebRTC never recovers a failed ICE connection by itself - a reconnect is
+                // the only way back to a working stream.
+                this.clearIceDisconnectRecoveryTimer();
+                this.attemptStreamRecovery('Connection to the stream failed.');
             }
         };
 
@@ -1978,7 +2002,58 @@ export class WebRtcPlayerController {
      * @param stats - Aggregated Stats
      */
     handleVideoStats(stats: AggregatedStats) {
+        this.detectStreamStall(stats);
         this.pixelStreaming._onVideoStats(stats);
+    }
+
+    /**
+     * Watchdog for a dead media path: the signalling websocket and ICE state can both look
+     * healthy while no video is actually being decoded (e.g. after congestion ate the only
+     * keyframe). If decoded frames stop advancing while the video should be playing, force
+     * a reconnect to get a fresh peer connection and keyframe.
+     */
+    private detectStreamStall(stats: AggregatedStats) {
+        const timeoutSecs = this.config.getNumericSettingValue(NumericParameters.StreamStallTimeoutSecs);
+        const framesDecoded = stats.inboundVideoStats?.framesDecoded;
+        if (timeoutSecs <= 0 || framesDecoded === undefined) {
+            return;
+        }
+        const now = Date.now();
+        if (this.stallLastFramesDecoded === undefined || framesDecoded !== this.stallLastFramesDecoded) {
+            this.stallLastFramesDecoded = framesDecoded;
+            this.stallLastAdvanceTimeMs = now;
+            return;
+        }
+        if (this.isReconnecting || this.videoPlayer.isPaused()) {
+            this.stallLastAdvanceTimeMs = now;
+            return;
+        }
+        if (now - this.stallLastAdvanceTimeMs >= timeoutSecs * 1000) {
+            Logger.Warning(
+                `No video frames decoded for ${timeoutSecs}s while the stream should be playing - reconnecting.`
+            );
+            this.attemptStreamRecovery('Video stream stalled.');
+        }
+    }
+
+    private resetStreamStallDetection() {
+        this.stallLastFramesDecoded = undefined;
+    }
+
+    private clearIceDisconnectRecoveryTimer() {
+        if (this.iceDisconnectRecoveryHandle !== undefined) {
+            window.clearTimeout(this.iceDisconnectRecoveryHandle);
+            this.iceDisconnectRecoveryHandle = undefined;
+        }
+    }
+
+    private attemptStreamRecovery(message: string) {
+        if (this.isReconnecting) {
+            return;
+        }
+        this.resetStreamStallDetection();
+        this.clearIceDisconnectRecoveryTimer();
+        this.tryReconnect(message);
     }
 
     /**
