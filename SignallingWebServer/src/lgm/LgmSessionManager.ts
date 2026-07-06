@@ -431,6 +431,10 @@ export class LgmSessionManager {
                                         namespace: 'lgm',
                                         data: nc.consumer
                                     });
+                                } else {
+                                    // The push is the only delivery path for this consumer;
+                                    // a client missing it stays silent until it re-joins.
+                                    Logger.warn(`LGM: new-consumer push to ${nc.userId} skipped (${client ? `ws readyState=${client.ws.readyState}` : 'client not in session'}) - consumer ${nc.consumer?.id} undelivered`);
                                 }
                             }
                         }

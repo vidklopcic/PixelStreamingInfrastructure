@@ -21,6 +21,8 @@ export const LgmStoreContext = createContext<LgmStore | undefined>(undefined);
 
 export class LgmStore {
     private joined = false;
+    private sessionSecret: string;
+    private sessionContext?: string;
     session?: LgmSession = undefined;
 
     user: LgmUser = {
@@ -88,6 +90,8 @@ export class LgmStore {
 
         this.user.role = role;
         this.user.name = participantName;
+        this.sessionSecret = sessionSecret;
+        this.sessionContext = contextInfo;
 
         this.chat = new LgmChatStore(this);
         this.webrtc = new LgmWebRTCStore(this);
@@ -104,7 +108,7 @@ export class LgmStore {
         // server-side, so re-sending is safe.
         autorun(() => {
             if (this.client.connected && !this.sessionEnded) {
-                this.createSession(sessionSecret, contextInfo);
+                this.createSession(this.sessionSecret, this.sessionContext);
             }
         });
 
@@ -115,6 +119,17 @@ export class LgmStore {
                 });
             }
         });
+    }
+
+    /**
+     * Re-send create/join-session on the live socket. The server responds
+     * with media-capabilities, which rebuilds the whole media pipeline -
+     * used to recover when the WebRTC transports die while the WS is up.
+     */
+    resendJoin() {
+        if (this.client.connected && !this.sessionEnded) {
+            this.createSession(this.sessionSecret, this.sessionContext);
+        }
     }
 
     join() {

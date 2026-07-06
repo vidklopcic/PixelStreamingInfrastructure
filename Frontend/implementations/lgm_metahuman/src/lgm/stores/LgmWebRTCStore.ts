@@ -36,6 +36,9 @@ export class LgmWebRTCStore {
     private pendingRecvTransportResolve?: (data: TransportCreatedData) => void;
     private pendingTransportType?: 'send' | 'recv';
 
+    // Guards against overlapping media-pipeline recoveries
+    private recovering = false;
+
     constructor(base: LgmStore) {
         this.base = base;
         this.device = new Device();
@@ -115,6 +118,13 @@ export class LgmWebRTCStore {
         const { rtpCapabilities } = message.data as MediaCapabilitiesData;
 
         try {
+            // Re-joins (WS reconnect or media recovery) deliver this again;
+            // drop the previous pipeline instead of leaking transports.
+            if (this.sendTransport || this.recvTransport) {
+                console.log('[WebRTC] media-capabilities received with existing transports - rebuilding media pipeline');
+                this.resetTransports();
+            }
+
             if (!this.device.loaded) {
                 await this.device.load({ routerRtpCapabilities: rtpCapabilities });
             }
@@ -128,7 +138,89 @@ export class LgmWebRTCStore {
             await this.createRecvTransport();
         } catch (err) {
             console.error('Failed to initialize mediasoup device:', err);
+        } finally {
+            this.recovering = false;
         }
+    }
+
+    /**
+     * Close and forget all local mediasoup state. The server learns about it
+     * via ICE timeouts; the pipeline is rebuilt from the next media-capabilities.
+     */
+    private resetTransports() {
+        this.pendingSendTransportResolve = undefined;
+        this.pendingRecvTransportResolve = undefined;
+        this.pendingTransportType = undefined;
+
+        this.producers.forEach((producer) => producer.close());
+        this.producers.clear();
+        this.consumerEntries.forEach((entry) => {
+            entry.consumer.close();
+            entry.stream.getTracks().forEach((track) => track.stop());
+        });
+        this.consumerEntries.clear();
+
+        this.sendTransport?.close();
+        this.recvTransport?.close();
+        this.sendTransport = undefined;
+        this.recvTransport = undefined;
+    }
+
+    /**
+     * The server tears down transports whose ICE dies (e.g. after a network
+     * hiccup), killing our producers/consumers with no signalling message -
+     * without recovery the instructor keeps "sending" audio nobody receives
+     * until a page reload. Re-join to rebuild the media pipeline.
+     */
+    private recoverMedia(reason: string) {
+        if (this.recovering) return;
+        this.recovering = true;
+        console.warn(`[WebRTC] Recovering media pipeline: ${reason}`);
+        this.resetTransports();
+        this.base.resendJoin();
+        // Failsafe: if media-capabilities never arrives, allow another attempt
+        setTimeout(() => {
+            if (this.recovering) {
+                console.warn('[WebRTC] Media recovery did not complete within 15s, re-arming');
+                this.recovering = false;
+            }
+        }, 15000);
+    }
+
+    /**
+     * Watch a transport's connection state and trigger recovery when it
+     * fails or stays disconnected. 'closed' is not handled here: that is
+     * either our own resetTransports or a device teardown.
+     */
+    private watchTransport(transport: mediasoupTypes.Transport, label: 'send' | 'recv') {
+        let graceTimer: any;
+        transport.on('connectionstatechange', (state: string) => {
+            console.log(`[WebRTC] ${label} transport connection state: ${state}`);
+            if (state === 'connected') {
+                if (graceTimer) {
+                    clearTimeout(graceTimer);
+                    graceTimer = undefined;
+                    console.log(`[WebRTC] ${label} transport recovered`);
+                }
+            } else if (state === 'disconnected') {
+                if (!graceTimer) {
+                    console.warn(`[WebRTC] ${label} transport disconnected, recovering in 10s unless it reconnects`);
+                    graceTimer = setTimeout(() => {
+                        graceTimer = undefined;
+                        this.recoverMedia(`${label} transport stuck in disconnected`);
+                    }, 10000);
+                }
+            } else if (state === 'failed') {
+                if (graceTimer) {
+                    clearTimeout(graceTimer);
+                    graceTimer = undefined;
+                }
+                this.recoverMedia(`${label} transport failed`);
+            } else if (state === 'closed' && graceTimer) {
+                clearTimeout(graceTimer);
+                graceTimer = undefined;
+            }
+        });
     }
 
     private createSendTransport(): Promise<void> {
@@ -183,6 +275,8 @@ export class LgmWebRTCStore {
             dtlsParameters: data.dtlsParameters,
         });
 
+        this.watchTransport(this.sendTransport, 'send');
+
         this.sendTransport.on('connect', ({ dtlsParameters }: any, callback: any, errback: any) => {
             this.base.client.send({
                 type: 'connect-transport',
@@ -231,11 +325,15 @@ export class LgmWebRTCStore {
     private async produceLocalTracks(): Promise<void> {
         if (!this.sendTransport || !this.localStream) return;
 
+        // stopTracks: false - closing a producer must not kill the capture
+        // track; localStream is owned here and reused when the media
+        // pipeline is rebuilt after a transport failure.
+
         // Produce audio
         const audioTrack = this.localStream.getAudioTracks()[0];
         if (audioTrack) {
             try {
-                const producer = await this.sendTransport.produce({ track: audioTrack });
+                const producer = await this.sendTransport.produce({ track: audioTrack, stopTracks: false });
                 this.producers.set(producer.id, producer);
             } catch (err) {
                 console.error('Failed to produce audio:', err);
@@ -246,7 +344,7 @@ export class LgmWebRTCStore {
         const videoTrack = this.localStream.getVideoTracks()[0];
         if (videoTrack) {
             try {
-                const producer = await this.sendTransport.produce({ track: videoTrack });
+                const producer = await this.sendTransport.produce({ track: videoTrack, stopTracks: false });
                 this.producers.set(producer.id, producer);
             } catch (err) {
                 console.error('Failed to produce video:', err);
@@ -263,6 +361,8 @@ export class LgmWebRTCStore {
             iceCandidates: data.iceCandidates,
             dtlsParameters: data.dtlsParameters,
         });
+
+        this.watchTransport(this.recvTransport, 'recv');
 
         this.recvTransport.on('connect', ({ dtlsParameters }: any, callback: any, errback: any) => {
             this.base.client.send({
@@ -465,17 +565,9 @@ export class LgmWebRTCStore {
 
     dispose() {
         navigator.mediaDevices?.removeEventListener?.('devicechange', this.onDeviceChange);
-        this.producers.forEach((producer) => {
-            producer.close();
-        });
-        this.producers.clear();
-
-        this.consumerEntries.forEach((entry) => {
-            entry.consumer.close();
-        });
-        this.consumerEntries.clear();
-
-        this.sendTransport?.close();
-        this.recvTransport?.close();
+        this.resetTransports();
+        // Producers no longer stop tracks on close (stopTracks: false), so
+        // release the capture devices explicitly on final teardown.
+        this.localStream?.getTracks().forEach((track) => track.stop());
     }
 }
