@@ -97,9 +97,13 @@ export class LgmStore {
         makeAutoObservable(this);
         this.client.messages.subscribe((message) => this.onMessage(message));
 
-        autorun((r) => {
-            if (this.client.connected) {
-                r.dispose();
+        // Re-create/join the session on EVERY (re)connect, not just the first:
+        // the server closes sessions after session_timeout of silence (long
+        // network outage), and a reconnecting client that doesn't re-join is
+        // stuck with "session not found" forever. createSession is idempotent
+        // server-side, so re-sending is safe.
+        autorun(() => {
+            if (this.client.connected && !this.sessionEnded) {
                 this.createSession(sessionSecret, contextInfo);
             }
         });

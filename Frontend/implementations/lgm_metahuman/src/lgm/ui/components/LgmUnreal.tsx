@@ -77,6 +77,15 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
                 setTimeout(armSessionBinding, 50);
             };
             armSessionBinding();
+            // setSessionId fails silently if the session was closed server-side
+            // (inactivity timeout during a long outage) and only succeeds after
+            // LgmClient re-joins and re-creates it - keep re-sending until the
+            // stream is actually up. The server ignores duplicates once bound.
+            setInterval(() => {
+                if (!store.pixelStreamingConnected) {
+                    sendSessionId();
+                }
+            }, 2000);
         }}
         onConneced={(connected) => {
             store.pixelStreamingConnected = connected;
