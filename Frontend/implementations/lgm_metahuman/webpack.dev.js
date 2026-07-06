@@ -52,7 +52,8 @@ module.exports = merge(common, {
                 warnings: false,
             },
             progress: true,
-            webSocketURL: 'wss://localhost:3000/hmr',
+            // auto:// follows the page's protocol/host/port so HMR works on any --port
+            webSocketURL: 'auto://0.0.0.0:0/hmr',
         },
         webSocketServer: {
             type: 'ws',

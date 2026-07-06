@@ -15,8 +15,9 @@ export class KeepaliveMonitor {
     private alive: boolean = false;
     private rtt: number = 0;
 
-    // naming a bound function so we can add and then remove it with on and off.
+    // naming bound functions so we can add and then remove them with on and off.
     private onResponse: (pongMsg: Messages.pong) => void;
+    private onClose: () => void;
 
     /**
      * Called when a pong does not come back from a ping.
@@ -40,7 +41,8 @@ export class KeepaliveMonitor {
         this.protocol = protocol;
         this.timeout = timeout;
         this.onResponse = this.onHeartbeatResponse.bind(this);
-        this.protocol.transport.on('close', this.stop.bind(this));
+        this.onClose = this.stop.bind(this);
+        this.protocol.transport.on('close', this.onClose);
         this.start();
     }
 
@@ -50,14 +52,22 @@ export class KeepaliveMonitor {
         this.keepalive = setInterval(this.sendHeartbeat.bind(this), this.timeout);
     }
 
-    private stop(): void {
+    /**
+     * Stops the ping timer and unregisters all listeners. Safe to call multiple times.
+     * Must be called before replacing a monitor or the old one keeps pinging (and timing
+     * out) on the shared protocol forever.
+     */
+    stop(): void {
         clearInterval(this.keepalive);
         this.protocol.off('pong', this.onResponse);
+        this.protocol.transport.off('close', this.onClose);
     }
 
     private sendHeartbeat(): void {
         // if we never got a response from the last heartbeat, assume the connection is dead and timeout
         if (this.alive === false) {
+            // one-shot: stop monitoring the dead connection before reporting the timeout
+            this.stop();
             this.onTimeout?.();
             return;
         }

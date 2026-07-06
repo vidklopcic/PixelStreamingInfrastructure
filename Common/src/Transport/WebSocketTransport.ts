@@ -18,6 +18,7 @@ export class WebSocketTransport extends EventEmitter implements ITransport {
     WS_OPEN_STATE = 1;
     webSocket?: WebSocket;
     protocols?: string | string[];
+    private closeTimeoutHandle?: ReturnType<typeof setTimeout>;
 
     /**
      * Constructs a new WebSocketTransport for browser contexts.
@@ -33,7 +34,7 @@ export class WebSocketTransport extends EventEmitter implements ITransport {
      * @param msg - The message to send.
      */
     sendMessage(msg: string): void {
-        if (this.webSocket) {
+        if (this.webSocket && this.webSocket.readyState === this.WS_OPEN_STATE) {
             this.webSocket.send(msg);
         }
     }
@@ -49,6 +50,9 @@ export class WebSocketTransport extends EventEmitter implements ITransport {
     connect(connectionURL: string): boolean {
         Logger.Info(connectionURL);
         try {
+            // A stale socket (e.g. stuck in CLOSING on a dead network) must not deliver
+            // events into the new connection's lifecycle.
+            this.detachCurrentSocket();
             this.webSocket = new WebSocket(connectionURL, this.protocols);
             this.webSocket.onopen = (_: Event) => this.handleOnOpen();
             this.webSocket.onerror = (_: Event) => this.handleOnError();
@@ -68,9 +72,51 @@ export class WebSocketTransport extends EventEmitter implements ITransport {
      * @param reason - A descriptive string for the disconnect reason.
      */
     disconnect(code?: number, reason?: string): void {
-        if (this.webSocket) {
-            this.webSocket.close(code, reason);
+        if (!this.webSocket || this.webSocket.readyState === WebSocket.CLOSED) {
+            return;
         }
+        const socket = this.webSocket;
+        socket.close(code, reason);
+        // On a dead network the close handshake never completes and the browser can take
+        // minutes to fire onclose - synthesize the close event so recovery isn't blocked.
+        if (this.closeTimeoutHandle === undefined) {
+            this.closeTimeoutHandle = setTimeout(() => {
+                this.closeTimeoutHandle = undefined;
+                if (this.webSocket === socket && socket.readyState !== WebSocket.CLOSED) {
+                    this.detachCurrentSocket();
+                    this.handleOnClose(
+                        new CloseEvent('close', {
+                            code: 1006,
+                            reason: 'WebSocket close timed out - connection presumed dead.'
+                        })
+                    );
+                }
+            }, 2000);
+        }
+    }
+
+    /**
+     * Removes all handlers from the current socket (so late events from a dead socket are
+     * ignored), closes it if still open/connecting, and forgets it.
+     */
+    private detachCurrentSocket(): void {
+        if (!this.webSocket) {
+            return;
+        }
+        const socket = this.webSocket;
+        socket.onopen = null;
+        socket.onerror = null;
+        socket.onclose = null;
+        socket.onmessage = null;
+        socket.onmessagebinary = undefined;
+        if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+            try {
+                socket.close();
+            } catch {
+                // already closing - nothing to do
+            }
+        }
+        this.webSocket = undefined;
     }
 
     /**
@@ -78,7 +124,9 @@ export class WebSocketTransport extends EventEmitter implements ITransport {
      * @returns True if the transport is connected.
      */
     isConnected(): boolean {
-        return !!this.webSocket && this.webSocket.readyState != WebSocket.CLOSED;
+        // Only OPEN counts: a CLOSING socket on a dead network can linger for minutes and
+        // must not be treated as a usable connection (it blocks reconnect logic).
+        return !!this.webSocket && this.webSocket.readyState === this.WS_OPEN_STATE;
     }
 
     /**
@@ -145,6 +193,10 @@ export class WebSocketTransport extends EventEmitter implements ITransport {
      * @param event - Close Event
      */
     handleOnClose(event: CloseEvent): void {
+        if (this.closeTimeoutHandle !== undefined) {
+            clearTimeout(this.closeTimeoutHandle);
+            this.closeTimeoutHandle = undefined;
+        }
         Logger.Info(
             'Disconnected to the signalling server via WebSocket: ' +
                 JSON.stringify(event.code) +

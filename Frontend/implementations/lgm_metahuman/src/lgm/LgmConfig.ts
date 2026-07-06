@@ -2,6 +2,9 @@ export abstract class LgmConfig {
     // For local development (port 3000), connect to signalling server on 8443
     // For production, use the same host (assumes signalling is on same domain)
     static SIGNALLING_SERVER = (() => {
+        // `#ss=wss://host` overrides the signalling server (e.g. local dev UI against production)
+        const ss = new URLSearchParams(window.location.hash.substring(1)).get('ss');
+        if (ss) return ss;
         const hostname = window.location.hostname;
         const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1';
         // Local dev uses port 8443, production uses default WSS port

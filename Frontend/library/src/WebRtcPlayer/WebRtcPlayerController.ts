@@ -1064,6 +1064,7 @@ export class WebRtcPlayerController {
         const signallingUrl = this.signallingUrlBuilder();
         this.protocol.connect(signallingUrl);
         const keepaliveDelay = this.config.getNumericSettingValue(NumericParameters.KeepaliveDelay);
+        this.keepalive?.stop();
         if (keepaliveDelay > 0) {
             this.keepalive = new KeepaliveMonitor(this.protocol, keepaliveDelay);
             this.keepalive.onTimeout = () => {

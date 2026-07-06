@@ -81,6 +81,9 @@ export class LgmStore {
         urlParams.set('role', role);
         urlParams.set('name', participantName);
         urlParams.set('session', sessionSecret);
+        // Preserve the signalling-server override (see LgmConfig) across the hash rewrite
+        const ss = new URLSearchParams(window.location.hash.substring(1)).get('ss');
+        if (ss) urlParams.set('ss', ss);
         window.location.hash = urlParams.toString();
 
         this.user.role = role;
