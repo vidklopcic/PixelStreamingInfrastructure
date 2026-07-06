@@ -40,8 +40,10 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
         }}
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;
-            // Send setSessionId as soon as connected
-            // Server ignores listStreamers until this is received
+            // The signalling server ignores listStreamers/subscribe until
+            // setSessionId binds the connection to a session, and the binding is
+            // per-connection (playerId) - so it must be re-sent on EVERY
+            // (re)connect, not just the first one, or reconnects hang forever.
             const sendSessionId = () => {
                 try {
                     const protocol = streaming.signallingProtocol;
@@ -52,14 +54,29 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
                             sessionSecret: store.session.sessionSecret,
                             userId: store.user.id
                         } as any);
+                    }
+                } catch (e) {
+                    // WebSocket not ready - the next 'open' will retry
+                }
+            };
+            const armSessionBinding = () => {
+                try {
+                    const protocol = streaming.signallingProtocol;
+                    if (protocol?.transport) {
+                        // fires on the initial connect and every reconnect
+                        protocol.transport.on('open', sendSessionId);
+                        // socket may already be open by the time we attach
+                        if (protocol.isConnected()) {
+                            sendSessionId();
+                        }
                         return;
                     }
                 } catch (e) {
-                    // WebSocket not ready yet, retry
+                    // protocol not constructed yet, retry
                 }
-                setTimeout(sendSessionId, 50);
+                setTimeout(armSessionBinding, 50);
             };
-            sendSessionId();
+            armSessionBinding();
         }}
         onConneced={(connected) => {
             store.pixelStreamingConnected = connected;
