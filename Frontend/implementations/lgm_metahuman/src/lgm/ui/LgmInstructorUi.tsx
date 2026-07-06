@@ -8,6 +8,7 @@ import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmUeControls } from './components/LgmUeControls';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
+import { LgmDeviceSettings } from './components/LgmDeviceSettings';
 import { ExitToApp, FiberManualRecord, FullscreenExit, Mic, MicOff, PlayArrow, Stop, StopCircle, TransitEnterexit } from '@mui/icons-material';
 import { Fab } from '@mui/material';
 
@@ -84,18 +85,25 @@ export const LgmInstructorUi = observer(() => {
                 {!store.recording && <FiberManualRecord />}
                 {store.recording && <StopCircle />}
             </Fab>
-            <Fab
+            <div
                 style={{
                     position: 'absolute',
                     bottom: 16,
-                    right: 16
-                }}
-                onClick={() => {
-                    store.webrtc.muted = !store.webrtc.muted;
+                    right: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8
                 }}>
-                {!store.webrtc.muted && <Mic />}
-                {store.webrtc.muted && <MicOff />}
-            </Fab>
+                <LgmDeviceSettings />
+                <Fab
+                    onClick={() => {
+                        store.webrtc.muted = !store.webrtc.muted;
+                    }}>
+                    {!store.webrtc.muted && <Mic />}
+                    {store.webrtc.muted && <MicOff />}
+                </Fab>
+            </div>
         </div>
         <div style={SideUiContainerStyle} className={'mobile-column desktop-row'}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flexGrow: 1, flexBasis: 0, minWidth: 0 }}>

@@ -7,7 +7,7 @@ import {
     ConsumeResponseData,
     ProduceResponseData,
 } from '../client/LgmData';
-import { autorun, makeAutoObservable, ObservableMap } from 'mobx';
+import { autorun, makeAutoObservable, ObservableMap, runInAction } from 'mobx';
 import { Device, types as mediasoupTypes } from 'mediasoup-client';
 
 interface ConsumerEntry {
@@ -25,6 +25,11 @@ export class LgmWebRTCStore {
     localStream?: MediaStream = undefined;
     accessRejected = false;
     muted = false;
+    audioInputDevices: MediaDeviceInfo[] = [];
+    audioOutputDevices: MediaDeviceInfo[] = [];
+    micDeviceId = '';
+    speakerDeviceId = '';
+    private onDeviceChange = () => this.refreshDevices();
 
     // Pending transport creation callbacks
     private pendingSendTransportResolve?: (data: TransportCreatedData) => void;
@@ -42,11 +47,16 @@ export class LgmWebRTCStore {
             navigator.mediaDevices?.getUserMedia({
                 video: this.base.user.role === LgmRole.student,
                 audio: true
-            }).then((stream) => this.localStream = stream)
+            }).then((stream) => {
+                this.localStream = stream;
+                // Device labels are only available after permission is granted
+                this.refreshDevices();
+            })
                 .catch((error) => {
                     console.error('Error accessing media devices:', error);
                     this.accessRejected = true;
                 });
+            navigator.mediaDevices?.addEventListener?.('devicechange', this.onDeviceChange);
         }
 
         // Mute control
@@ -375,7 +385,59 @@ export class LgmWebRTCStore {
         }
     }
 
+    async refreshDevices(): Promise<void> {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            runInAction(() => {
+                this.audioInputDevices = devices.filter((d) => d.kind === 'audioinput' && d.deviceId);
+                this.audioOutputDevices = devices.filter((d) => d.kind === 'audiooutput' && d.deviceId);
+            });
+        } catch (err) {
+            console.error('Failed to enumerate media devices:', err);
+        }
+    }
+
+    /**
+     * Switch the microphone: capture the new device and swap the track into the
+     * live audio producer, so the change applies mid-session.
+     */
+    async setMicDevice(deviceId: string): Promise<void> {
+        this.micDeviceId = deviceId;
+        try {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                audio: deviceId ? { deviceId: { exact: deviceId } } : true
+            });
+            const newTrack = newStream.getAudioTracks()[0];
+            if (!newTrack) return;
+            newTrack.enabled = !this.muted;
+
+            const audioProducer = Array.from(this.producers.values()).find((p) => p.kind === 'audio');
+            if (audioProducer) {
+                await audioProducer.replaceTrack({ track: newTrack });
+            }
+
+            runInAction(() => {
+                if (this.localStream) {
+                    this.localStream.getAudioTracks().forEach((track) => {
+                        this.localStream!.removeTrack(track);
+                        track.stop();
+                    });
+                    this.localStream.addTrack(newTrack);
+                } else {
+                    this.localStream = newStream;
+                }
+            });
+        } catch (err) {
+            console.error('Failed to switch microphone:', err);
+        }
+    }
+
+    setSpeakerDevice(deviceId: string): void {
+        this.speakerDeviceId = deviceId;
+    }
+
     dispose() {
+        navigator.mediaDevices?.removeEventListener?.('devicechange', this.onDeviceChange);
         this.producers.forEach((producer) => {
             producer.close();
         });

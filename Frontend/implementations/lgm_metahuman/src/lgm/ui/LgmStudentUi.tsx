@@ -8,6 +8,7 @@ import { LgmChat } from './components/chat/LgmChat';
 import { Badge, Fab, Typography } from '@mui/material';
 import { Chat, ChevronLeft, Mic, MicOff, Videocam } from '@mui/icons-material';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
+import { LgmDeviceSettings } from './components/LgmDeviceSettings';
 
 export const LgmStudentUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -33,13 +34,16 @@ export const LgmStudentUi = observer(() => {
         {!!peerAudioStreams?.length && peerAudioStreams.map((s) => <LgmAudioStream stream={s} />)}
         <div
             style={VideoContainerStyle(chat)}>
-            <Fab
-                onClick={() => {
-                    store.webrtc.muted = !store.webrtc.muted;
-                }}>
-                {!store.webrtc.muted && <Mic />}
-                {store.webrtc.muted && <MicOff />}
-            </Fab>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <LgmDeviceSettings />
+                <Fab
+                    onClick={() => {
+                        store.webrtc.muted = !store.webrtc.muted;
+                    }}>
+                    {!store.webrtc.muted && <Mic />}
+                    {store.webrtc.muted && <MicOff />}
+                </Fab>
+            </div>
             {store.webrtc.localStream && <LgmVideoStream
                 stream={store.webrtc.localStream}
                 style={VideoStyle}
