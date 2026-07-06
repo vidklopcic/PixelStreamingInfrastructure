@@ -51,10 +51,38 @@ export const PixelStreamingWrapper = ({
                 setClickToPlayVisible(true);
             });
 
+            // Kiosk-grade recovery: the library's auto-reconnect gives up after
+            // MaxReconnectAttempts. Reconnect immediately when the browser regains
+            // network, and keep retrying periodically for as long as we're down.
+            const connState = { connected: false, lastAttemptMs: Date.now() };
+            const forceReconnect = (why: string) => {
+                if (connState.connected) return;
+                console.info(`[metka-reconnect] ${why}`);
+                connState.lastAttemptMs = Date.now();
+                try {
+                    streaming.reconnect();
+                } catch {
+                }
+            };
+            const onOnline = () => {
+                // small delay so DNS/routes are up before we dial
+                setTimeout(() => forceReconnect('network came back online'), 1000);
+            };
+            window.addEventListener('online', onOnline);
+            const retryInterval = window.setInterval(() => {
+                if (!connState.connected && Date.now() - connState.lastAttemptMs > 15000) {
+                    forceReconnect('still disconnected - periodic retry');
+                }
+            }, 5000);
+
             streaming.addEventListener('webRtcConnected', () => {
+                connState.connected = true;
                 onConneced?.(true);
             });
             streaming.addEventListener('webRtcDisconnected', () => {
+                connState.connected = false;
+                // let the library's own auto-reconnect go first
+                connState.lastAttemptMs = Date.now();
                 onConneced?.(false);
             });
 
@@ -142,6 +170,8 @@ export const PixelStreamingWrapper = ({
 
             // Clean up on component unmount:
             return () => {
+                window.removeEventListener('online', onOnline);
+                window.clearInterval(retryInterval);
                 try {
                     streaming.disconnect();
                 } catch {

@@ -33,6 +33,10 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             WaitForStreamer: true,
             WebRTCMaxBitrate: 6000,
             WebRTCMinBitrate: 1000,
+            // Default is 3 attempts 2s apart - gives up mid WiFi-switch. 999 is
+            // the library max; the wrapper's periodic retry then takes over, so
+            // in practice we never stop trying.
+            MaxReconnectAttempts: 999,
         }}
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;
