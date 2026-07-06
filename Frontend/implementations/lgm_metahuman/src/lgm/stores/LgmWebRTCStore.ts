@@ -47,10 +47,16 @@ export class LgmWebRTCStore {
             navigator.mediaDevices?.getUserMedia({
                 video: this.base.user.role === LgmRole.student,
                 audio: true
-            }).then((stream) => {
+            }).then(async (stream) => {
                 this.localStream = stream;
                 // Device labels are only available after permission is granted
-                this.refreshDevices();
+                await this.refreshDevices();
+                // Record which mic the browser actually opened - it can differ
+                // from the list's "default" entry, and the picker highlight
+                // must reflect the real capture device.
+                runInAction(() => {
+                    this.micDeviceId = this.resolveTrackDeviceId(stream.getAudioTracks()[0]);
+                });
             })
                 .catch((error) => {
                     console.error('Error accessing media devices:', error);
@@ -385,6 +391,22 @@ export class LgmWebRTCStore {
         }
     }
 
+    /**
+     * The device a track actually captures from. Chrome may report the
+     * synthetic 'default' alias - map it to the concrete device via groupId so
+     * the picker highlights the physical device that is really in use.
+     */
+    private resolveTrackDeviceId(track?: MediaStreamTrack): string {
+        if (!track) return '';
+        const settings = track.getSettings();
+        const id = settings.deviceId ?? '';
+        if (id && id !== 'default') return id;
+        const concrete = this.audioInputDevices.find(
+            (d) => d.deviceId !== 'default' && !!settings.groupId && d.groupId === settings.groupId
+        );
+        return concrete?.deviceId ?? id;
+    }
+
     async refreshDevices(): Promise<void> {
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
@@ -409,6 +431,11 @@ export class LgmWebRTCStore {
             });
             const newTrack = newStream.getAudioTracks()[0];
             if (!newTrack) return;
+            // The constraint may resolve to a different concrete device (e.g.
+            // picking "default") - highlight what is actually capturing.
+            runInAction(() => {
+                this.micDeviceId = this.resolveTrackDeviceId(newTrack) || deviceId;
+            });
             newTrack.enabled = !this.muted;
 
             const audioProducer = Array.from(this.producers.values()).find((p) => p.kind === 'audio');
