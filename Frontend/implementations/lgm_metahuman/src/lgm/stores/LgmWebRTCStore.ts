@@ -49,7 +49,9 @@ export class LgmWebRTCStore {
         if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
             navigator.mediaDevices?.getUserMedia({
                 video: this.base.user.role === LgmRole.student,
-                audio: true
+                // Pin the browser's mic processing explicitly - the voice
+                // changer depends on a consistent input level.
+                audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true }
             }).then(async (stream) => {
                 this.localStream = stream;
                 // Device labels are only available after permission is granted
@@ -527,7 +529,12 @@ export class LgmWebRTCStore {
         this.micDeviceId = deviceId;
         try {
             const newStream = await navigator.mediaDevices.getUserMedia({
-                audio: deviceId ? { deviceId: { exact: deviceId } } : true
+                audio: {
+                    ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+                    autoGainControl: true,
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
             });
             const newTrack = newStream.getAudioTracks()[0];
             if (!newTrack) return;
