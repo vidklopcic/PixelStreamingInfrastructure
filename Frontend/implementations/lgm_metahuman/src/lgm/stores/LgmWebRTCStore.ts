@@ -9,6 +9,7 @@ import {
 } from '../client/LgmData';
 import { autorun, makeAutoObservable, ObservableMap, runInAction } from 'mobx';
 import { Device, types as mediasoupTypes } from 'mediasoup-client';
+import { audioNormalizer } from './LgmAudioNormalizer';
 
 interface ConsumerEntry {
     consumer: mediasoupTypes.Consumer;
@@ -49,9 +50,15 @@ export class LgmWebRTCStore {
         if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
             navigator.mediaDevices?.getUserMedia({
                 video: this.base.user.role === LgmRole.student,
-                // Pin the browser's mic processing explicitly - the voice
-                // changer depends on a consistent input level.
-                audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true }
+                // The instructor's level is owned by the in-browser
+                // normalizer (LgmAudioNormalizer) - the browser's own AGC
+                // would fight it, so it is off for the role that feeds the
+                // voice changer. Students keep it: nothing normalizes them.
+                audio: {
+                    autoGainControl: this.base.user.role !== LgmRole.instructor,
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
             }).then(async (stream) => {
                 this.localStream = stream;
                 // Device labels are only available after permission is granted
@@ -331,8 +338,12 @@ export class LgmWebRTCStore {
         // track; localStream is owned here and reused when the media
         // pipeline is rebuilt after a transport failure.
 
-        // Produce audio
-        const audioTrack = this.localStream.getAudioTracks()[0];
+        // Produce audio. The instructor is the only role feeding the voice
+        // changer, so their mic goes through the in-browser normalizer
+        // (server-side AGC is disabled); everyone else publishes raw.
+        const audioTrack = this.base.user.role === LgmRole.instructor
+            ? audioNormalizer.processMicTrack(this.localStream)
+            : this.localStream.getAudioTracks()[0];
         if (audioTrack) {
             try {
                 const producer = await this.sendTransport.produce({ track: audioTrack, stopTracks: false });

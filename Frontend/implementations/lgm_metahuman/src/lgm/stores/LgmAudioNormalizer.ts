@@ -1,84 +1,88 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 
 /**
- * In-browser loudness normalization for received peer audio.
+ * In-browser microphone normalization for the instructor's outgoing audio.
  *
- * All server-side adaptive gain is disabled (it fought the content: typing
- * pauses and quiet voice models made any backend AGC either pump or drift).
- * Instead, every peer audio stream is routed through a WebAudio GainNode
- * here, and in AUTO mode the gain is set so the maximum amplitude observed
- * so far maps to full scale (peak * gain = 1.0). The slider in the UI shows
- * the live gain; the moment the user drags it, auto mode stops and their
- * value is kept until they re-enable AUTO.
+ * All server-side adaptive gain is disabled (every backend scheme pumped or
+ * drifted against real content: typing pauses, quiet voice models). Instead
+ * the instructor's captured mic - the only input the voice changer ever
+ * sees - is scaled here, before it is produced to the SFU.
+ *
+ * AUTO mode tracks the loudest amplitude recorded so far and sets the gain
+ * so that peak maps to full scale (peak * gain = 1.0). The peak decays
+ * slowly, so one door slam does not permanently duck the voice. Dragging
+ * the slider switches to manual and keeps the chosen gain until AUTO is
+ * re-enabled (which re-learns the peak from fresh audio).
  */
 
 const POLL_MS = 100;
 const MAX_GAIN = 8;
 const MIN_GAIN = 0.25;
-// Running-peak decay per poll tick: lets the normalizer slowly forget an
-// isolated pop (halflife ~2 min) without visibly pumping.
+// Peak decay per poll tick (~halflife 2 min at 10 Hz).
 const PEAK_DECAY = 0.9994;
-// Slew applied gain toward the target so corrections are inaudible.
+// Slew of the applied gain toward the target: corrections stay inaudible.
 const GAIN_SLEW = 0.15;
-
-interface Engine {
-    source: MediaStreamAudioSourceNode;
-    gainNode: GainNode;
-    destination: MediaStreamAudioDestinationNode;
-    analyser: AnalyserNode;
-    buffer: Float32Array;
-}
+// Leave a little headroom so transients above the learned peak do not clip.
+const HEADROOM = 0.89;  // ~-1 dBFS
 
 export class LgmAudioNormalizer {
     auto = true;
     gain = 1;
-    /** max |sample| observed since (re)start of auto mode */
+    /** loudest |sample| recorded since auto mode (re)started */
     peak = 0;
+    /** live input level, for the UI meter */
+    level = 0;
+    active = false;
 
     private ctx: AudioContext | null = null;
-    private engines = new Map<string, Engine>();
+    private source: MediaStreamAudioSourceNode | null = null;
+    private analyser: AnalyserNode | null = null;
+    private gainNode: GainNode | null = null;
+    private destination: MediaStreamAudioDestinationNode | null = null;
+    private buffer = new Float32Array(2048);
     private timer: ReturnType<typeof setInterval> | null = null;
 
     constructor() {
         makeAutoObservable(this);
     }
 
-    /** Route a stream through the normalizer; returns the stream to play. */
-    attach(stream: MediaStream): MediaStream {
-        const ctx = this.ensureContext();
-        const existing = this.engines.get(stream.id);
-        if (existing) return existing.destination.stream;
-
-        const source = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 2048;
-        const gainNode = ctx.createGain();
-        gainNode.gain.value = this.gain;
-        const destination = ctx.createMediaStreamDestination();
-        source.connect(analyser);
-        analyser.connect(gainNode);
-        gainNode.connect(destination);
-
-        this.engines.set(stream.id, {
-            source, gainNode, destination, analyser,
-            buffer: new Float32Array(analyser.fftSize),
-        });
-        this.startPolling();
-        return destination.stream;
-    }
-
-    detach(stream: MediaStream) {
-        const engine = this.engines.get(stream.id);
-        if (!engine) return;
+    /**
+     * Route a captured mic stream through the normalizer.
+     * Returns the audio track to publish (falls back to the raw track if
+     * WebAudio is unavailable - never leaves the instructor silent).
+     */
+    processMicTrack(stream: MediaStream): MediaStreamTrack {
+        const raw = stream.getAudioTracks()[0];
+        if (!raw) return raw;
         try {
-            engine.source.disconnect();
-            engine.analyser.disconnect();
-            engine.gainNode.disconnect();
-        } catch { /* already torn down */ }
-        this.engines.delete(stream.id);
-        if (this.engines.size === 0 && this.timer) {
-            clearInterval(this.timer);
-            this.timer = null;
+            this.teardown();
+            const ctx = this.ensureContext();
+            // A stream containing only the mic track: video must not enter
+            // the audio graph.
+            const micOnly = new MediaStream([raw]);
+            this.source = ctx.createMediaStreamSource(micOnly);
+            this.analyser = ctx.createAnalyser();
+            this.analyser.fftSize = 2048;
+            this.buffer = new Float32Array(this.analyser.fftSize);
+            this.gainNode = ctx.createGain();
+            this.gainNode.gain.value = this.gain;
+            this.destination = ctx.createMediaStreamDestination();
+
+            // Measure BEFORE the gain: the peak we learn from must be the
+            // raw recorded amplitude, or the loop chases its own output.
+            this.source.connect(this.analyser);
+            this.source.connect(this.gainNode);
+            this.gainNode.connect(this.destination);
+
+            const processed = this.destination.stream.getAudioTracks()[0];
+            if (!processed) throw new Error('no processed track');
+            this.startPolling();
+            runInAction(() => (this.active = true));
+            return processed;
+        } catch (e) {
+            console.error('Audio normalizer unavailable, publishing raw mic:', e);
+            this.teardown();
+            return raw;
         }
     }
 
@@ -90,17 +94,27 @@ export class LgmAudioNormalizer {
 
     setAuto(auto: boolean) {
         this.auto = auto;
-        if (auto) {
-            // re-learn the peak from current material
-            this.peak = 0;
+        if (auto) this.peak = 0;  // re-learn from current material
+    }
+
+    teardown() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
         }
+        try {
+            this.source?.disconnect();
+            this.analyser?.disconnect();
+            this.gainNode?.disconnect();
+        } catch { /* already torn down */ }
+        this.source = this.analyser = this.gainNode = null;
+        this.destination = null;
+        this.active = false;
     }
 
     private ensureContext(): AudioContext {
         if (!this.ctx) {
             this.ctx = new AudioContext();
-            // Autoplay policy can leave the context suspended until a user
-            // gesture; resume opportunistically.
             const resume = () => this.ctx?.resume().catch(() => undefined);
             document.addEventListener('pointerdown', resume, { passive: true });
             resume();
@@ -115,18 +129,19 @@ export class LgmAudioNormalizer {
     }
 
     private poll() {
+        const analyser = this.analyser;
+        if (!analyser) return;
+        analyser.getFloatTimeDomainData(this.buffer);
         let framePeak = 0;
-        for (const engine of Array.from(this.engines.values())) {
-            engine.analyser.getFloatTimeDomainData(engine.buffer);
-            for (let i = 0; i < engine.buffer.length; i++) {
-                const a = Math.abs(engine.buffer[i]);
-                if (a > framePeak) framePeak = a;
-            }
+        for (let i = 0; i < this.buffer.length; i++) {
+            const a = Math.abs(this.buffer[i]);
+            if (a > framePeak) framePeak = a;
         }
         runInAction(() => {
+            this.level = framePeak;
             this.peak = Math.max(this.peak * PEAK_DECAY, framePeak);
             if (this.auto && this.peak > 0.01) {
-                const target = Math.min(Math.max(1 / this.peak, MIN_GAIN), MAX_GAIN);
+                const target = Math.min(Math.max(HEADROOM / this.peak, MIN_GAIN), MAX_GAIN);
                 this.gain += GAIN_SLEW * (target - this.gain);
             }
         });
@@ -134,12 +149,12 @@ export class LgmAudioNormalizer {
     }
 
     private applyGain(immediate: boolean) {
-        for (const engine of Array.from(this.engines.values())) {
-            if (immediate) {
-                engine.gainNode.gain.value = this.gain;
-            } else if (this.ctx) {
-                engine.gainNode.gain.setTargetAtTime(this.gain, this.ctx.currentTime, 0.1);
-            }
+        const node = this.gainNode;
+        if (!node) return;
+        if (immediate || !this.ctx) {
+            node.gain.value = this.gain;
+        } else {
+            node.gain.setTargetAtTime(this.gain, this.ctx.currentTime, 0.1);
         }
     }
 }

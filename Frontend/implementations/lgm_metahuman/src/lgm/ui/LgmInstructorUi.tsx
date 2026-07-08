@@ -46,7 +46,7 @@ export const LgmInstructorUi = observer(() => {
             }}>
                 <LgmSessionInfo />
             </div>
-            {!!peerAudioStreams?.length && <div style={{
+            {!!store.webrtc.localStream && <div style={{
                 position: 'absolute',
                 bottom: 84,
                 left: 0,
@@ -54,7 +54,7 @@ export const LgmInstructorUi = observer(() => {
                 display: 'flex',
                 justifyContent: 'center'
             }}>
-                <AudioNormalizationControl compact />
+                <AudioNormalizationControl />
             </div>}
             <Fab
                 style={{
