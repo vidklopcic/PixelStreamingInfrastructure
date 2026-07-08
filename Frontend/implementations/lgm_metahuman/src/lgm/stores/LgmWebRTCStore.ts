@@ -50,15 +50,11 @@ export class LgmWebRTCStore {
         if (this.base.user.role === LgmRole.student || this.base.user.role === LgmRole.instructor) {
             navigator.mediaDevices?.getUserMedia({
                 video: this.base.user.role === LgmRole.student,
-                // The instructor's level is owned by the in-browser
-                // normalizer (LgmAudioNormalizer) - the browser's own AGC
-                // would fight it, so it is off for the role that feeds the
-                // voice changer. Students keep it: nothing normalizes them.
-                audio: {
-                    autoGainControl: this.base.user.role !== LgmRole.instructor,
-                    echoCancellation: true,
-                    noiseSuppression: true
-                }
+                // Pin the browser's mic processing explicitly - the voice
+                // changer depends on a consistent input level. (An in-browser
+                // WebAudio gain stage was tried instead of AGC and corrupted
+                // the outgoing audio - see LgmAudioNormalizer.)
+                audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true }
             }).then(async (stream) => {
                 this.localStream = stream;
                 // Device labels are only available after permission is granted
@@ -543,8 +539,7 @@ export class LgmWebRTCStore {
             const newStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
-                    // Instructor level is owned by the in-browser normalizer.
-                    autoGainControl: !isInstructor,
+                    autoGainControl: true,
                     echoCancellation: true,
                     noiseSuppression: true
                 }

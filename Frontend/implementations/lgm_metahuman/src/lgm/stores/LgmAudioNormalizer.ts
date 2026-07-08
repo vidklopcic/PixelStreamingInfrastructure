@@ -57,33 +57,26 @@ export class LgmAudioNormalizer {
         try {
             this.teardown();
             const ctx = this.ensureContext();
-            // A stream containing only the mic track: video must not enter
-            // the audio graph.
+            // ANALYSIS-ONLY tap: routing the mic through a WebAudio
+            // gain->MediaStreamDestination graph corrupted the outgoing
+            // audio on the instructor machine (robotic, breaking - even
+            // with the voice changer off). Until the gain is applied
+            // somewhere robust, the RAW capture track is what gets
+            // published; the analyser only measures it for the UI meter
+            // and cannot affect the signal.
             const micOnly = new MediaStream([raw]);
             this.source = ctx.createMediaStreamSource(micOnly);
             this.analyser = ctx.createAnalyser();
             this.analyser.fftSize = 2048;
             this.buffer = new Float32Array(this.analyser.fftSize);
-            this.gainNode = ctx.createGain();
-            this.gainNode.gain.value = this.gain;
-            this.destination = ctx.createMediaStreamDestination();
-
-            // Measure BEFORE the gain: the peak we learn from must be the
-            // raw recorded amplitude, or the loop chases its own output.
             this.source.connect(this.analyser);
-            this.source.connect(this.gainNode);
-            this.gainNode.connect(this.destination);
-
-            const processed = this.destination.stream.getAudioTracks()[0];
-            if (!processed) throw new Error('no processed track');
             this.startPolling();
             runInAction(() => (this.active = true));
-            return processed;
         } catch (e) {
-            console.error('Audio normalizer unavailable, publishing raw mic:', e);
+            console.error('Audio level analysis unavailable:', e);
             this.teardown();
-            return raw;
         }
+        return raw;
     }
 
     setManualGain(gain: number) {
