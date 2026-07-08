@@ -53,7 +53,9 @@ export const LgmUeControls = observer(() => {
                     gap: 8
                 }}>Voice Changer<VoiceChangerStatus withLabel={false} /></Button>
         </div>
-        {!!store.webrtc.localStream && <AudioNormalizationControl />}
+        {!!store.webrtc.localStream && <div style={{ marginTop: 8 }}>
+            <AudioNormalizationControl />
+        </div>}
         <LgmEmotionWheel
             size={300}
             style={{ margin: '8px auto' }}
