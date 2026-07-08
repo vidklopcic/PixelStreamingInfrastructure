@@ -13,7 +13,7 @@ import { audioNormalizer } from '../../stores/LgmAudioNormalizer';
  * re-enables tracking. The bar under the slider is the live input level
  * AFTER gain - it should peak near the right edge while speaking.
  */
-export const AudioNormalizationControl = observer(({ compact = false }: { compact?: boolean }) => {
+export const AudioNormalizationControl = observer(() => {
     const norm = audioNormalizer;
     const postGain = Math.min(norm.level * norm.gain, 1);
     const clipping = postGain > 0.99;
@@ -23,11 +23,11 @@ export const AudioNormalizationControl = observer(({ compact = false }: { compac
             display: 'flex',
             flexDirection: 'column',
             gap: '4px',
-            padding: compact ? '6px 14px' : '8px 16px',
-            borderRadius: '16px',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(4px)',
-            minWidth: compact ? 200 : 260,
+            padding: '4px 8px 6px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.18)',
+            width: '100%',
+            boxSizing: 'border-box',
         }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Tooltip title="Microphone level sent to the voice changer">
@@ -51,7 +51,17 @@ export const AudioNormalizationControl = observer(({ compact = false }: { compac
                     color={norm.auto ? 'primary' : 'default'}
                     variant={norm.auto ? 'filled' : 'outlined'}
                     onClick={() => norm.setAuto(!norm.auto)}
-                    sx={{ fontSize: 10, height: 20, cursor: 'pointer' }}
+                    sx={{
+                        fontSize: 10,
+                        height: 20,
+                        cursor: 'pointer',
+                        // The default (off) chip inherits the theme's dark
+                        // text, which is unreadable on this panel.
+                        ...(norm.auto ? {} : {
+                            color: 'rgba(255,255,255,0.75)',
+                            borderColor: 'rgba(255,255,255,0.35)',
+                        }),
+                    }}
                 />
             </Box>
             <Box sx={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', overflow: 'hidden' }}>

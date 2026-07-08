@@ -11,7 +11,6 @@ import { LgmSessionInfo } from './components/LgmSessionInfo';
 import { LgmDeviceSettings } from './components/LgmDeviceSettings';
 import { ExitToApp, FiberManualRecord, FullscreenExit, Mic, MicOff, PlayArrow, Stop, StopCircle, TransitEnterexit } from '@mui/icons-material';
 import { Fab } from '@mui/material';
-import { AudioNormalizationControl } from './components/AudioNormalizationControl';
 
 export const LgmInstructorUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -46,16 +45,6 @@ export const LgmInstructorUi = observer(() => {
             }}>
                 <LgmSessionInfo />
             </div>
-            {!!store.webrtc.localStream && <div style={{
-                position: 'absolute',
-                bottom: 84,
-                left: 0,
-                right: 0,
-                display: 'flex',
-                justifyContent: 'center'
-            }}>
-                <AudioNormalizationControl />
-            </div>}
             <Fab
                 style={{
                     position: 'absolute',

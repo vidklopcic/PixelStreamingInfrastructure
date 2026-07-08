@@ -539,10 +539,12 @@ export class LgmWebRTCStore {
     async setMicDevice(deviceId: string): Promise<void> {
         this.micDeviceId = deviceId;
         try {
+            const isInstructor = this.base.user.role === LgmRole.instructor;
             const newStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
-                    autoGainControl: true,
+                    // Instructor level is owned by the in-browser normalizer.
+                    autoGainControl: !isInstructor,
                     echoCancellation: true,
                     noiseSuppression: true
                 }
@@ -556,9 +558,17 @@ export class LgmWebRTCStore {
             });
             newTrack.enabled = !this.muted;
 
+            // Re-route the NEW capture through the normalizer and publish the
+            // processed track: swapping the raw track straight into the
+            // producer bypassed (and orphaned) the gain graph, so switching
+            // mics silently disabled normalization.
+            const publishTrack = isInstructor
+                ? audioNormalizer.processMicTrack(newStream)
+                : newTrack;
+
             const audioProducer = Array.from(this.producers.values()).find((p) => p.kind === 'audio');
             if (audioProducer) {
-                await audioProducer.replaceTrack({ track: newTrack });
+                await audioProducer.replaceTrack({ track: publishTrack });
             }
 
             runInAction(() => {

@@ -7,6 +7,7 @@ import { Refresh } from '@mui/icons-material';
 import { LgmDialog } from './dialogs/LgmDialog';
 import { LiveLinkTutorial } from '../../../components/LiveLinkTutorial';
 import { VoiceChangerControls, VoiceChangerStatus } from './VoiceChangerControls';
+import { AudioNormalizationControl } from './AudioNormalizationControl';
 
 const characterNames: [number, string, string, string][] = [
     [0, 'A', 'M', '15'],
@@ -52,6 +53,7 @@ export const LgmUeControls = observer(() => {
                     gap: 8
                 }}>Voice Changer<VoiceChangerStatus withLabel={false} /></Button>
         </div>
+        {!!store.webrtc.localStream && <AudioNormalizationControl />}
         <LgmEmotionWheel
             size={300}
             style={{ margin: '8px auto' }}
