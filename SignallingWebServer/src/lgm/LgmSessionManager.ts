@@ -581,6 +581,22 @@ export class LgmSessionManager {
                 return true;
             }
 
+            case LgmMessageType.VcSetGain: {
+                if (!this.mediaClient) return true;
+                const session = this.getSessionByClient(ws);
+                if (!session) return true;
+                session.updateActivity();
+
+                const { gain } = msg.data as any;
+                // Fire-and-forget on purpose: the slider streams values while
+                // dragging, a state broadcast per step would be noise.
+                this.mediaClient.setVcGain(session.sessionSecret, gain)
+                    .catch((err) => {
+                        Logger.error(`LGM: setVcGain failed: ${err}`);
+                    });
+                return true;
+            }
+
             case LgmMessageType.VcSetEnabled: {
                 if (!this.mediaClient) return true;
                 const session = this.getSessionByClient(ws);

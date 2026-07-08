@@ -134,6 +134,10 @@ export class LgmMediaClient {
         return this.request('POST', `/sessions/${encodeURIComponent(sessionId)}/vc/pitch`, { semitones });
     }
 
+    async setVcGain(sessionId: string, gain: number): Promise<any> {
+        return this.request('POST', `/sessions/${encodeURIComponent(sessionId)}/vc/gain`, { gain });
+    }
+
     async setVcEnabled(sessionId: string, enabled: boolean): Promise<any> {
         return this.request('POST', `/sessions/${encodeURIComponent(sessionId)}/vc/enabled`, { enabled });
     }

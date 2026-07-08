@@ -1,6 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 import { LgmStore } from './LgmStore';
 import { LgmApiMessage, VcModelsData, VcStateData } from '../client/LgmData';
+import { audioNormalizer } from './LgmAudioNormalizer';
 
 export interface VoiceModel {
     name: string;
@@ -29,6 +30,10 @@ export class LgmVoiceChangerStore {
         this.base = base;
         makeAutoObservable(this);
         this.base.client.messages.subscribe((message) => this.onMessage(message));
+        // The UI slider / auto-normalizer computes the gain in-browser, but
+        // it is APPLIED as a static multiplier in the voice changer server
+        // (an in-browser WebAudio send path corrupted the outgoing audio).
+        audioNormalizer.sink = (gain) => this.setGain(gain);
     }
 
     private onMessage(message: LgmApiMessage) {
@@ -106,6 +111,13 @@ export class LgmVoiceChangerStore {
         this.base.client.send({
             type: 'vc-set-model',
             data: { model_name: modelName }
+        });
+    }
+
+    setGain(gain: number) {
+        this.base.client.send({
+            type: 'vc-set-gain',
+            data: { gain }
         });
     }
 

@@ -123,6 +123,7 @@ export enum LgmMessageType {
     VcGetState = 'vc-get-state',
     VcSetModel = 'vc-set-model',
     VcSetPitch = 'vc-set-pitch',
+    VcSetGain = 'vc-set-gain',
     VcSetEnabled = 'vc-set-enabled',
     VcState = 'vc-state',
 

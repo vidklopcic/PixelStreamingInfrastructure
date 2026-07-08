@@ -1,18 +1,19 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 
 /**
- * In-browser microphone normalization for the instructor's outgoing audio.
+ * Microphone level control for the instructor - the only role feeding the
+ * voice changer. All adaptation happens HERE in the browser; the resulting
+ * gain is applied as a STATIC multiplier in the voice changer server (the
+ * `sink` pushes it over the control channel). Routing the mic through a
+ * WebAudio gain->MediaStreamDestination graph was tried first and corrupted
+ * the outgoing audio on real machines - the analyser below is therefore a
+ * measurement-only tap on the raw published track.
  *
- * All server-side adaptive gain is disabled (every backend scheme pumped or
- * drifted against real content: typing pauses, quiet voice models). Instead
- * the instructor's captured mic - the only input the voice changer ever
- * sees - is scaled here, before it is produced to the SFU.
- *
- * AUTO mode tracks the loudest amplitude recorded so far and sets the gain
- * so that peak maps to full scale (peak * gain = 1.0). The peak decays
- * slowly, so one door slam does not permanently duck the voice. Dragging
- * the slider switches to manual and keeps the chosen gain until AUTO is
- * re-enabled (which re-learns the peak from fresh audio).
+ * AUTO mode tracks the loudest amplitude recorded so far and targets
+ * peak * gain = 1.0 (with ~1 dB headroom). The peak decays slowly, so one
+ * door slam does not permanently duck the voice. Dragging the slider
+ * switches to manual and keeps the chosen gain until AUTO is re-enabled
+ * (which re-learns the peak from fresh audio).
  */
 
 const POLL_MS = 100;
@@ -33,6 +34,12 @@ export class LgmAudioNormalizer {
     /** live input level, for the UI meter */
     level = 0;
     active = false;
+
+    /** Receives gain values to apply wherever the gain actually lives
+     *  (the VC server - the WebAudio send path corrupted audio). */
+    sink: ((gain: number) => void) | null = null;
+    private lastSent = 1;
+    private lastSentAt = 0;
 
     private ctx: AudioContext | null = null;
     private source: MediaStreamAudioSourceNode | null = null;
@@ -82,7 +89,7 @@ export class LgmAudioNormalizer {
     setManualGain(gain: number) {
         this.auto = false;
         this.gain = Math.min(Math.max(gain, MIN_GAIN), MAX_GAIN);
-        this.applyGain(true);
+        this.pushGain();
     }
 
     setAuto(auto: boolean) {
@@ -138,18 +145,20 @@ export class LgmAudioNormalizer {
                 this.gain += GAIN_SLEW * (target - this.gain);
             }
         });
-        this.applyGain(false);
+        this.pushGain();
     }
 
-    private applyGain(immediate: boolean) {
-        const node = this.gainNode;
-        if (!node) return;
-        if (immediate || !this.ctx) {
-            node.gain.value = this.gain;
-        } else {
-            node.gain.setTargetAtTime(this.gain, this.ctx.currentTime, 0.1);
-        }
+    /** Send the gain to the sink, throttled and change-gated. */
+    private pushGain() {
+        if (!this.sink) return;
+        const now = Date.now();
+        if (Math.abs(this.gain - this.lastSent) < 0.02) return;
+        if (now - this.lastSentAt < 250) return;
+        this.lastSent = this.gain;
+        this.lastSentAt = now;
+        this.sink(this.gain);
     }
+
 }
 
 export const audioNormalizer = new LgmAudioNormalizer();
