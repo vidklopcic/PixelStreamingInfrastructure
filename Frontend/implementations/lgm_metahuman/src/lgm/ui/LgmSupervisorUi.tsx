@@ -7,6 +7,7 @@ import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmAudioStream } from './components/chat/LgmAudioStream';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
+import { AudioNormalizationControl } from './components/AudioNormalizationControl';
 
 export const LgmSupervisorUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -22,6 +23,9 @@ export const LgmSupervisorUi = observer(() => {
                 style={VideoStyle}
             />}
             {!!peerAudioStreams?.length && peerAudioStreams.map((s) => <LgmAudioStream stream={s} />)}
+            {!!peerAudioStreams?.length && <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <AudioNormalizationControl compact />
+            </div>}
         </div>
         <div style={ChatContainerStyle}>
             <LgmChat />

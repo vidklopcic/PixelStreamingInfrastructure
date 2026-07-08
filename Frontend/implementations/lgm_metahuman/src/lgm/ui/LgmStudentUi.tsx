@@ -9,6 +9,7 @@ import { Badge, Fab, Typography } from '@mui/material';
 import { Chat, ChevronLeft, Mic, MicOff, Videocam } from '@mui/icons-material';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
 import { LgmDeviceSettings } from './components/LgmDeviceSettings';
+import { AudioNormalizationControl } from './components/AudioNormalizationControl';
 
 export const LgmStudentUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -30,6 +31,16 @@ export const LgmStudentUi = observer(() => {
             }}>
                 <LgmSessionInfo />
             </div>
+            {!!peerAudioStreams?.length && <div style={{
+                position: 'absolute',
+                bottom: 16,
+                left: 0,
+                right: 0,
+                display: 'flex',
+                justifyContent: 'center'
+            }}>
+                <AudioNormalizationControl />
+            </div>}
         </div>
         {!!peerAudioStreams?.length && peerAudioStreams.map((s) => <LgmAudioStream stream={s} />)}
         <div
