@@ -14,6 +14,9 @@ import { audioNormalizer } from './LgmAudioNormalizer';
 interface ConsumerEntry {
     consumer: mediasoupTypes.Consumer;
     stream: MediaStream;
+    // Which remote user this consumer carries (from the media server) - used
+    // to replace a stale consumer when the same user re-produces.
+    producerUserId?: string;
 }
 
 export class LgmWebRTCStore {
@@ -452,6 +455,7 @@ export class LgmWebRTCStore {
         producerId: string;
         kind: string;
         rtpParameters: any;
+        producerUserId?: string;
     }): Promise<void> {
         if (!this.recvTransport) return;
 
@@ -467,7 +471,21 @@ export class LgmWebRTCStore {
             const stream = new MediaStream([consumer.track]);
             console.log(`[WebRTC] createLocalConsumer: consumer created, track=${consumer.track.id}, enabled=${consumer.track.enabled}, readyState=${consumer.track.readyState}`);
 
-            this.consumerEntries.set(consumer.id, { consumer, stream });
+            // The same remote user re-producing (media recovery, reload)
+            // must replace their old tile, not add a frozen one next to it.
+            if (consumerData.producerUserId) {
+                this.consumerEntries.forEach((entry, id) => {
+                    if (entry.producerUserId === consumerData.producerUserId &&
+                        entry.consumer.kind === consumer.kind &&
+                        id !== consumer.id) {
+                        console.log(`[WebRTC] Replacing stale consumer ${id} for user ${consumerData.producerUserId} (${consumer.kind})`);
+                        entry.consumer.close();
+                        this.consumerEntries.delete(id);
+                    }
+                });
+            }
+
+            this.consumerEntries.set(consumer.id, { consumer, stream, producerUserId: consumerData.producerUserId });
             console.log(`[WebRTC] consumerEntries size: ${this.consumerEntries.size}, peerAudioStreams: ${this.peerAudioStreams.length}`);
 
             // Resume the consumer on the server

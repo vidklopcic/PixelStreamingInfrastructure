@@ -20,8 +20,12 @@ export const LgmOnboardingUi = observer((props: LgmRolePickerProps) => {
             const name = urlParams.get('name');
             const session = urlParams.get('session');
             const store = new LgmStore(role, name, session);
+            // Must observe `store`, not the `lgmStore` state variable: that
+            // binding is still in its temporal dead zone when autorun first
+            // runs (we're inside the useState initializer), so the reaction
+            // threw before tracking anything and auto-join never fired.
             autorun((r) => {
-                if (lgmStore?.isConnected && lgmStore?.hasSession && lgmStore?.hasStream) {
+                if (store.isConnected && store.hasSession && store.hasStream) {
                     store.join();
                     props.onLgmStore(store);
                     r.dispose();

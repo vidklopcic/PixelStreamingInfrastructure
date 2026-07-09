@@ -247,8 +247,19 @@ export class LgmSessionManager {
                 if (msg.type === LgmMessageType.CreateSession) {
                     if (!this.hasSession(data.sessionSecret)) {
                         if (!this.canCreateSession()) {
+                            // Log who is holding the slots - "maximum sessions
+                            // reached" reports were untraceable without this
+                            // (an idle tab can hold a session alive for hours).
+                            const holders = Array.from(this.sessions.values()).map(s =>
+                                `${s.sessionSecret} (age ${Math.round((Date.now() - (s.getData().createdTimestamp ?? Date.now())) / 60000)}min, ` +
+                                `${(s as any).clients?.size ?? '?'} clients, ` +
+                                `last activity ${Math.round((Date.now() - s.lastMessageTs) / 1000)}s ago)`
+                            ).join('; ');
+                            Logger.warn(`LGM: create-session '${data.sessionSecret}' rejected - slots held by: ${holders}`);
                             this.sendError(ws, 'sessions-exhausted',
-                                'Maximum number of sessions reached. Please close an existing session.');
+                                'Maximum number of sessions reached. Another session is still active - ' +
+                                'sessions close automatically ~30s after their last participant leaves, ' +
+                                'so make sure no other tab or device is still connected.');
                             return true;
                         }
                         session = this.createSession(data as LgmCreateSessionData);
@@ -420,6 +431,17 @@ export class LgmSessionManager {
                             namespace: 'lgm',
                             data: { id: result.id, kind: result.kind }
                         });
+
+                        // The media server closed stale producers this one
+                        // replaces (media recovery / instructor reload) - tell
+                        // everyone so frozen tiles and dead audio entries go away.
+                        if (result.closedProducerIds?.length) {
+                            session.broadcast(undefined, {
+                                type: LgmMessageType.ProducersClosed,
+                                namespace: 'lgm',
+                                data: { producerIds: result.closedProducerIds }
+                            });
+                        }
 
                         // Send new-consumer messages to other clients for auto-created consumers
                         if (result.newConsumers && result.newConsumers.length > 0) {

@@ -30,6 +30,10 @@ export const LgmStudentUi = observer(() => {
             }}>
                 <LgmSessionInfo />
             </div>
+            {store.recording && <div style={RecordingIndicatorStyle}>
+                <div style={RecordingDotStyle} />
+                <Typography variant={'body2'} fontWeight={'bold'}>REC</Typography>
+            </div>}
         </div>
         {!!peerAudioStreams?.length && peerAudioStreams.map((s) => <LgmAudioStream stream={s} />)}
         <div
@@ -91,6 +95,26 @@ const LgmUnrealPlaceholder = () => {
             Please wait for the instructor to start the session.
         </Typography>
     </div>;
+};
+
+const RecordingIndicatorStyle: CSSProperties = {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '4px 10px',
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)'
+};
+
+const RecordingDotStyle: CSSProperties = {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#f44336',
+    animation: 'pulse 1.5s ease-in-out infinite'
 };
 
 const RootStyle: CSSProperties = {
