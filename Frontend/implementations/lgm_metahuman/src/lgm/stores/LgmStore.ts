@@ -199,10 +199,21 @@ export class LgmStore {
                 break;
             case 'recording-status':
                 this.recording = message.data?.recording ?? false;
+                // The server reports recording failures (capture produced no
+                // video, compositing failed, recorder restarted) through this
+                // message so every client resets AND sees why.
+                if (message.data?.error) {
+                    toast.error(message.data.error);
+                }
                 break;
             case 'error':
                 this.errorCode = message.code;
                 toast.error(message.message);
+                // A rejected start must not leave the optimistic red
+                // record button claiming a recording is running.
+                if (message.code === 'recorder-error') {
+                    this.recording = false;
+                }
                 break;
         }
     }

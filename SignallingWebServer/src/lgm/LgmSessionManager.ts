@@ -22,6 +22,9 @@ export class LgmSessionManager {
     // Active voice-changer status pollers (sessionSecret -> timer)
     private vcStatusPollers: Map<string, NodeJS.Timeout> = new Map();
 
+    // Active recording watchdog pollers (sessionSecret -> timer)
+    private recordingPollers: Map<string, NodeJS.Timeout> = new Map();
+
     constructor(config: LgmConfig) {
         this.config = config;
         if (config.mediaServerUrl) {
@@ -214,6 +217,7 @@ export class LgmSessionManager {
         session.close();
         this.sessions.delete(sessionSecret);
         this.sessionRtpCapabilities.delete(sessionSecret);
+        this.stopRecordingWatch(sessionSecret);
 
         // Delete media session on media-server (async, non-blocking)
         if (this.mediaClient) {
@@ -665,6 +669,7 @@ export class LgmSessionManager {
                             namespace: 'lgm',
                             data: { recording: true, ...result }
                         });
+                        this.watchRecording(session);
                     })
                     .catch((err) => {
                         Logger.error(`LGM: startRecording failed: ${err}`);
@@ -682,6 +687,7 @@ export class LgmSessionManager {
                 if (!session) return true;
                 session.updateActivity();
 
+                this.stopRecordingWatch(session.sessionSecret);
                 this.mediaClient.stopRecording(session.sessionSecret)
                     .then(() => {
                         Logger.info(`LGM: Recording stopped for session ${session.sessionSecret}`);
@@ -692,8 +698,15 @@ export class LgmSessionManager {
                         });
                     })
                     .catch((err) => {
+                        // The stop itself resets everyone's recording state;
+                        // the error field makes the failure visible instead of
+                        // pretending a recording was saved.
                         Logger.error(`LGM: stopRecording failed: ${err}`);
-                        this.sendError(ws, 'recorder-error', 'Failed to stop recording');
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.RecordingStatus,
+                            namespace: 'lgm',
+                            data: { recording: false, error: 'Recording failed - no video was saved' }
+                        });
                     });
                 return true;
             }
@@ -724,6 +737,65 @@ export class LgmSessionManager {
             }
         }
         return undefined;
+    }
+
+    /**
+     * Watch an active recording via the recorder's status endpoint. The
+     * recorder flags a session as errored when its captures produce no
+     * video (see the recorder-side watchdog); without this poll the
+     * instructor keeps a red record button for a recording that is
+     * already dead. On failure everyone gets recording:false plus an
+     * error message, and the media pipeline is torn down.
+     */
+    private watchRecording(session: LgmSession): void {
+        const key = session.sessionSecret;
+        this.stopRecordingWatch(key);
+        if (!this.recorderUrl) return;
+
+        const tick = () => {
+            fetch(`${this.recorderUrl}/sessions/${encodeURIComponent(key)}/status`)
+                .then(async (resp) => {
+                    if (!this.recordingPollers.has(key)) return; // stopped meanwhile
+                    if (resp.status === 404) {
+                        this.failRecording(session, 'Recording lost - recorder restarted');
+                        return;
+                    }
+                    const status = (await resp.json()) as { status?: string; error?: string };
+                    if (status.status === 'error') {
+                        this.failRecording(session, `Recording failed - ${status.error || 'unknown error'}`);
+                        return;
+                    }
+                    this.recordingPollers.set(key, setTimeout(tick, 5000));
+                })
+                .catch(() => {
+                    // recorder briefly unreachable - keep watching
+                    if (this.recordingPollers.has(key)) {
+                        this.recordingPollers.set(key, setTimeout(tick, 5000));
+                    }
+                });
+        };
+        this.recordingPollers.set(key, setTimeout(tick, 5000));
+    }
+
+    private stopRecordingWatch(sessionSecret: string): void {
+        const timer = this.recordingPollers.get(sessionSecret);
+        if (timer) {
+            clearTimeout(timer);
+            this.recordingPollers.delete(sessionSecret);
+        }
+    }
+
+    private failRecording(session: LgmSession, message: string): void {
+        this.stopRecordingWatch(session.sessionSecret);
+        Logger.error(`LGM: ${message} (session ${session.sessionSecret})`);
+        session.broadcast(undefined, {
+            type: LgmMessageType.RecordingStatus,
+            namespace: 'lgm',
+            data: { recording: false, error: message }
+        });
+        // Tear down the media-server side (PlainTransports etc.); the
+        // recorder session is already dead or will be cleaned by this call.
+        this.mediaClient?.stopRecording(session.sessionSecret).catch(() => undefined);
     }
 
     /**
@@ -795,6 +867,8 @@ export class LgmSessionManager {
      */
     shutdown(): void {
         this.stopCleanupTimer();
+        this.recordingPollers.forEach(timer => clearTimeout(timer));
+        this.recordingPollers.clear();
         this.sessions.forEach(session => session.close());
         this.sessions.clear();
         Logger.info('LGM: SessionManager shutdown complete');
