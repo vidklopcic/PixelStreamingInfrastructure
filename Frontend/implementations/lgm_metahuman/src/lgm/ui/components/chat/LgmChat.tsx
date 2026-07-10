@@ -1,6 +1,6 @@
 import { observer } from 'mobx-react-lite';
 import { LgmStoreContext } from '../../../stores/LgmStore';
-import React, { CSSProperties, useContext, useState } from 'react';
+import React, { CSSProperties, useContext, useEffect, useRef, useState } from 'react';
 import { Send } from '@mui/icons-material';
 import useWave from 'use-wave';
 import { LgmChatMessages } from './LgmChatMessages';
@@ -9,9 +9,26 @@ export const LgmChat = observer(() => {
     const store = useContext(LgmStoreContext);
     const [text, setText] = useState('');
     const wave = useWave();
+    const messagesRef = useRef<HTMLDivElement>(null);
+
+    // Follow new messages only while the user is at (or near) the bottom -
+    // scrolling back to read history must not be hijacked.
+    const messageCount = store.chat.messages.length;
+    useEffect(() => {
+        const el = messagesRef.current;
+        if (!el) return;
+        const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+        if (nearBottom) {
+            el.scrollTop = el.scrollHeight;
+        }
+    }, [messageCount]);
+
     return <div style={RootStyle}>
         <div style={HeaderStyle}>Chat</div>
-        <div style={MessagesContainerStyle}>
+        <div ref={messagesRef} style={MessagesContainerStyle}>
+            {/* spacer keeps a short conversation anchored to the bottom
+                without justify-content:end, which breaks scrolling */}
+            <div style={{ marginTop: 'auto' }} />
             <LgmChatMessages/>
         </div>
         <div style={TextboxContainerStyle}>
@@ -71,7 +88,7 @@ const MessagesContainerStyle: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
-    justifyContent: 'end',
+    overflowY: 'auto',
     margin: '16px 0 16px 0',
 };
 

@@ -713,6 +713,22 @@ export class LgmSessionManager {
                 return true;
             }
 
+            case 'chat' as LgmMessageType: {
+                const session = this.getSessionByClient(ws);
+                if (!session) return false;
+                session.updateActivity();
+                // Stamp server time and echo to EVERYONE (sender included):
+                // clients render chat in serverTs order, so the conversation
+                // reads identically for all participants regardless of how
+                // skewed their local clocks are.
+                const chat = (msg as any).message;
+                if (chat && typeof chat === 'object') {
+                    chat.serverTs = Date.now();
+                }
+                session.broadcast(undefined, msg);
+                return true;
+            }
+
             default: {
                 // For any other LGM message, just broadcast to session
                 const session = this.getSessionByClient(ws);

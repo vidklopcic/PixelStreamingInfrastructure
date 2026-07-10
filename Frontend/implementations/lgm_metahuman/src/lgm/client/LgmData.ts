@@ -5,6 +5,10 @@ export interface LgmChatMessage {
     user: string;
     message: string;
     ts: number;
+    // Stamped by the signalling server on relay. Client clocks skew, so
+    // ordering by sender-side ts shuffled conversations; the server is the
+    // single serialization point.
+    serverTs?: number;
 }
 
 export interface LgmApiMessage {

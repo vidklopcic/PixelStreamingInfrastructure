@@ -22,11 +22,19 @@ export class LgmChatStore {
             message: message,
             ts: Date.now()
         } as LgmChatMessage;
-        this.messages.push(lgmMessage);
+        // No local echo: the server stamps serverTs and broadcasts to
+        // everyone INCLUDING the sender, so all participants render the
+        // conversation in the same (server arrival) order regardless of
+        // how skewed their local clocks are.
         this.base.client.send({
             type: 'chat',
             message: lgmMessage
         });
+    }
+
+    /** Server order when available, sender clock as a legacy fallback. */
+    private static messageOrder(a: LgmChatMessage, b: LgmChatMessage): number {
+        return (a.serverTs ?? a.ts) - (b.serverTs ?? b.ts);
     }
 
     private onMessage(message: LgmApiMessage) {
@@ -45,12 +53,14 @@ export class LgmChatStore {
                     uniqueMessages[message.id] = message;
                 }
                 this.messages = Object.values(uniqueMessages);
-                this.messages.sort((a, b) => a.ts - b.ts);
+                this.messages.sort(LgmChatStore.messageOrder);
                 break;
             case 'chat':
                 const chatMessage = message.message as LgmChatMessage;
-                this.messages.push(chatMessage);
-                this.messages.sort((a, b) => a.ts - b.ts);
+                if (!this.messages.some((m) => m.id === chatMessage.id)) {
+                    this.messages.push(chatMessage);
+                }
+                this.messages.sort(LgmChatStore.messageOrder);
                 break;
         }
     }
