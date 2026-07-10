@@ -8,6 +8,7 @@ import { LgmStudentUi } from './ui/LgmStudentUi';
 import { LgmSupervisorUi } from './ui/LgmSupervisorUi';
 import { Dialog, Fab, Typography } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
+import { LgmRecordingsMenu } from './ui/components/LgmRecordingsMenu';
 
 export const LgmUiWrapper = observer(() => {
     const [lgmStore, setLgmStore] = useState<LgmStore | undefined>(undefined);
@@ -19,6 +20,8 @@ export const LgmUiWrapper = observer(() => {
             {lgmStore?.user.role === LgmRole.student && <LgmStudentUi />}
             {lgmStore?.user.role === LgmRole.supervisor && <LgmSupervisorUi />}
         </div>
+        {lgmStore?.user.role === LgmRole.instructor && lgmStore?.sessionEnded &&
+            <LgmRecordingsMenu fabStyle={{ position: 'fixed', top: 16, left: 16, zIndex: 1400 }} />}
         <Dialog sx={{
             backgroundColor: 'rgba(0, 0, 0, 0.8)'
         }} open={lgmStore?.sessionEnded}

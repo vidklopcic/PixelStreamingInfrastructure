@@ -6,3 +6,4 @@ export * from './LgmSession';
 export * from './LgmSessionManager';
 export * from './LgmExtension';
 export * from './LgmMediaClient';
+export * from './LgmRecordingRoutes';

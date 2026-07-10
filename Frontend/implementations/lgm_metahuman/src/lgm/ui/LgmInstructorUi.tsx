@@ -9,6 +9,7 @@ import { LgmStyles } from './LgmStyles';
 import { LgmUeControls } from './components/LgmUeControls';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
 import { LgmDeviceSettings } from './components/LgmDeviceSettings';
+import { LgmRecordingsMenu } from './components/LgmRecordingsMenu';
 import { ExitToApp, FiberManualRecord, FullscreenExit, Mic, MicOff, PlayArrow, Stop, StopCircle, TransitEnterexit } from '@mui/icons-material';
 import { Fab } from '@mui/material';
 
@@ -67,24 +68,31 @@ export const LgmInstructorUi = observer(() => {
                 {!store.sessionActive && <><PlayArrow />START SESSION</>}
                 {store.sessionActive && <><Stop />END SESSION</>}
             </Fab>
-            <Fab
+            <div
                 style={{
                     position: 'absolute',
                     bottom: 16,
-                    right: 80
-                }}
-                color={store.recording ? 'error' : 'default'}
-                disabled={!store.sessionActive}
-                onClick={() => {
-                    if (store.recording) {
-                        store.stopRecording();
-                    } else {
-                        store.startRecording();
-                    }
+                    right: 80,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8
                 }}>
-                {!store.recording && <FiberManualRecord />}
-                {store.recording && <StopCircle />}
-            </Fab>
+                <LgmRecordingsMenu />
+                <Fab
+                    color={store.recording ? 'error' : 'default'}
+                    disabled={!store.sessionActive}
+                    onClick={() => {
+                        if (store.recording) {
+                            store.stopRecording();
+                        } else {
+                            store.startRecording();
+                        }
+                    }}>
+                    {!store.recording && <FiberManualRecord />}
+                    {store.recording && <StopCircle />}
+                </Fab>
+            </div>
             <div
                 style={{
                     position: 'absolute',

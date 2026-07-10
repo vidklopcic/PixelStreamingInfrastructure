@@ -14,7 +14,7 @@ import { beautify, IProgramOptions } from './Utils';
 import { initInputHandler } from './InputHandler';
 import { Command, Option } from 'commander';
 import { initialize } from 'express-openapi';
-import { createLgmExtension, LgmConfig } from './lgm';
+import { createLgmExtension, LgmConfig, registerLgmRecordingRoutes } from './lgm';
 
 // eslint-disable-next-line  @typescript-eslint/no-unsafe-assignment
 const pjson = require('../package.json');
@@ -271,6 +271,13 @@ if (options.log_config) {
 const app = express();
 if (options.reverse_proxy) {
     app.set('trust proxy', options.reverse_proxy_num_proxies);
+}
+
+// LGM: same-origin recording management (list/download/delete), proxied to
+// the recorder service. Registered before the static webserver so the routes
+// take precedence over SPA file serving.
+if (options.lgm && options.recorder_url) {
+    registerLgmRecordingRoutes(app, options.recorder_url);
 }
 
 const serverOpts: IServerConfig = {

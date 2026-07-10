@@ -50,6 +50,12 @@ export class LgmStore {
         return this.session !== undefined;
     };
 
+    /** Session secret ("password") this store was created for - stays
+     *  available after the session ends (the URL hash is cleared then). */
+    get sessionId(): string {
+        return this.sessionSecret;
+    }
+
     get sessionActive() {
         return this.session?.startedTimestamp !== undefined;
     }
