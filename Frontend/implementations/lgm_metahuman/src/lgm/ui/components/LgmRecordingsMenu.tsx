@@ -16,12 +16,18 @@ import {
     ListItemText,
     Typography
 } from '@mui/material';
-import { Delete, Download, Menu as MenuIcon, Refresh } from '@mui/icons-material';
+import { Delete, Download, FiberManualRecord, Menu as MenuIcon } from '@mui/icons-material';
 
 interface RecordingEntry {
     filename: string;
     sizeBytes: number;
     modifiedAt: string;
+}
+
+interface ActiveRecording {
+    status: 'recording' | 'compositing' | 'done' | 'error';
+    startTime: number;
+    error?: string;
 }
 
 // Same-origin in production; in local dev the UI runs on :3000 while the
@@ -37,34 +43,42 @@ const fileUrl = (session: string, name: string) =>
 const formatSize = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 const formatDate = (iso: string) => new Date(iso).toLocaleString();
 
+const SecondaryTextColor = 'rgba(255, 255, 255, 0.6)';
+const REFRESH_INTERVAL_MS = 4000;
+
 /**
- * Menu FAB (same style as the device-settings FAB) that opens a left drawer
- * listing all recordings stored for the current session secret, with
- * download and delete actions. Platform integration comes later.
+ * Auto-refreshing list of the current session's recordings: shows an
+ * in-flight recording as a pending row (capturing / processing) that
+ * resolves into a downloadable file, plus download/delete per file.
  */
-export const LgmRecordingsMenu = observer((props: { fabStyle?: CSSProperties }) => {
+export const LgmRecordingsList = observer(() => {
     const store = useContext(LgmStoreContext);
-    const [open, setOpen] = React.useState(false);
-    const [loading, setLoading] = React.useState(false);
+    const session = store?.sessionId;
+    const [loaded, setLoaded] = React.useState(false);
     const [error, setError] = React.useState<string | undefined>(undefined);
     const [recordings, setRecordings] = React.useState<RecordingEntry[]>([]);
+    const [active, setActive] = React.useState<ActiveRecording | null>(null);
     const [confirmDelete, setConfirmDelete] = React.useState<string | undefined>(undefined);
-
-    const session = store?.sessionId;
 
     const refresh = React.useCallback(() => {
         if (!session) return;
-        setLoading(true);
-        setError(undefined);
         fetch(listUrl(session))
             .then(async (r) => {
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const data = await r.json();
                 setRecordings(data.recordings ?? []);
+                setActive(data.active ?? null);
+                setError(undefined);
             })
             .catch(() => setError('Failed to load recordings'))
-            .finally(() => setLoading(false));
+            .finally(() => setLoaded(true));
     }, [session]);
+
+    React.useEffect(() => {
+        refresh();
+        const timer = setInterval(refresh, REFRESH_INTERVAL_MS);
+        return () => clearInterval(timer);
+    }, [refresh]);
 
     const doDelete = (name: string) => {
         if (!session) return;
@@ -76,72 +90,53 @@ export const LgmRecordingsMenu = observer((props: { fabStyle?: CSSProperties }) 
 
     if (!session) return null;
 
+    const pending = active && (active.status === 'recording' || active.status === 'compositing');
+
     return <>
-        <Fab
-            size={'small'}
-            style={props.fabStyle}
-            onClick={() => {
-                setOpen(true);
-                refresh();
-            }}>
-            <MenuIcon fontSize={'small'} />
-        </Fab>
-        <Drawer
-            anchor={'left'}
-            open={open}
-            onClose={() => setOpen(false)}
-            sx={{ zIndex: 1450 }}
-            PaperProps={{
-                sx: {
-                    backgroundColor: '#141414',
-                    backgroundImage: 'none',
-                    color: 'white'
-                }
-            }}>
-            <div style={DrawerContentStyle}>
-                <div style={HeaderStyle}>
-                    <Typography variant={'h6'}>Recordings</Typography>
-                    <IconButton onClick={refresh} disabled={loading} sx={{ color: 'white' }}>
-                        <Refresh />
-                    </IconButton>
+        {!loaded && <div style={CenterStyle}><CircularProgress size={24} color={'secondary'} /></div>}
+        {error && <Typography color={'error'} style={{ marginTop: 8 }}>{error}</Typography>}
+        {loaded && !error && recordings.length === 0 && !pending &&
+            <Typography sx={{ color: SecondaryTextColor, marginTop: 1 }}>
+                No recordings for this session yet.
+            </Typography>}
+        <List dense>
+            {pending && <ListItem>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {active!.status === 'recording'
+                        ? <FiberManualRecord color={'error'} fontSize={'small'} />
+                        : <CircularProgress size={16} color={'secondary'} />}
+                    <ListItemText
+                        primary={active!.status === 'recording' ? 'Recording…' : 'Processing…'}
+                        secondary={`started ${new Date(active!.startTime).toLocaleTimeString()}`}
+                        secondaryTypographyProps={{ sx: { color: SecondaryTextColor } }}
+                    />
                 </div>
-                <Typography variant={'body2'} sx={{ color: SecondaryTextColor }}>
-                    Session: {session}
-                </Typography>
-                {loading && <div style={CenterStyle}><CircularProgress size={24} color={'secondary'} /></div>}
-                {error && <Typography color={'error'} style={{ marginTop: 16 }}>{error}</Typography>}
-                {!loading && !error && recordings.length === 0 &&
-                    <Typography sx={{ color: SecondaryTextColor, marginTop: 2 }}>
-                        No recordings for this session yet.
-                    </Typography>}
-                <List dense>
-                    {recordings.map((r) => <ListItem
-                        key={r.filename}
-                        secondaryAction={<>
-                            <IconButton
-                                component={'a'}
-                                href={fileUrl(session, r.filename)}
-                                download={r.filename}
-                                sx={{ color: 'white' }}>
-                                <Download />
-                            </IconButton>
-                            <IconButton
-                                edge={'end'}
-                                onClick={() => setConfirmDelete(r.filename)}
-                                sx={{ color: 'white' }}>
-                                <Delete />
-                            </IconButton>
-                        </>}>
-                        <ListItemText
-                            primary={formatDate(r.modifiedAt)}
-                            secondary={`${r.filename} · ${formatSize(r.sizeBytes)}`}
-                            secondaryTypographyProps={{ sx: { color: SecondaryTextColor } }}
-                            style={{ paddingRight: 48 }}
-                        />
-                    </ListItem>)}
-                </List>
-            </div>
-        </Drawer>
+            </ListItem>}
+            {recordings.map((r) => <ListItem
+                key={r.filename}
+                secondaryAction={<>
+                    <IconButton
+                        component={'a'}
+                        href={fileUrl(session, r.filename)}
+                        download={r.filename}
+                        sx={{ color: 'white' }}>
+                        <Download />
+                    </IconButton>
+                    <IconButton
+                        edge={'end'}
+                        onClick={() => setConfirmDelete(r.filename)}
+                        sx={{ color: 'white' }}>
+                        <Delete />
+                    </IconButton>
+                </>}>
+                <ListItemText
+                    primary={formatDate(r.modifiedAt)}
+                    secondary={`${r.filename} · ${formatSize(r.sizeBytes)}`}
+                    secondaryTypographyProps={{ sx: { color: SecondaryTextColor } }}
+                    style={{ paddingRight: 48 }}
+                />
+            </ListItem>)}
+        </List>
         <Dialog
             open={confirmDelete !== undefined}
             onClose={() => setConfirmDelete(undefined)}
@@ -168,7 +163,45 @@ export const LgmRecordingsMenu = observer((props: { fabStyle?: CSSProperties }) 
     </>;
 });
 
-const SecondaryTextColor = 'rgba(255, 255, 255, 0.6)';
+/**
+ * Menu FAB (same style as the device-settings FAB) opening a left drawer
+ * with the session's recordings - used in the live instructor UI.
+ */
+export const LgmRecordingsMenu = observer((props: { fabStyle?: CSSProperties }) => {
+    const store = useContext(LgmStoreContext);
+    const [open, setOpen] = React.useState(false);
+
+    if (!store?.sessionId) return null;
+
+    return <>
+        <Fab
+            size={'small'}
+            style={props.fabStyle}
+            onClick={() => setOpen(true)}>
+            <MenuIcon fontSize={'small'} />
+        </Fab>
+        <Drawer
+            anchor={'left'}
+            open={open}
+            onClose={() => setOpen(false)}
+            sx={{ zIndex: 1450 }}
+            PaperProps={{
+                sx: {
+                    backgroundColor: '#141414',
+                    backgroundImage: 'none',
+                    color: 'white'
+                }
+            }}>
+            <div style={DrawerContentStyle}>
+                <Typography variant={'h6'}>Recordings</Typography>
+                <Typography variant={'body2'} sx={{ color: SecondaryTextColor }}>
+                    Session: {store.sessionId}
+                </Typography>
+                <LgmRecordingsList />
+            </div>
+        </Drawer>
+    </>;
+});
 
 const DrawerContentStyle: CSSProperties = {
     width: 360,
@@ -176,12 +209,6 @@ const DrawerContentStyle: CSSProperties = {
     padding: 16,
     display: 'flex',
     flexDirection: 'column'
-};
-
-const HeaderStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between'
 };
 
 const CenterStyle: CSSProperties = {
