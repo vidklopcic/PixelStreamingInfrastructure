@@ -18,6 +18,12 @@ export interface LgmConfig {
     mediaServerUrl?: string;
     /** URL of the recorder service */
     recorderUrl?: string;
+    /** STUN/TURN servers passed to clients for mediasoup transports -
+     *  without a TURN fallback, clients on networks that block the
+     *  media-server port range can never establish ICE (webcam/mic paths
+     *  fail in an endless recovery loop while Pixel Streaming, which has
+     *  TURN, keeps working). Same list as the Pixel Streaming peerOptions. */
+    iceServers?: unknown[];
 }
 
 /**

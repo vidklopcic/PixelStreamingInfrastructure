@@ -281,6 +281,11 @@ export class LgmWebRTCStore {
             iceParameters: data.iceParameters,
             iceCandidates: data.iceCandidates,
             dtlsParameters: data.dtlsParameters,
+            // TURN fallback: on networks that block the media-server port
+            // range, direct ICE to its host candidates can never establish
+            // (endless recover/rejoin loop, silent mic). A relay candidate
+            // via coturn still reaches the server. Direct stays preferred.
+            iceServers: data.iceServers as any,
         });
 
         this.watchTransport(this.sendTransport, 'send');
@@ -372,6 +377,8 @@ export class LgmWebRTCStore {
             iceParameters: data.iceParameters,
             iceCandidates: data.iceCandidates,
             dtlsParameters: data.dtlsParameters,
+            // see setupSendTransport - TURN fallback for blocked networks
+            iceServers: data.iceServers as any,
         });
 
         this.watchTransport(this.recvTransport, 'recv');

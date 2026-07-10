@@ -325,6 +325,7 @@ if (options.lgm) {
         sessionTimeoutMs: parseInt(options.session_timeout, 10),
         mediaServerUrl: options.media_server_url || undefined,
         recorderUrl: options.recorder_url || undefined,
+        iceServers: options.peer_options?.iceServers || undefined,
     };
     const lgmExtension = createLgmExtension(signallingServer, lgmConfig);
     Logger.info(`LGM extension enabled with LiveLink ports: ${options.live_link_ports.join(', ')}`);

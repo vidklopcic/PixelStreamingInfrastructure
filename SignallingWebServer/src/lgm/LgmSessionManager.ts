@@ -376,7 +376,9 @@ export class LgmSessionManager {
                         this.sendTo(ws, session.sessionSecret, {
                             type: LgmMessageType.TransportCreated,
                             namespace: 'lgm',
-                            data: result
+                            // iceServers give the client a TURN fallback for
+                            // networks that block the media-server port range
+                            data: { ...result, iceServers: this.config.iceServers }
                         });
                     })
                     .catch((err) => {
@@ -390,7 +392,7 @@ export class LgmSessionManager {
                                     this.sendTo(ws, session.sessionSecret, {
                                         type: LgmMessageType.TransportCreated,
                                         namespace: 'lgm',
-                                        data: result
+                                        data: { ...result, iceServers: this.config.iceServers }
                                     });
                                 })
                                 .catch((retryErr) => {

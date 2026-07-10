@@ -56,6 +56,9 @@ export interface TransportCreatedData {
     iceParameters: any;
     iceCandidates: any[];
     dtlsParameters: any;
+    // STUN/TURN servers from the signalling config - the TURN relay is the
+    // only path to the media server on networks that block its port range.
+    iceServers?: any[];
 }
 
 export interface ProduceResponseData {
