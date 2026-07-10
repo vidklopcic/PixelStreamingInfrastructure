@@ -90,21 +90,28 @@ export const LgmRecordingsMenu = observer((props: { fabStyle?: CSSProperties }) 
             anchor={'left'}
             open={open}
             onClose={() => setOpen(false)}
-            sx={{ zIndex: 1450 }}>
+            sx={{ zIndex: 1450 }}
+            PaperProps={{
+                sx: {
+                    backgroundColor: '#141414',
+                    backgroundImage: 'none',
+                    color: 'white'
+                }
+            }}>
             <div style={DrawerContentStyle}>
                 <div style={HeaderStyle}>
                     <Typography variant={'h6'}>Recordings</Typography>
-                    <IconButton onClick={refresh} disabled={loading}>
+                    <IconButton onClick={refresh} disabled={loading} sx={{ color: 'white' }}>
                         <Refresh />
                     </IconButton>
                 </div>
-                <Typography variant={'body2'} color={'text.secondary'}>
+                <Typography variant={'body2'} sx={{ color: SecondaryTextColor }}>
                     Session: {session}
                 </Typography>
-                {loading && <div style={CenterStyle}><CircularProgress size={24} /></div>}
+                {loading && <div style={CenterStyle}><CircularProgress size={24} color={'secondary'} /></div>}
                 {error && <Typography color={'error'} style={{ marginTop: 16 }}>{error}</Typography>}
                 {!loading && !error && recordings.length === 0 &&
-                    <Typography color={'text.secondary'} style={{ marginTop: 16 }}>
+                    <Typography sx={{ color: SecondaryTextColor, marginTop: 2 }}>
                         No recordings for this session yet.
                     </Typography>}
                 <List dense>
@@ -114,16 +121,21 @@ export const LgmRecordingsMenu = observer((props: { fabStyle?: CSSProperties }) 
                             <IconButton
                                 component={'a'}
                                 href={fileUrl(session, r.filename)}
-                                download={r.filename}>
+                                download={r.filename}
+                                sx={{ color: 'white' }}>
                                 <Download />
                             </IconButton>
-                            <IconButton edge={'end'} onClick={() => setConfirmDelete(r.filename)}>
+                            <IconButton
+                                edge={'end'}
+                                onClick={() => setConfirmDelete(r.filename)}
+                                sx={{ color: 'white' }}>
                                 <Delete />
                             </IconButton>
                         </>}>
                         <ListItemText
                             primary={formatDate(r.modifiedAt)}
                             secondary={`${r.filename} · ${formatSize(r.sizeBytes)}`}
+                            secondaryTypographyProps={{ sx: { color: SecondaryTextColor } }}
                             style={{ paddingRight: 48 }}
                         />
                     </ListItem>)}
@@ -133,10 +145,21 @@ export const LgmRecordingsMenu = observer((props: { fabStyle?: CSSProperties }) 
         <Dialog
             open={confirmDelete !== undefined}
             onClose={() => setConfirmDelete(undefined)}
-            sx={{ zIndex: 1500 }}>
+            sx={{ zIndex: 1500 }}
+            PaperProps={{
+                // the app theme makes dialog paper transparent (session-ended
+                // screen relies on it) - this dialog needs a real surface
+                sx: {
+                    backgroundColor: '#1e1e1e',
+                    color: 'white',
+                    boxShadow: '0 0 24px rgba(0, 0, 0, 0.8)',
+                    borderRadius: 2,
+                    padding: 1
+                }
+            }}>
             <DialogTitle>Delete recording {confirmDelete}?</DialogTitle>
             <DialogActions>
-                <Button onClick={() => setConfirmDelete(undefined)}>Cancel</Button>
+                <Button sx={{ color: 'white' }} onClick={() => setConfirmDelete(undefined)}>Cancel</Button>
                 <Button color={'error'} onClick={() => confirmDelete && doDelete(confirmDelete)}>
                     Delete
                 </Button>
@@ -144,6 +167,8 @@ export const LgmRecordingsMenu = observer((props: { fabStyle?: CSSProperties }) 
         </Dialog>
     </>;
 });
+
+const SecondaryTextColor = 'rgba(255, 255, 255, 0.6)';
 
 const DrawerContentStyle: CSSProperties = {
     width: 360,

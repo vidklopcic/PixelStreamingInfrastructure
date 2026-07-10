@@ -68,31 +68,25 @@ export const LgmInstructorUi = observer(() => {
                 {!store.sessionActive && <><PlayArrow />START SESSION</>}
                 {store.sessionActive && <><Stop />END SESSION</>}
             </Fab>
-            <div
+            <LgmRecordingsMenu fabStyle={{ position: 'absolute', top: 8, left: 8, zIndex: 5 }} />
+            <Fab
                 style={{
                     position: 'absolute',
                     bottom: 16,
-                    right: 80,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 8
+                    right: 80
+                }}
+                color={store.recording ? 'error' : 'default'}
+                disabled={!store.sessionActive}
+                onClick={() => {
+                    if (store.recording) {
+                        store.stopRecording();
+                    } else {
+                        store.startRecording();
+                    }
                 }}>
-                <LgmRecordingsMenu />
-                <Fab
-                    color={store.recording ? 'error' : 'default'}
-                    disabled={!store.sessionActive}
-                    onClick={() => {
-                        if (store.recording) {
-                            store.stopRecording();
-                        } else {
-                            store.startRecording();
-                        }
-                    }}>
-                    {!store.recording && <FiberManualRecord />}
-                    {store.recording && <StopCircle />}
-                </Fab>
-            </div>
+                {!store.recording && <FiberManualRecord />}
+                {store.recording && <StopCircle />}
+            </Fab>
             <div
                 style={{
                     position: 'absolute',
