@@ -201,8 +201,9 @@ export class LgmStore {
                 this.recording = message.data?.recording ?? false;
                 // The server reports recording failures (capture produced no
                 // video, compositing failed, recorder restarted) through this
-                // message so every client resets AND sees why.
-                if (message.data?.error) {
+                // message so every client resets its recording state. Only the
+                // instructor - who owns the recording - sees the error toast.
+                if (message.data?.error && this.user.role === LgmRole.instructor) {
                     toast.error(message.data.error);
                 }
                 break;
