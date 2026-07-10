@@ -698,6 +698,10 @@ export class LgmSessionManager {
                             namespace: 'lgm',
                             data: { recording: false }
                         });
+                        // Compositing continues in the background on the
+                        // recorder - keep watching so a failed composite
+                        // still reaches the instructor as an error toast.
+                        this.watchCompositing(session);
                     })
                     .catch((err) => {
                         // The stop itself resets everyone's recording state;
@@ -793,6 +797,54 @@ export class LgmSessionManager {
                 });
         };
         this.recordingPollers.set(key, setTimeout(tick, 5000));
+    }
+
+    /**
+     * After a stop, compositing runs asynchronously on the recorder. Poll
+     * until it finishes: 'done' or 404 (session removed after success) end
+     * the watch silently - clients see the file via their list refresh -
+     * while 'error' is broadcast so the instructor learns the recording
+     * was lost. Bounded to ~10 minutes.
+     */
+    private watchCompositing(session: LgmSession): void {
+        const key = session.sessionSecret;
+        this.stopRecordingWatch(key);
+        if (!this.recorderUrl) return;
+
+        let attempts = 0;
+        const tick = () => {
+            attempts++;
+            fetch(`${this.recorderUrl}/sessions/${encodeURIComponent(key)}/status`)
+                .then(async (resp) => {
+                    if (!this.recordingPollers.has(key)) return;
+                    if (resp.status === 404) {
+                        this.stopRecordingWatch(key);
+                        return;
+                    }
+                    const status = (await resp.json()) as { status?: string; error?: string };
+                    if (status.status === 'error') {
+                        this.stopRecordingWatch(key);
+                        Logger.error(`LGM: compositing failed for ${key}: ${status.error}`);
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.RecordingStatus,
+                            namespace: 'lgm',
+                            data: { recording: false, error: 'Recording failed - no video was saved' }
+                        });
+                        return;
+                    }
+                    if (status.status === 'done' || attempts > 200) {
+                        this.stopRecordingWatch(key);
+                        return;
+                    }
+                    this.recordingPollers.set(key, setTimeout(tick, 3000));
+                })
+                .catch(() => {
+                    if (this.recordingPollers.has(key) && attempts <= 200) {
+                        this.recordingPollers.set(key, setTimeout(tick, 3000));
+                    }
+                });
+        };
+        this.recordingPollers.set(key, setTimeout(tick, 2000));
     }
 
     private stopRecordingWatch(sessionSecret: string): void {

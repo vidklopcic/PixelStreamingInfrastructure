@@ -112,6 +112,14 @@ export const LgmRecordingsList = observer(() => {
                     />
                 </div>
             </ListItem>}
+            {active?.status === 'error' && <ListItem>
+                <ListItemText
+                    primary={'Recording failed'}
+                    primaryTypographyProps={{ color: 'error' }}
+                    secondary={'No video was saved'}
+                    secondaryTypographyProps={{ sx: { color: SecondaryTextColor } }}
+                />
+            </ListItem>}
             {recordings.map((r) => <ListItem
                 key={r.filename}
                 secondaryAction={<>
