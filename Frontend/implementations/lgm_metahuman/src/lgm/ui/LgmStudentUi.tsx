@@ -9,6 +9,7 @@ import { Badge, Fab, Typography } from '@mui/material';
 import { Chat, ChevronLeft, Mic, MicOff, Videocam } from '@mui/icons-material';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
 import { LgmDeviceSettings } from './components/LgmDeviceSettings';
+import { LgmConnectionBanner } from './components/LgmConnectionBanner';
 
 export const LgmStudentUi = observer(() => {
     const store = useContext(LgmStoreContext);
@@ -16,6 +17,7 @@ export const LgmStudentUi = observer(() => {
     const [chat, setChat] = React.useState(false);
     const [lastChatCount, setLastChatCount] = React.useState(0);
     return <div style={RootStyle}>
+        <LgmConnectionBanner />
         <div style={UnrealStyle(chat)}>
             {store.sessionActive && <LgmUnreal cover />}
             {!store.sessionActive && <LgmUnrealPlaceholder />}

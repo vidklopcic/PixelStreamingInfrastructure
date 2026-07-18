@@ -10,6 +10,7 @@ import { LgmUeControls } from './components/LgmUeControls';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
 import { LgmDeviceSettings } from './components/LgmDeviceSettings';
 import { LgmRecordingsMenu } from './components/LgmRecordingsMenu';
+import { LgmConnectionBanner } from './components/LgmConnectionBanner';
 import { ExitToApp, FiberManualRecord, FullscreenExit, Mic, MicOff, PlayArrow, Stop, StopCircle, TransitEnterexit } from '@mui/icons-material';
 import { Fab } from '@mui/material';
 
@@ -18,6 +19,7 @@ export const LgmInstructorUi = observer(() => {
     const peerStreams = store.webrtc.peerStreams;
     const peerAudioStreams = store.webrtc.peerAudioStreams;
     return <div style={RootStyle}>
+        <LgmConnectionBanner />
         {!!peerAudioStreams?.length && peerAudioStreams.map((s, i) => <LgmAudioStream key={i} stream={s} />)}
         <div style={StreamsStyle}>
             <div style={{
