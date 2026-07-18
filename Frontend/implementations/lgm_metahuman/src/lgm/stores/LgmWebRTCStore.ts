@@ -29,6 +29,7 @@ export class LgmWebRTCStore {
     localStream?: MediaStream = undefined;
     accessRejected = false;
     muted = false;
+    cameraOff = false;
     // Consecutive media recoveries without a transport ever (re)connecting.
     // Drives the "your network is blocking media" banner - on hostile
     // networks (e.g. UDP blocked and TURN unreachable) the pipeline used to
@@ -85,6 +86,15 @@ export class LgmWebRTCStore {
         autorun(() => {
             if (!this.localStream) return;
             this.localStream.getAudioTracks().forEach((track) => track.enabled = !this.muted);
+        });
+
+        // Camera control - same mechanism as the mic: a disabled track keeps
+        // the producer alive and transmits black frames, so the far side sees
+        // the tile go dark (not frozen) and it recovers instantly on unmute.
+        // The local self-view uses the same stream and goes dark too.
+        autorun(() => {
+            if (!this.localStream) return;
+            this.localStream.getVideoTracks().forEach((track) => track.enabled = !this.cameraOff);
         });
     }
 
