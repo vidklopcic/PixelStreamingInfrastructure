@@ -6,7 +6,7 @@ import { LgmStoreContext } from '../stores/LgmStore';
 import { LgmAudioStream } from './components/chat/LgmAudioStream';
 import { LgmChat } from './components/chat/LgmChat';
 import { Badge, Fab, Typography } from '@mui/material';
-import { Chat, ChevronLeft, Mic, MicOff, Videocam } from '@mui/icons-material';
+import { Chat, ChevronLeft, Mic, MicOff, Videocam, VideocamOff } from '@mui/icons-material';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
 import { LgmDeviceSettings } from './components/LgmDeviceSettings';
 import { LgmConnectionBanner } from './components/LgmConnectionBanner';
@@ -48,6 +48,13 @@ export const LgmStudentUi = observer(() => {
                     }}>
                     {!store.webrtc.muted && <Mic />}
                     {store.webrtc.muted && <MicOff />}
+                </Fab>
+                <Fab
+                    onClick={() => {
+                        store.webrtc.cameraOff = !store.webrtc.cameraOff;
+                    }}>
+                    {!store.webrtc.cameraOff && <Videocam />}
+                    {store.webrtc.cameraOff && <VideocamOff />}
                 </Fab>
             </div>
             {store.webrtc.localStream && <LgmVideoStream
