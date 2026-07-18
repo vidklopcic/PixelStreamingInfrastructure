@@ -708,10 +708,11 @@ export class LgmSessionManager {
                         // the error field makes the failure visible instead of
                         // pretending a recording was saved.
                         Logger.error(`LGM: stopRecording failed: ${err}`);
+                        const reason = err instanceof Error ? err.message : String(err);
                         session.broadcast(undefined, {
                             type: LgmMessageType.RecordingStatus,
                             namespace: 'lgm',
-                            data: { recording: false, error: 'Recording failed - no video was saved' }
+                            data: { recording: false, error: `Recording failed - ${reason || 'unknown error'}` }
                         });
                     });
                 return true;
@@ -828,7 +829,7 @@ export class LgmSessionManager {
                         session.broadcast(undefined, {
                             type: LgmMessageType.RecordingStatus,
                             namespace: 'lgm',
-                            data: { recording: false, error: 'Recording failed - no video was saved' }
+                            data: { recording: false, error: `Recording failed - ${status.error || 'no video was saved'}` }
                         });
                         return;
                     }

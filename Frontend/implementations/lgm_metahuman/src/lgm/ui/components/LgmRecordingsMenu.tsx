@@ -116,7 +116,7 @@ export const LgmRecordingsList = observer(() => {
                 <ListItemText
                     primary={'Recording failed'}
                     primaryTypographyProps={{ color: 'error' }}
-                    secondary={'No video was saved'}
+                    secondary={active.error || 'No video was saved'}
                     secondaryTypographyProps={{ sx: { color: SecondaryTextColor } }}
                 />
             </ListItem>}
