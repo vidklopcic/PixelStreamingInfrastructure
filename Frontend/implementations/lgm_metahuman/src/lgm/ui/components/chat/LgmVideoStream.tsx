@@ -8,6 +8,8 @@ interface LgmVideoStreamProps {
     style?: CSSProperties;
     muted?: boolean;
     canHide?: boolean;
+    // Rendered inside the (relative) tile - e.g. a speaking indicator
+    overlay?: React.ReactNode;
 }
 
 export const LgmVideoStream = observer((props: LgmVideoStreamProps) => {
@@ -62,5 +64,6 @@ export const LgmVideoStream = observer((props: LgmVideoStreamProps) => {
             }}>
             <Videocam />
         </Fab>
+        {visible && props.overlay}
     </div>;
 });

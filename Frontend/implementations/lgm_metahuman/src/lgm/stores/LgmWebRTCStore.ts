@@ -110,6 +110,27 @@ export class LgmWebRTCStore {
             .filter((stream) => stream.getVideoTracks().length === 0);
     }
 
+    /**
+     * Consumers grouped per remote user (audio and video arrive as separate
+     * consumers sharing producerUserId). Lets the UI attach a user's audio
+     * (e.g. a speaking indicator) to their video tile.
+     */
+    get peerMedia(): { userId?: string; video?: MediaStream; audio?: MediaStream }[] {
+        const byUser = new Map<string, { userId?: string; video?: MediaStream; audio?: MediaStream }>();
+        let anon = 0;
+        for (const entry of this.consumerEntries.values()) {
+            const key = entry.producerUserId ?? `anon-${anon++}`;
+            const rec = byUser.get(key) ?? { userId: entry.producerUserId };
+            if (entry.stream.getVideoTracks().length > 0) {
+                rec.video = entry.stream;
+            } else {
+                rec.audio = entry.stream;
+            }
+            byUser.set(key, rec);
+        }
+        return Array.from(byUser.values());
+    }
+
     private async onMessage(message: LgmApiMessage) {
         switch (message.type) {
             case 'media-capabilities':
