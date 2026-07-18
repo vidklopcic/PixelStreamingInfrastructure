@@ -24,6 +24,9 @@ export class LgmSessionManager {
 
     // Active recording watchdog pollers (sessionSecret -> timer)
     private recordingPollers: Map<string, NodeJS.Timeout> = new Map();
+    // consumer-resume requests from students parked until session start
+    // (consumers are created paused on the media server) - see ConsumerResume
+    private heldStudentResumes: Map<string, Set<string>> = new Map();
 
     constructor(config: LgmConfig) {
         this.config = config;
@@ -218,6 +221,7 @@ export class LgmSessionManager {
         this.sessions.delete(sessionSecret);
         this.sessionRtpCapabilities.delete(sessionSecret);
         this.stopRecordingWatch(sessionSecret);
+        this.heldStudentResumes.delete(sessionSecret);
 
         // Delete media session on media-server (async, non-blocking)
         if (this.mediaClient) {
@@ -235,6 +239,24 @@ export class LgmSessionManager {
      */
     getStreamerIndex(sessionSecret: string): number | undefined {
         return this.sessions.get(sessionSecret)?.streamerIndex;
+    }
+
+    /**
+     * Replay consumer resumes that were parked while the session had not
+     * started yet. Stale ids (student reconnected pre-start) fail the resume
+     * harmlessly - the reconnect created fresh consumers that were parked too.
+     */
+    private releaseHeldResumes(session: LgmSession): void {
+        const held = this.heldStudentResumes.get(session.sessionSecret);
+        if (!held || !this.mediaClient) return;
+        this.heldStudentResumes.delete(session.sessionSecret);
+        for (const consumerId of Array.from(held)) {
+            Logger.info(`LGM: releasing held consumer ${consumerId} resume for started session ${session.sessionSecret}`);
+            this.mediaClient.resumeConsumer(session.sessionSecret, consumerId)
+                .catch((err) => {
+                    Logger.warn(`LGM: held resumeConsumer ${consumerId} failed: ${err}`);
+                });
+        }
     }
 
     /**
@@ -349,6 +371,7 @@ export class LgmSessionManager {
                 session.updateActivity();
                 if ((msg.data as LgmSessionData)?.startedTimestamp) {
                     session.setStarted((msg.data as LgmSessionData).startedTimestamp!);
+                    this.releaseHeldResumes(session);
                 }
                 session.broadcast(userId, msg);
                 return true;
@@ -371,6 +394,10 @@ export class LgmSessionManager {
                 session.updateActivity();
 
                 const { role } = msg.data as any;
+                const transportClient = session.getClient(userId);
+                if (transportClient && role) {
+                    transportClient.role = role;
+                }
                 this.mediaClient.createTransport(session.sessionSecret, role, userId)
                     .then((result) => {
                         this.sendTo(ws, session.sessionSecret, {
@@ -509,6 +536,24 @@ export class LgmSessionManager {
                 session.updateActivity();
 
                 const { consumerId } = msg.data as any;
+                // Students must not hear/see anything before the instructor
+                // starts the session (7/15 feedback: instructor audio was
+                // audible in the pre-start waiting screen). Consumers are
+                // created paused on the media server, so parking the resume
+                // fully gates RTP; it is replayed on session start. The
+                // instructor keeps consuming pre-start - the student preview
+                // is how they check the setup works before starting.
+                const resumeClient = session.getClient(userId);
+                if (resumeClient?.role === 'student' && !session.isStarted) {
+                    let held = this.heldStudentResumes.get(session.sessionSecret);
+                    if (!held) {
+                        held = new Set();
+                        this.heldStudentResumes.set(session.sessionSecret, held);
+                    }
+                    held.add(consumerId);
+                    Logger.info(`LGM: holding consumer ${consumerId} resume for student ${userId} until session start`);
+                    return true;
+                }
                 this.mediaClient.resumeConsumer(session.sessionSecret, consumerId)
                     .catch((err) => {
                         Logger.error(`LGM: resumeConsumer failed: ${err}`);

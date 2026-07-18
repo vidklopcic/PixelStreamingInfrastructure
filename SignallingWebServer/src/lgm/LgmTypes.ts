@@ -85,6 +85,9 @@ export interface LgmClient {
     ws: WebSocket;
     userId: string;
     playerId?: string;
+    // Learned from the first create-transport (clients state their role
+    // there); used to gate what students may consume before session start.
+    role?: string;
 }
 
 /**
