@@ -11,6 +11,7 @@ import { LgmSessionInfo } from './components/LgmSessionInfo';
 import { LgmDeviceSettings } from './components/LgmDeviceSettings';
 import { LgmRecordingsMenu } from './components/LgmRecordingsMenu';
 import { LgmConnectionBanner } from './components/LgmConnectionBanner';
+import { LgmSpeakingIndicator } from './components/LgmSpeakingIndicator';
 import { ExitToApp, FiberManualRecord, FullscreenExit, Mic, MicOff, PlayArrow, Stop, StopCircle, TransitEnterexit } from '@mui/icons-material';
 import { Fab } from '@mui/material';
 
@@ -31,10 +32,11 @@ export const LgmInstructorUi = observer(() => {
                         interactive={true}
                         cover radius />
                 </div>
-                {!!peerStreams?.length && peerStreams.map((s) => <LgmVideoStream
-                    key={s.id}
-                    stream={s}
+                {store.webrtc.peerMedia.filter((p) => p.video).map((p) => <LgmVideoStream
+                    key={p.video!.id}
+                    stream={p.video!}
                     style={VideoTileStyle}
+                    overlay={<LgmSpeakingIndicator stream={p.audio} />}
                 />)}
             </div>
             <div style={{

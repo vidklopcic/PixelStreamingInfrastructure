@@ -29,8 +29,11 @@ export const AudioNormalizationControl = observer(() => {
             width: '100%',
             boxSizing: 'border-box',
         }}>
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1 }}>
+                My microphone
+            </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Tooltip title="Microphone level sent to the voice changer">
+                <Tooltip title="Your own microphone level sent to the voice changer - this does NOT indicate audio from the student">
                     <Mic sx={{ fontSize: 18, color: 'rgba(255,255,255,0.8)' }} />
                 </Tooltip>
                 <Slider
