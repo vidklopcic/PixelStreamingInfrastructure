@@ -118,16 +118,19 @@ export class LgmWebRTCStore {
     get peerMedia(): { userId?: string; video?: MediaStream; audio?: MediaStream }[] {
         const byUser = new Map<string, { userId?: string; video?: MediaStream; audio?: MediaStream }>();
         let anon = 0;
-        for (const entry of this.consumerEntries.values()) {
+        Array.from(this.consumerEntries.values()).forEach((entry) => {
             const key = entry.producerUserId ?? `anon-${anon++}`;
-            const rec = byUser.get(key) ?? { userId: entry.producerUserId };
+            let rec = byUser.get(key);
+            if (!rec) {
+                rec = { userId: entry.producerUserId };
+                byUser.set(key, rec);
+            }
             if (entry.stream.getVideoTracks().length > 0) {
                 rec.video = entry.stream;
             } else {
                 rec.audio = entry.stream;
             }
-            byUser.set(key, rec);
-        }
+        });
         return Array.from(byUser.values());
     }
 
