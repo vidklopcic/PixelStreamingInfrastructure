@@ -7,12 +7,14 @@ import { LgmChat } from './components/chat/LgmChat';
 import { LgmStyles } from './LgmStyles';
 import { LgmAudioStream } from './components/chat/LgmAudioStream';
 import { LgmSessionInfo } from './components/LgmSessionInfo';
+import { LgmConnectionBanner } from './components/LgmConnectionBanner';
 
 export const LgmSupervisorUi = observer(() => {
     const store = useContext(LgmStoreContext);
     const peerStreams = store.webrtc.peerStreams;
     const peerAudioStreams = store.webrtc.peerAudioStreams;
     return <div style={RootStyle}>
+        <LgmConnectionBanner />
         <div style={StreamsStyle}>
             <div style={LgmUnrealContainerStyle}>
                 <LgmUnreal cover radius />

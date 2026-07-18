@@ -29,6 +29,11 @@ export class LgmWebRTCStore {
     localStream?: MediaStream = undefined;
     accessRejected = false;
     muted = false;
+    // Consecutive media recoveries without a transport ever (re)connecting.
+    // Drives the "your network is blocking media" banner - on hostile
+    // networks (e.g. UDP blocked and TURN unreachable) the pipeline used to
+    // rebuild silently every ~70s forever with no hint to the user.
+    mediaFailureCount = 0;
     audioInputDevices: MediaDeviceInfo[] = [];
     audioOutputDevices: MediaDeviceInfo[] = [];
     micDeviceId = '';
@@ -183,16 +188,30 @@ export class LgmWebRTCStore {
     private recoverMedia(reason: string) {
         if (this.recovering) return;
         this.recovering = true;
-        console.warn(`[WebRTC] Recovering media pipeline: ${reason}`);
+        runInAction(() => this.mediaFailureCount++);
+        // Back off between attempts - each cycle costs the server a fresh set
+        // of transports that time out after 60s, and a network that blocks
+        // media rarely unblocks seconds later. Tear down immediately so dead
+        // tiles disappear; re-join after the delay.
+        const backoffMs = Math.min((this.mediaFailureCount - 1) * 5000, 30000);
+        console.warn(`[WebRTC] Recovering media pipeline: ${reason} (attempt ${this.mediaFailureCount}, rejoin in ${backoffMs}ms)`);
         this.resetTransports();
-        this.base.resendJoin();
-        // Failsafe: if media-capabilities never arrives, allow another attempt
         setTimeout(() => {
-            if (this.recovering) {
-                console.warn('[WebRTC] Media recovery did not complete within 15s, re-arming');
-                this.recovering = false;
-            }
-        }, 15000);
+            if (!this.recovering) return;
+            this.base.resendJoin();
+            // Failsafe: if media-capabilities never arrives, allow another attempt
+            setTimeout(() => {
+                if (this.recovering) {
+                    console.warn('[WebRTC] Media recovery did not complete within 15s, re-arming');
+                    this.recovering = false;
+                }
+            }, 15000);
+        }, backoffMs);
+    }
+
+    /** True when media has failed repeatedly with no successful connection between. */
+    get mediaBlocked(): boolean {
+        return this.mediaFailureCount >= 3;
     }
 
     /**
@@ -205,6 +224,9 @@ export class LgmWebRTCStore {
         transport.on('connectionstatechange', (state: string) => {
             console.log(`[WebRTC] ${label} transport connection state: ${state}`);
             if (state === 'connected') {
+                // A real connection resets the failure streak (and hides the
+                // network-blocked banner if it was up).
+                runInAction(() => (this.mediaFailureCount = 0));
                 if (graceTimer) {
                     clearTimeout(graceTimer);
                     graceTimer = undefined;
