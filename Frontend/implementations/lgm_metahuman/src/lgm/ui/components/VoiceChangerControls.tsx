@@ -12,6 +12,12 @@ import {
 const ACCENT = '#5b7cdb';
 const OK = '#7bc67e';
 const ERR = '#e57373';
+const WARN = '#e0a458';
+
+// Past roughly this much shift, RVC starts mangling consonants - testers who
+// swept the slider to -15 reported the avatar "sounding like a child with a
+// speech impediment" and read it as the voice changer being broken.
+const PITCH_WARN_ST = 8;
 
 /** Small colored dot + label describing the current voice changer state. */
 export const VoiceChangerStatus = observer(({ withLabel = true }: { withLabel?: boolean }) => {
@@ -186,6 +192,53 @@ export const VoiceChangerControls = observer(() => {
                     Applied when voice changing is turned on.
                 </Typography>
             )}
+
+            <PitchGuidance pitch={vc.pitch} />
         </Box>
     );
 });
+
+/**
+ * The single most common reason the avatar sounds wrong is a pitch that suits
+ * neither the speaker nor the model, so this sits under the slider rather than
+ * in documentation nobody opens.
+ */
+const PitchGuidance = ({ pitch }: { pitch: number }) => {
+    const tooFar = Math.abs(pitch) >= PITCH_WARN_ST;
+
+    return (
+        <Box
+            sx={{
+                mt: '14px',
+                p: '10px 12px',
+                borderRadius: '8px',
+                border: '1px solid',
+                borderColor: tooFar ? 'rgba(224,164,88,0.55)' : 'rgba(255,255,255,0.15)',
+                backgroundColor: tooFar ? 'rgba(224,164,88,0.10)' : 'rgba(255,255,255,0.04)',
+            }}
+        >
+            <Typography
+                variant="caption"
+                sx={{ display: 'block', fontSize: 12, fontWeight: 700, color: tooFar ? WARN : '#ddd', mb: '4px' }}
+            >
+                Set the pitch for your own voice
+            </Typography>
+            <Typography
+                variant="caption"
+                sx={{ display: 'block', fontSize: 11.5, lineHeight: 1.5, color: 'rgba(255,255,255,0.6)' }}
+            >
+                Every voice needs a different pitch, and the right value differs for each
+                person speaking. Keep talking while you adjust: start at 0 and move one
+                step at a time until the avatar sounds natural.
+            </Typography>
+            <Typography
+                variant="caption"
+                sx={{ display: 'block', fontSize: 11.5, lineHeight: 1.5, mt: '6px', color: tooFar ? WARN : 'rgba(255,255,255,0.6)' }}
+            >
+                {tooFar
+                    ? `${pitch > 0 ? '+' : ''}${pitch} st is a long way from 0 — at this setting the voice usually turns garbled or slurred. Move back toward 0 and adjust in smaller steps.`
+                    : 'If the voice sounds garbled, robotic or slurred, the pitch is too far off — move it back toward 0 and try smaller steps.'}
+            </Typography>
+        </Box>
+    );
+};
