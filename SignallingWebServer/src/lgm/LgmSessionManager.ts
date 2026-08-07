@@ -867,7 +867,7 @@ export class LgmSessionManager {
                         this.stopRecordingWatch(key);
                         return;
                     }
-                    const status = (await resp.json()) as { status?: string; error?: string };
+                    const status = (await resp.json()) as { status?: string; error?: string; outputPath?: string };
                     if (status.status === 'error') {
                         this.stopRecordingWatch(key);
                         Logger.error(`LGM: compositing failed for ${key}: ${status.error}`);
@@ -878,7 +878,22 @@ export class LgmSessionManager {
                         });
                         return;
                     }
-                    if (status.status === 'done' || attempts > 200) {
+                    if (status.status === 'done') {
+                        // Say so explicitly: testers ended sessions not knowing
+                        // whether anything was saved (2026-08-07). The recorder
+                        // keeps finished sessions visible for a minute so this
+                        // poll actually observes 'done' instead of a 404.
+                        this.stopRecordingWatch(key);
+                        const file = status.outputPath?.split('/').pop();
+                        Logger.info(`LGM: recording saved for ${key}: ${file ?? 'unknown file'}`);
+                        session.broadcast(undefined, {
+                            type: LgmMessageType.RecordingStatus,
+                            namespace: 'lgm',
+                            data: { recording: false, saved: file ?? true }
+                        });
+                        return;
+                    }
+                    if (attempts > 200) {
                         this.stopRecordingWatch(key);
                         return;
                     }

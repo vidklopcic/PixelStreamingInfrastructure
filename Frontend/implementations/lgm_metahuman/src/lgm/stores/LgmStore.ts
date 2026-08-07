@@ -206,6 +206,16 @@ export class LgmStore {
                 if (message.data?.error && this.user.role === LgmRole.instructor) {
                     toast.error(message.data.error);
                 }
+                // Compositing finished server-side: confirm the save, by name.
+                // Without this the instructor ended sessions never knowing
+                // whether a recording actually made it to disk.
+                if (message.data?.saved && this.user.role === LgmRole.instructor) {
+                    toast.success(
+                        typeof message.data.saved === 'string'
+                            ? `Recording saved (${message.data.saved})`
+                            : 'Recording saved'
+                    );
+                }
                 break;
             case 'error':
                 this.errorCode = message.code;

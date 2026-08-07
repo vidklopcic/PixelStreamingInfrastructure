@@ -75,8 +75,11 @@ export const PixelStreamingWrapper = ({
                 }
             }, 5000);
 
+            const freezeState = { framesReceived: 0, lastAdvanceMs: Date.now(), lastForcedMs: 0 };
             streaming.addEventListener('webRtcConnected', () => {
                 connState.connected = true;
+                freezeState.framesReceived = 0;
+                freezeState.lastAdvanceMs = Date.now();
                 onConneced?.(true);
             });
             streaming.addEventListener('webRtcDisconnected', () => {
@@ -84,6 +87,46 @@ export const PixelStreamingWrapper = ({
                 // let the library's own auto-reconnect go first
                 connState.lastAttemptMs = Date.now();
                 onConneced?.(false);
+            });
+
+            // Frozen-but-connected watchdog: the streamer can silently stop
+            // sending video to one peer while its connection stays healthy -
+            // in production this happens within seconds of any other viewer
+            // joining or leaving (2026-08-06/07: the student's avatar froze
+            // whenever a recording stopped). The connection-level recovery
+            // above never fires for it because nothing disconnects. Detect it
+            // by frame flow - framesReceived is network-level, so a
+            // backgrounded tab that only stops decoding doesn't false-alarm -
+            // and resubscribe; a fresh subscribe reliably gets an immediate
+            // keyframe. Cooldown keeps a genuinely broken network from
+            // reconnect-storming on top of the periodic retry.
+            const FREEZE_TIMEOUT_MS = 6000;
+            const FREEZE_RECONNECT_COOLDOWN_MS = 20000;
+            streaming.addEventListener('statsReceived', (e: any) => {
+                try {
+                    const frames = e.data?.aggregatedStats?.inboundVideoStats?.framesReceived;
+                    if (!connState.connected || frames === undefined) return;
+                    const now = Date.now();
+                    if (frames > freezeState.framesReceived) {
+                        freezeState.framesReceived = frames;
+                        freezeState.lastAdvanceMs = now;
+                        return;
+                    }
+                    if (
+                        now - freezeState.lastAdvanceMs > FREEZE_TIMEOUT_MS &&
+                        now - freezeState.lastForcedMs > FREEZE_RECONNECT_COOLDOWN_MS
+                    ) {
+                        freezeState.lastForcedMs = now;
+                        freezeState.lastAdvanceMs = now;
+                        console.warn(`[metka-reconnect] video frozen (no frames for ${FREEZE_TIMEOUT_MS / 1000}s while connected) - resubscribing`);
+                        connState.lastAttemptMs = now;
+                        try {
+                            streaming.reconnect();
+                        } catch {
+                        }
+                    }
+                } catch {
+                }
             });
 
             // Compact WebRTC stats line every 5s for diagnosing stream glitches
