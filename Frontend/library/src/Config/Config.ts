@@ -662,7 +662,7 @@ export class Config {
             new SettingNumber(
                 NumericParameters.StreamStallTimeoutSecs,
                 'Stream Stall Timeout',
-                'Seconds without a newly decoded video frame before the stream is considered stalled and a reconnect is attempted. 0 disables stall detection.',
+                'Seconds without a newly decoded video frame (despite keyframe requests) before a reconnect is attempted. Also enables the fast reconnect when video packets stop arriving. 0 disables stall detection.',
                 0 /*min*/,
                 60 /*max*/,
                 settings &&

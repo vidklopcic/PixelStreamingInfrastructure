@@ -59,6 +59,15 @@ import { GamepadController } from '../Inputs/GamepadController';
 import { LatencyInfo } from '../PeerConnectionController/LatencyCalculator';
 import { BrowserUtils } from '../Util/BrowserUtils';
 
+// Stall watchdog tuning (see detectStreamStall). Stats arrive every ~1s.
+// No RTP for this long while "connected" = the streamer stopped serving us.
+const PACKET_STALL_TIMEOUT_MS = 3000;
+// Decode stalled this long with RTP still flowing = ask for a keyframe; also
+// the spacing between requests (the streamer answers in ~1s).
+const DECODE_STALL_REQUEST_MS = 1000;
+// Keyframe requests to try before StreamStallTimeoutSecs falls back to a reconnect.
+const MAX_IFRAME_REQUESTS_BEFORE_RECONNECT = 2;
+
 /**
  * Entry point for the WebRTC Player
  */
@@ -107,6 +116,10 @@ export class WebRtcPlayerController {
     iceDisconnectRecoveryHandle: number | undefined;
     stallLastFramesDecoded: number | undefined;
     stallLastAdvanceTimeMs: number;
+    stallLastPacketsReceived: number | undefined;
+    stallLastPacketAdvanceTimeMs: number;
+    stallIframeRequests: number;
+    stallLastIframeRequestMs: number;
     disconnectMessage: string;
     subscribedStream: string;
     signallingUrlBuilder: () => string;
@@ -302,6 +315,10 @@ export class WebRtcPlayerController {
         this.iceDisconnectRecoveryHandle = undefined;
         this.stallLastFramesDecoded = undefined;
         this.stallLastAdvanceTimeMs = 0;
+        this.stallLastPacketsReceived = undefined;
+        this.stallLastPacketAdvanceTimeMs = 0;
+        this.stallIframeRequests = 0;
+        this.stallLastIframeRequestMs = 0;
 
         this.config._addOnOptionSettingChangedListener(OptionParameters.StreamerId, (streamerid) => {
             if (streamerid === undefined || streamerid === '') {
@@ -2008,30 +2025,89 @@ export class WebRtcPlayerController {
     }
 
     /**
-     * Watchdog for a dead media path: the signalling websocket and ICE state can both look
-     * healthy while no video is actually being decoded (e.g. after congestion ate the only
-     * keyframe). If decoded frames stop advancing while the video should be playing, force
-     * a reconnect to get a fresh peer connection and keyframe.
+     * Watchdog for a stalled video path. Two distinct failure modes were isolated against
+     * the production streamer (2026-08-28) and they need opposite responses:
+     *
+     * Mode 1 - decode desync: RTP keeps arriving but the decoder has lost its reference
+     * chain (a delay spike dropped frames on a ~100s GOP). The streamer ignores RTCP PLI
+     * but honours the data-channel IFrameRequest within ~1s, so ask for a keyframe and
+     * keep the peer connection. Reconnecting here is not just slow - it is what starts a
+     * freeze cascade, because...
+     *
+     * Mode 2 - feed death: the streamer silently stops sending RTP to one peer (ICE and
+     * the peer connection stay "connected") whenever ANOTHER peer resubscribes. A keyframe
+     * request does nothing for it; only a fresh subscribe recovers. Detect it on the
+     * network counter and reconnect promptly - every second here is a frozen avatar.
+     *
+     * StreamStallTimeoutSecs bounds Mode 1: a decode stall that outlives that many seconds
+     * despite keyframe requests falls back to a reconnect. 0 disables both watchdogs.
      */
     private detectStreamStall(stats: AggregatedStats) {
         const timeoutSecs = this.config.getNumericSettingValue(NumericParameters.StreamStallTimeoutSecs);
-        const framesDecoded = stats.inboundVideoStats?.framesDecoded;
-        if (timeoutSecs <= 0 || framesDecoded === undefined) {
+        const video = stats.inboundVideoStats;
+        const framesDecoded = video?.framesDecoded;
+        const packetsReceived = video?.packetsReceived;
+        if (timeoutSecs <= 0 || framesDecoded === undefined || packetsReceived === undefined) {
             return;
         }
         const now = Date.now();
+
+        // Network liveness (Mode 2). Sampled every ~1s; a 30fps feed never goes this long
+        // without a packet unless the streamer has stopped serving this peer.
+        if (this.stallLastPacketsReceived === undefined || packetsReceived !== this.stallLastPacketsReceived) {
+            this.stallLastPacketsReceived = packetsReceived;
+            this.stallLastPacketAdvanceTimeMs = now;
+        }
+        const packetsFlowing = now - this.stallLastPacketAdvanceTimeMs < PACKET_STALL_TIMEOUT_MS;
+
+        // Decode liveness (Mode 1).
         if (this.stallLastFramesDecoded === undefined || framesDecoded !== this.stallLastFramesDecoded) {
             this.stallLastFramesDecoded = framesDecoded;
             this.stallLastAdvanceTimeMs = now;
-            return;
+            this.stallIframeRequests = 0;
         }
+
         if (this.isReconnecting || this.videoPlayer.isPaused()) {
             this.stallLastAdvanceTimeMs = now;
+            this.stallLastPacketAdvanceTimeMs = now;
             return;
         }
-        if (now - this.stallLastAdvanceTimeMs >= timeoutSecs * 1000) {
+
+        if (!packetsFlowing) {
             Logger.Warning(
-                `No video frames decoded for ${timeoutSecs}s while the stream should be playing - reconnecting.`
+                `No video packets received for ${PACKET_STALL_TIMEOUT_MS / 1000}s while connected - the streamer has stopped serving this peer, reconnecting.`
+            );
+            this.attemptStreamRecovery('Video feed stopped.');
+            return;
+        }
+
+        const decodeStalledMs = now - this.stallLastAdvanceTimeMs;
+        if (decodeStalledMs < DECODE_STALL_REQUEST_MS) {
+            return;
+        }
+        // A hidden tab may legitimately stop decoding; never escalate on its behalf.
+        if (typeof document !== 'undefined' && document.hidden) {
+            return;
+        }
+        if (now - this.stallLastIframeRequestMs < DECODE_STALL_REQUEST_MS) {
+            return;
+        }
+        if (this.stallIframeRequests < MAX_IFRAME_REQUESTS_BEFORE_RECONNECT && decodeStalledMs < timeoutSecs * 1000) {
+            this.stallIframeRequests++;
+            this.stallLastIframeRequestMs = now;
+            Logger.Warning(
+                `Video packets arriving but nothing decoded for ${(decodeStalledMs / 1000).toFixed(1)}s - requesting keyframe (${this.stallIframeRequests}/${MAX_IFRAME_REQUESTS_BEFORE_RECONNECT}).`
+            );
+            try {
+                this.sendIframeRequest();
+            } catch (e) {
+                Logger.Warning(`Keyframe request failed: ${e}`);
+            }
+            return;
+        }
+        if (decodeStalledMs >= timeoutSecs * 1000) {
+            Logger.Warning(
+                `No video frames decoded for ${(decodeStalledMs / 1000).toFixed(1)}s and ${this.stallIframeRequests} keyframe request(s) went unanswered - reconnecting.`
             );
             this.attemptStreamRecovery('Video stream stalled.');
         }
@@ -2039,6 +2115,9 @@ export class WebRtcPlayerController {
 
     private resetStreamStallDetection() {
         this.stallLastFramesDecoded = undefined;
+        this.stallLastPacketsReceived = undefined;
+        this.stallIframeRequests = 0;
+        this.stallLastIframeRequestMs = 0;
     }
 
     private clearIceDisconnectRecoveryTimer() {
