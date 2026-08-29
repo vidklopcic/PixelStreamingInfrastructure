@@ -27,6 +27,9 @@ export class LgmSessionManager {
     // consumer-resume requests from students parked until session start
     // (consumers are created paused on the media server) - see ConsumerResume
     private heldStudentResumes: Map<string, Set<string>> = new Map();
+    /** Fired after a session is torn down, for cleanup the manager cannot do
+     *  itself (the extension owns the PixelStreaming player bindings). */
+    onSessionClosed?: (sessionSecret: string) => void;
 
     constructor(config: LgmConfig) {
         this.config = config;
@@ -231,6 +234,7 @@ export class LgmSessionManager {
         }
 
         Logger.info(`LGM: Closed session ${sessionSecret}`);
+        this.onSessionClosed?.(sessionSecret);
         return true;
     }
 

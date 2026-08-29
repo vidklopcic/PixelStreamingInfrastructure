@@ -12,7 +12,10 @@ interface LgmUnrealProps {
 
 export const LgmUnreal = observer((props: LgmUnrealProps) => {
     const store = useContext(LgmStoreContext);
-    if (!store || !store.hasSession) {
+    // Unmounting on session end is what disconnects the PixelStreaming player
+    // (the wrapper's cleanup) and stops its reconnect loops - otherwise the
+    // socket stays subscribed to the streamer for as long as the tab is open.
+    if (!store || !store.hasSession || store.sessionEnded) {
         return null;
     }
 
@@ -81,7 +84,11 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             // (inactivity timeout during a long outage) and only succeeds after
             // LgmClient re-joins and re-creates it - keep re-sending until the
             // stream is actually up. The server ignores duplicates once bound.
-            setInterval(() => {
+            const rebindTimer = setInterval(() => {
+                if (store.sessionEnded) {
+                    clearInterval(rebindTimer);
+                    return;
+                }
                 if (!store.pixelStreamingConnected) {
                     sendSessionId();
                 }

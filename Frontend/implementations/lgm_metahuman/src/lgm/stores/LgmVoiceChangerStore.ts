@@ -33,8 +33,12 @@ export class LgmVoiceChangerStore {
         // The UI slider / auto-normalizer computes the gain in-browser, but
         // it is APPLIED as a static multiplier in the voice changer server
         // (an in-browser WebAudio send path corrupted the outgoing audio).
-        audioNormalizer.sink = (gain) => this.setGain(gain);
+        audioNormalizer.sink = this.gainSink;
     }
+
+    // Kept as a stable reference so dispose() can tell whether the singleton
+    // normalizer still points at THIS store before unhooking it.
+    private readonly gainSink = (gain: number) => this.setGain(gain);
 
     private onMessage(message: LgmApiMessage) {
         switch (message.type) {
@@ -148,5 +152,12 @@ export class LgmVoiceChangerStore {
         });
     }
 
-    dispose() {}
+    dispose() {
+        // The normalizer is a module singleton that outlives the session; left
+        // hooked, its poll kept pushing gain into the disposed client
+        // ("Trying to send message on disposed client {type: 'vc-set-gain'}").
+        if (audioNormalizer.sink === this.gainSink) {
+            audioNormalizer.sink = null;
+        }
+    }
 }

@@ -669,6 +669,9 @@ export class LgmWebRTCStore {
 
     dispose() {
         navigator.mediaDevices?.removeEventListener?.('devicechange', this.onDeviceChange);
+        // Stop the level-analysis poll and drop its tap on the mic before the
+        // track is stopped below; otherwise it polls a dead analyser forever.
+        audioNormalizer.teardown();
         this.resetTransports();
         // Producers no longer stop tracks on close (stopTracks: false), so
         // release the capture devices explicitly on final teardown.

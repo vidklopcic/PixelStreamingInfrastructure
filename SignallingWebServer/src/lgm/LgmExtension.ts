@@ -49,6 +49,7 @@ export class LgmExtension {
         this.server = server;
         this.config = config;
         this.sessionManager = new LgmSessionManager(config);
+        this.sessionManager.onSessionClosed = (sessionSecret) => this.evictSessionPlayers(sessionSecret);
 
         // Initialize streamer connections array
         for (let i = 0; i < config.streamerPorts.length; i++) {
@@ -329,6 +330,33 @@ export class LgmExtension {
 
         // Send streamer list now that binding exists
         this.handleFilteredListStreamers(player, session.streamerIndex);
+    }
+
+    /**
+     * Drop every player socket still bound to a session that just closed.
+     * Session close only reaches LGM clients; a PixelStreaming player left
+     * open keeps its streamer subscription, so UE keeps encoding for a viewer
+     * that no longer exists and the slot stays taken (2026-08-28: a player
+     * lingered 10+ minutes after its session closed). Closing the socket runs
+     * the normal player-disconnect path (unsubscribe, registry removal).
+     */
+    private evictSessionPlayers(sessionSecret: string): void {
+        for (const [playerId, binding] of Array.from(this.playerSessionBindings.entries())) {
+            if (binding.sessionSecret !== sessionSecret) {
+                continue;
+            }
+            this.playerSessionBindings.delete(playerId);
+            const player = this.server.playerRegistry.get(playerId) as any;
+            if (!player) {
+                continue;
+            }
+            Logger.info(`LGM: Evicting player ${playerId} - session ${sessionSecret} closed`);
+            try {
+                player.protocol?.disconnect(1000, 'session closed');
+            } catch (err) {
+                Logger.warn(`LGM: Failed to evict player ${playerId}: ${err}`);
+            }
+        }
     }
 
     /**
