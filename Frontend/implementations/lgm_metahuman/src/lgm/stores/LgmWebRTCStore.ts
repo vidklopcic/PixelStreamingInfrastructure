@@ -63,7 +63,16 @@ export class LgmWebRTCStore {
                 // changer depends on a consistent input level. (An in-browser
                 // WebAudio gain stage was tried instead of AGC and corrupted
                 // the outgoing audio - see LgmAudioNormalizer.)
-                audio: { autoGainControl: true, echoCancellation: true, noiseSuppression: true }
+                // Chrome's noise suppression mangles the waveform in a way
+                // that garbles RVC conversion ("eaten words"; bisected
+                // 2026-09-01: NS alone reproduces it, AGC+EC are innocent),
+                // so it stays OFF for the instructor - the only role whose
+                // mic feeds the voice changer. Students keep it.
+                audio: {
+                    autoGainControl: true,
+                    echoCancellation: true,
+                    noiseSuppression: this.base.user.role !== LgmRole.instructor
+                }
             }).then(async (stream) => {
                 this.localStream = stream;
                 // Device labels are only available after permission is granted
@@ -622,7 +631,9 @@ export class LgmWebRTCStore {
                     ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
                     autoGainControl: true,
                     echoCancellation: true,
-                    noiseSuppression: true
+                    // NS garbles RVC - keep it off for the instructor mic
+                    // (see the produce-time constraints above).
+                    noiseSuppression: !isInstructor
                 }
             });
             const newTrack = newStream.getAudioTracks()[0];
