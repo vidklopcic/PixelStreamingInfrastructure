@@ -4,6 +4,14 @@ import { LgmStoreContext } from '../../stores/LgmStore';
 import { LgmConfig } from '../../LgmConfig';
 import { PixelStreamingWrapper } from '../../../components/PixelStreamingWrapper';
 
+// Experiment hook (2026-09 freeze harness): `#stall=<secs>` overrides the
+// library's stream-stall watchdog timeout (default 5); 0 disables the watchdog
+// so a killed feed can be observed instead of reconnected.
+const STALL_TIMEOUT_OVERRIDE: number | undefined = (() => {
+    const v = new URLSearchParams(window.location.hash.substring(1)).get('stall');
+    return v === null || v === '' || isNaN(Number(v)) ? undefined : Number(v);
+})();
+
 interface LgmUnrealProps {
     interactive?: boolean;
     cover?: boolean;
@@ -40,6 +48,7 @@ export const LgmUnreal = observer((props: LgmUnrealProps) => {
             // the library max; the wrapper's periodic retry then takes over, so
             // in practice we never stop trying.
             MaxReconnectAttempts: 999,
+            ...(STALL_TIMEOUT_OVERRIDE !== undefined ? { StreamStallTimeoutSecs: STALL_TIMEOUT_OVERRIDE } : {}),
         }}
         onStreamingCreated={(streaming) => {
             store.pixelStreaming = streaming;

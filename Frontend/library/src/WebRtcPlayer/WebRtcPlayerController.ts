@@ -68,6 +68,14 @@ const DECODE_STALL_REQUEST_MS = 1000;
 // Keyframe requests to try before StreamStallTimeoutSecs falls back to a reconnect.
 const MAX_IFRAME_REQUESTS_BEFORE_RECONNECT = 2;
 
+function layerPreferenceSuppressed(): boolean {
+    try {
+        return new URLSearchParams(window.location.hash.substring(1)).get('nolayerpref') === '1';
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Entry point for the WebRTC Player
  */
@@ -337,6 +345,14 @@ export class WebRtcPlayerController {
             OptionParameters.PreferredQuality,
             (preferredQuality) => {
                 if (preferredQuality === undefined || preferredQuality === '') {
+                    return;
+                }
+                // Experiment hook (2026-09 freeze harness): `#nolayerpref=1`
+                // suppresses the layerPreference message a plain (non-SFU,
+                // non-SVC) player sends on every offer - it is meaningless
+                // without layers and is one of the suspected join-side
+                // triggers of the "new peer stops video for everyone" bug.
+                if (!this.isUsingSFU && !this.isUsingSVC && layerPreferenceSuppressed()) {
                     return;
                 }
 

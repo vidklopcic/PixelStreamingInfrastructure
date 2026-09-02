@@ -113,6 +113,19 @@ export class LgmSession {
     }
 
     /**
+     * True when at least one client socket is still open. `clients` is only
+     * pruned lazily (on broadcast), so a session whose tab was closed keeps
+     * reporting clients for a while - this is the check that matters when
+     * deciding whether its streamer slot can be reclaimed.
+     */
+    hasLiveClients(): boolean {
+        for (const client of this.clients.values()) {
+            if (client.ws.readyState === WebSocket.OPEN) return true;
+        }
+        return false;
+    }
+
+    /**
      * Get client count
      */
     get clientCount(): number {

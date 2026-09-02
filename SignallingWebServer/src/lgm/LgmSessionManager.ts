@@ -116,6 +116,25 @@ export class LgmSessionManager {
     }
 
     /**
+     * Close sessions whose every client socket is gone. The inactivity sweep
+     * only looks at lastMessageTs (30 s), so a session abandoned seconds ago
+     * still held the streamer slot and the next create-session was rejected
+     * ("slots held by: 1 (0 clients, last activity 6s ago)", 2026-09-02).
+     * Only called when the slots are exhausted; the 5 s floor keeps a client
+     * that is mid-reconnect (WiFi switch) from losing its session.
+     */
+    private reclaimAbandonedSessions(): number {
+        const now = Date.now();
+        const toClose = Array.from(this.sessions.values()).filter(s =>
+            !s.hasLiveClients() && now - s.lastMessageTs > 5000);
+        for (const session of toClose) {
+            Logger.info(`LGM: Reclaiming abandoned session ${session.sessionSecret} (no live clients)`);
+            this.closeSession(session.sessionSecret);
+        }
+        return toClose.length;
+    }
+
+    /**
      * Get the next available streamer index
      */
     private getNextStreamerIndex(): number {
@@ -276,6 +295,9 @@ export class LgmSessionManager {
 
                 if (msg.type === LgmMessageType.CreateSession) {
                     if (!this.hasSession(data.sessionSecret)) {
+                        if (!this.canCreateSession()) {
+                            this.reclaimAbandonedSessions();
+                        }
                         if (!this.canCreateSession()) {
                             // Log who is holding the slots - "maximum sessions
                             // reached" reports were untraceable without this
